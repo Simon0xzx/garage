@@ -13,8 +13,8 @@ from garage.torch import set_gpu_mode
 from garage.torch.algos import PEARL
 from garage.torch.algos.pearl import PEARLWorker
 from garage.torch.embeddings import MLPEncoder
-from garage.torch.policies import (ContextConditionedPolicy,
-                                   TanhGaussianMLPPolicy)
+from garage.torch.policies import ContextConditionedPolicy
+from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
@@ -32,9 +32,10 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=150)
+@click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def pearl_metaworld_ml1_push(ctxt=None,
+def pearl_metaworld_ml1_pick_place(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
@@ -96,11 +97,11 @@ def pearl_metaworld_ml1_push(ctxt=None,
                             encoder_hidden_size)
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+        normalize(mwb.ML1.get_train_tasks('pick-place-v1'))))
     env = env_sampler.sample(num_train_tasks)
 
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks('push-v1'))))
+        normalize(mwb.ML1.get_test_tasks('pick-place-v1'))))
 
     runner = LocalRunner(ctxt)
 
@@ -155,4 +156,4 @@ def pearl_metaworld_ml1_push(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 
-pearl_metaworld_ml1_push()
+pearl_metaworld_ml1_reach()

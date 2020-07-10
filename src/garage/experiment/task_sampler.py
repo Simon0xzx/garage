@@ -158,6 +158,16 @@ class SetTaskSampler(TaskSampler):
             for task in self._env.sample_tasks(n_tasks)
         ]
 
+    def sample_with_goals(self, n_tasks):
+        env_goals = self._env.env.env.active_env.discrete_goals
+        sampled_env = []
+        for task in self._env.sample_tasks(n_tasks):
+            task['info'] = env_goals[task['goal']]
+            task_update = SetTaskUpdate(self._env_constructor, task)
+            sampled_env.append(task_update)
+
+        return sampled_env
+
 
 class EnvPoolSampler(TaskSampler):
     """TaskSampler that samples from a finite pool of environments.
