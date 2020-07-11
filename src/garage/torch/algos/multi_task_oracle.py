@@ -208,7 +208,6 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         """
         data = self.__dict__.copy()
         del data['_replay_buffers']
-        del data['_context_replay_buffers']
         return data
 
     def __setstate__(self, state):
@@ -692,16 +691,6 @@ class MULTITASKORACLEWorker(DefaultWorker):
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
-            if self._accum_context:
-                s = TimeStep(env_spec=self.env,
-                             observation=self._prev_obs,
-                             next_observation=next_o,
-                             action=a,
-                             reward=float(r),
-                             terminal=d,
-                             env_info=env_info,
-                             agent_info=agent_info)
-                self.agent.update_context(s)
             if not d:
                 self._prev_obs = next_o
                 return False

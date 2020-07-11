@@ -90,8 +90,6 @@ def multitask_oracle_metaworld_ml1_reach(ctxt=None,
 
     """
     set_seed(seed)
-    encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
-                            encoder_hidden_size)
     # create multi-task environment and sample tasks
     train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('reach-v1')))
     env_sampler = SetTaskSampler(lambda: train_env)
