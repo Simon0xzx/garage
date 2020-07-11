@@ -52,7 +52,7 @@ def multitask_oracle_metaworld_ml1_reach(ctxt=None,
                              max_path_length=150,
                              reward_scale=10.,
                              use_gpu=True,
-                             gpu_id = 1):
+                             gpu_id = 0):
     """Train MULTITASKORACLE with ML1 environments.
 
     Args:

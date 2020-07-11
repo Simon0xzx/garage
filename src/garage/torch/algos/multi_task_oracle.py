@@ -716,6 +716,7 @@ class MULTITASKORACLEWorker(DefaultWorker):
             garage.TrajectoryBatch: The collected trajectory.
 
         """
+        self.agent.infer_posterior(np.array([self.env.env.active_env.goal]))
         self.start_rollout()
         while not self.step_rollout():
             pass
