@@ -34,7 +34,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--seed', default=1)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def deeper_multitask_oracle_metaworld_ml1_reach(ctxt=None,
+def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
                              seed=1,
                              num_epochs=500,
                              num_train_tasks=50,
@@ -92,11 +92,11 @@ def deeper_multitask_oracle_metaworld_ml1_reach(ctxt=None,
     """
     set_seed(seed)
     # create multi-task environment and sample tasks
-    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('reach-v1')))
+    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('pick_place-v1')))
     env_sampler = SetTaskSampler(lambda: train_env)
     env = env_sampler.sample_with_goals(num_train_tasks)
 
-    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('reach-v1')))
+    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('pick_place-v1')))
     test_env_sampler = SetTaskSampler(lambda: test_env)
 
     runner = LocalRunner(ctxt)
@@ -152,4 +152,4 @@ def deeper_multitask_oracle_metaworld_ml1_reach(ctxt=None,
 
 
 
-deeper_multitask_oracle_metaworld_ml1_reach()
+deeper_multitask_oracle_metaworld_ml1_pick_place()

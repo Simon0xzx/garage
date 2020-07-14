@@ -18,11 +18,11 @@ def read_progress_file(file_path):
                 data_dict[k].append(v)
     return data_dict
 
-def plot_curve(matplot, path, exp_name, format='-', label='', plot_train = True):
+def plot_curve(matplot, path, exp_name, format='-', label='', success_rate = True):
     result_path = os.path.join(path, exp_name, 'progress.csv')
     data_dict = read_progress_file(result_path)
     x = data_dict['TotalEnvSteps']
-    if plot_train:
+    if success_rate:
         y = data_dict['MetaTest/Average/SuccessRate']
     else:
         y = data_dict['MetaTest/Average/AverageReturn'] # MetaTest/Average/SuccessRate
@@ -56,21 +56,50 @@ def plot_curve_avg(matplot, root_path, exps, format='-', label='', plot_train = 
 
 def plot_exp():
     reprodction_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-    fig, axs = plt.subplots(2, 2)
+    fig, axs = plt.subplots(2, 3)
 
     axs[0][0].set_title('Meta Test Avg Return Push')
-    plot_curve(axs[0][0], reprodction_path, 'pearl_metaworld_ml1_push', '-',
-               'pearl_metaworld_ml1_push', plot_train=False)
-    axs[0][1].set_title('Meta Test Avg Return Reach')
-    plot_curve(axs[0][1], reprodction_path, 'pearl_metaworld_ml1_reach', '-',
-               'pearl_metaworld_ml1_push', plot_train=False)
+    plot_curve(axs[0][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
+               'pearl_metaworld_ml1_push', success_rate=False)
+    plot_curve(axs[0][0], reprodction_path, 'multitask_oracle_metaworld_ml1_push', '-',
+               'multitask_oracle_metaworld_ml1_push', success_rate=False)
 
-    axs[1][0].set_title('Meta Test Avg Success Rate Push')
-    plot_curve(axs[1][0], reprodction_path, 'pearl_metaworld_ml1_push', '-',
-               'pearl_metaworld_ml1_push', plot_train=True)
-    axs[1][1].set_title('Meta Test Avg Success Rate Reach')
-    plot_curve(axs[1][1], reprodction_path, 'pearl_metaworld_ml1_reach', '-',
-               'pearl_metaworld_ml1_push', plot_train=True)
+    axs[0][1].set_title('Meta Test Avg Return Reach')
+    plot_curve(axs[0][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
+               'pearl_metaworld_ml1_reach', success_rate=False)
+    plot_curve(axs[0][1], reprodction_path, 'multitask_oracle_metaworld_ml1_reach', '-',
+               'multitask_oracle_metaworld_ml1_reach', success_rate=False)
+
+    axs[0][2].set_title('Meta Test Avg Return Pick Place')
+    plot_curve(axs[0][2], reprodction_path, 'pearl_metaworld_ml1_pick-place', '-',
+               'pearl_metaworld_ml1_pick-place', success_rate=False)
+    plot_curve(axs[0][2], reprodction_path,
+               'multitask_oracle_metaworld_ml1_pick_place', '-',
+               'multitask_oracle_metaworld_ml1_pick_place', success_rate=False)
+
+
+    axs[1][0].set_title('Meta Test Success Rate Push')
+    plot_curve(axs[1][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
+               'pearl_metaworld_ml1_push', success_rate=True)
+    plot_curve(axs[1][0], reprodction_path,
+               'multitask_oracle_metaworld_ml1_push', '-',
+               'multitask_oracle_metaworld_ml1_push', success_rate=True)
+
+    axs[1][1].set_title('Meta Test Success Rate Reach')
+    plot_curve(axs[1][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
+               'pearl_metaworld_ml1_reach', success_rate=True)
+    plot_curve(axs[1][1], reprodction_path,
+               'multitask_oracle_metaworld_ml1_reach', '-',
+               'multitask_oracle_metaworld_ml1_reach', success_rate=True)
+
+    axs[1][2].set_title('Meta Test Success Rate Pick Place')
+    plot_curve(axs[1][2], reprodction_path, 'pearl_metaworld_ml1_pick-place',
+               '-',
+               'pearl_metaworld_ml1_pick-place', success_rate=True)
+    plot_curve(axs[1][2], reprodction_path,
+               'multitask_oracle_metaworld_ml1_pick_place', '-',
+               'multitask_oracle_metaworld_ml1_pick_place', success_rate=True)
+
 
     plt.show()
 

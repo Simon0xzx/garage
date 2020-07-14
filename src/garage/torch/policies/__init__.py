@@ -8,12 +8,13 @@ from garage.torch.policies.policy import Policy
 from garage.torch.policies.tanh_gaussian_mlp_policy import (
     TanhGaussianMLPPolicy)
 from garage.torch.policies.oracle_conditioned_policy import OracleConditionedPolicy
-
+from garage.torch.policies.tanh_gaussian_context_emphasized_policy import TanhGaussianContextEmphasizedPolicy
 __all__ = [
     'DeterministicMLPPolicy',
     'GaussianMLPPolicy',
     'Policy',
     'TanhGaussianMLPPolicy',
     'ContextConditionedPolicy',
-    'OracleConditionedPolicy'
+    'OracleConditionedPolicy',
+    'TanhGaussianContextEmphasizedPolicy'
 ]
