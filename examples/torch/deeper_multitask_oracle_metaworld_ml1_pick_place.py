@@ -92,11 +92,11 @@ def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
     """
     set_seed(seed)
     # create multi-task environment and sample tasks
-    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('pick_place-v1')))
+    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('pick-place-v1')))
     env_sampler = SetTaskSampler(lambda: train_env)
     env = env_sampler.sample_with_goals(num_train_tasks)
 
-    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('pick_place-v1')))
+    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('pick-place-v1')))
     test_env_sampler = SetTaskSampler(lambda: test_env)
 
     runner = LocalRunner(ctxt)

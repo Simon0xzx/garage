@@ -106,6 +106,7 @@ class MultiHeadedOracleEmphasizedModule(nn.Module):
                                      _NonLinearity(hidden_nonlinearity))
 
         self._context_layers.append(context_layers)
+        prev_size+=200
         # =======================
         self._output_layers = nn.ModuleList()
         for i in range(n_heads):
@@ -164,11 +165,11 @@ class MultiHeadedOracleEmphasizedModule(nn.Module):
         for layer in self._layers:
             x = layer(x)
 
-        context_val = input_val[-3:]
+        context_val = input_val[:, :, -3:]
         for layer in self._context_layers:
             context_val = layer(context_val)
 
-        emphasized = torch.cat((x, context_val))
+        emphasized = torch.cat((x, context_val), dim=2)
         return [output_layer(emphasized) for output_layer in self._output_layers]
 
 

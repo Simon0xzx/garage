@@ -151,5 +151,4 @@ def multitask_emphasized_oracle_metaworld_ml1_pick_place(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 
-if __name__ == '__main__':
-    multitask_emphasized_oracle_metaworld_ml1_pick_place()
+multitask_emphasized_oracle_metaworld_ml1_pick_place()
