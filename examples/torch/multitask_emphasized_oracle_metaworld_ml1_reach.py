@@ -151,5 +151,5 @@ def multitask_emphasized_oracle_metaworld_ml1_reach(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 
-
-multitask_emphasized_oracle_metaworld_ml1_reach()
+if __name__ == '__main__':
+    multitask_emphasized_oracle_metaworld_ml1_reach()
