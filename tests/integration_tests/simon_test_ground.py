@@ -18,7 +18,7 @@ def read_progress_file(file_path):
                 data_dict[k].append(v)
     return data_dict
 
-def plot_curve(matplot, path, exp_name, format='-', label='', success_rate = True):
+def plot_curve(matplot, path, exp_name, format='-', label='', success_rate = True, limit = -3):
     result_path = os.path.join(path, exp_name, 'progress.csv')
     data_dict = read_progress_file(result_path)
     x = data_dict['TotalEnvSteps']
@@ -26,6 +26,11 @@ def plot_curve(matplot, path, exp_name, format='-', label='', success_rate = Tru
         y = data_dict['MetaTest/Average/SuccessRate']
     else:
         y = data_dict['MetaTest/Average/AverageReturn'] # MetaTest/Average/SuccessRate
+
+    if limit != -1:
+        cap = min(len(x), limit)
+        x = x[:cap]
+        y = y[:cap]
     matplot.plot(x, y, format, label=label)
     matplot.legend()
 
@@ -59,53 +64,127 @@ def plot_exp():
     fig, axs = plt.subplots(2, 3)
 
     axs[0][0].set_title('Meta Test Avg Return Push')
+    axs[0][0].set_xlabel('Total Env Steps')
+    axs[0][0].set_ylabel('Avg Test Return')
     plot_curve(axs[0][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
-               'pearl_metaworld_ml1_push', success_rate=False)
+               'pearl_metaworld_ml1_push', success_rate=False, limit=500)
     plot_curve(axs[0][0], reprodction_path, 'multitask_oracle_metaworld_ml1_push', '-',
-               'multitask_oracle_metaworld_ml1_push', success_rate=False)
+               'multitask_oracle_metaworld_ml1_push', success_rate=False, limit=500)
+    plot_curve(axs[0][0], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_push', '-',
+               'deeper_multitask_oracle_metaworld_ml1_push', success_rate=False, limit=500)
+    plot_curve(axs[0][0], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_push', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_push',
+               success_rate=False, limit=500)
 
     axs[0][1].set_title('Meta Test Avg Return Reach')
+    axs[0][1].set_xlabel('Total Env Steps')
+    axs[0][1].set_ylabel('Avg Test Return')
     plot_curve(axs[0][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
-               'pearl_metaworld_ml1_reach', success_rate=False)
+               'pearl_metaworld_ml1_reach', success_rate=False, limit=500)
     plot_curve(axs[0][1], reprodction_path, 'multitask_oracle_metaworld_ml1_reach', '-',
-               'multitask_oracle_metaworld_ml1_reach', success_rate=False)
+               'multitask_oracle_metaworld_ml1_reach', success_rate=False, limit=500)
+    plot_curve(axs[0][1], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_reach_1', '-',
+               'deeper_multitask_oracle_metaworld_ml1_reach', success_rate=False, limit=500)
+    plot_curve(axs[0][1], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_reach', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_reach',
+               success_rate=False, limit=500)
+
 
     axs[0][2].set_title('Meta Test Avg Return Pick Place')
+    axs[0][2].set_xlabel('Total Env Steps')
+    axs[0][2].set_ylabel('Avg Test Return')
     plot_curve(axs[0][2], reprodction_path, 'pearl_metaworld_ml1_pick-place', '-',
-               'pearl_metaworld_ml1_pick-place', success_rate=False)
+               'pearl_metaworld_ml1_pick-place', success_rate=False, limit=500)
     plot_curve(axs[0][2], reprodction_path,
                'multitask_oracle_metaworld_ml1_pick_place', '-',
-               'multitask_oracle_metaworld_ml1_pick_place', success_rate=False)
+               'multitask_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
+    plot_curve(axs[0][2], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_pick_place_1', '-',
+               'deeper_multitask_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
+    plot_curve(axs[0][2], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_pick_place', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
 
 
     axs[1][0].set_title('Meta Test Success Rate Push')
+    axs[1][0].set_xlabel('Total Env Steps')
+    axs[1][0].set_ylabel('Avg Test Return')
     plot_curve(axs[1][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
-               'pearl_metaworld_ml1_push', success_rate=True)
+               'pearl_metaworld_ml1_push', success_rate=True, limit=500)
     plot_curve(axs[1][0], reprodction_path,
                'multitask_oracle_metaworld_ml1_push', '-',
-               'multitask_oracle_metaworld_ml1_push', success_rate=True)
+               'multitask_oracle_metaworld_ml1_push', success_rate=True, limit=500)
+    plot_curve(axs[1][0], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_push', '-',
+               'deeper_multitask_oracle_metaworld_ml1_push', success_rate=True, limit=500)
+    plot_curve(axs[1][0], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_push', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_push', success_rate=True, limit=500)
+
 
     axs[1][1].set_title('Meta Test Success Rate Reach')
+    axs[1][1].set_xlabel('Total Env Steps')
+    axs[1][1].set_ylabel('Avg Test Return')
     plot_curve(axs[1][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
-               'pearl_metaworld_ml1_reach', success_rate=True)
+               'pearl_metaworld_ml1_reach', success_rate=True, limit=500)
     plot_curve(axs[1][1], reprodction_path,
                'multitask_oracle_metaworld_ml1_reach', '-',
-               'multitask_oracle_metaworld_ml1_reach', success_rate=True)
+               'multitask_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
+    plot_curve(axs[1][1], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_reach', '-',
+               'deeper_multitask_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
+    plot_curve(axs[1][1], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_reach', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
 
     axs[1][2].set_title('Meta Test Success Rate Pick Place')
+    axs[1][2].set_xlabel('Total Env Steps')
+    axs[1][2].set_ylabel('Avg Test Return')
     plot_curve(axs[1][2], reprodction_path, 'pearl_metaworld_ml1_pick-place',
                '-',
-               'pearl_metaworld_ml1_pick-place', success_rate=True)
+               'pearl_metaworld_ml1_pick-place', success_rate=True, limit=500)
     plot_curve(axs[1][2], reprodction_path,
                'multitask_oracle_metaworld_ml1_pick_place', '-',
-               'multitask_oracle_metaworld_ml1_pick_place', success_rate=True)
+               'multitask_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
+    plot_curve(axs[1][2], reprodction_path,
+               'deeper_multitask_oracle_metaworld_ml1_pick_place', '-',
+               'deeper_multitask_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
+    plot_curve(axs[1][2], reprodction_path,
+               'multitask_emphasized_oracle_metaworld_ml1_pick_place', '-',
+               'multitask_emphasized_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
 
 
     plt.show()
 
 
+def sim_policy():
+    from garage.experiment import Snapshotter
+    exp_root = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment/'
+    snapshotter = Snapshotter()
+    data = snapshotter.load(os.path.join(exp_root, 'multitask_emphasized_oracle_metaworld_ml1_reach'))
+    policy = data['algo'].policy
+
+    # You can also access other components of the experiment
+    env = data['env']
+
+    steps, max_steps = 0, 150
+    done = False
+    obs = env.reset()  # The initial observation
+    # policy.reset()
+
+    while steps < max_steps and not done:
+        # context = env._env.env.active_env.goal
+        # obs_in = np.concatenate([obs, env._env.env.active_env.goal])
+        obs, rew, done, _ = env.step(policy.get_action(obs))
+        env.render()  # Render the environment to see what's going on (optional)
+        steps += 1
+
+    env.close()
+
 if __name__ == '__main__':
-    # plot_report()
-    plot_exp()
-    # plot_exp3(train=False, avg=False)
-    # run_experiment()
+    # plot_exp()
+    sim_policy()

@@ -165,11 +165,15 @@ class MultiHeadedOracleEmphasizedModule(nn.Module):
         for layer in self._layers:
             x = layer(x)
 
-        context_val = input_val[:, :, -3:]
+        if len(x.size()) == 3:
+            context_val = input_val[:, :, -3:]
+            agg_dim = 2
+        elif len(x.size()) == 2:
+            context_val = input_val[:, -3:]
+            agg_dim = 1
         for layer in self._context_layers:
             context_val = layer(context_val)
-
-        emphasized = torch.cat((x, context_val), dim=2)
+        emphasized = torch.cat((x, context_val), dim=agg_dim)
         return [output_layer(emphasized) for output_layer in self._output_layers]
 
 
