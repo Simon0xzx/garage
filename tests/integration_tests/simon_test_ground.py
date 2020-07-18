@@ -59,6 +59,15 @@ def plot_curve_avg(matplot, root_path, exps, format='-', label='', plot_train = 
         matplot.plot(x, y_med, format, label=label)
     matplot.legend()
 
+# def generate_report(dirs):
+#     assert dirs != None and isinstance(dirs[0], list)
+#     rows, cols = len(dirs), len(dirs[0])
+#     fig, axs = plt.subplots(rows, cols)
+#     for i, row_dirs in enumerate(dirs):
+#         for j, exp_dirs in enumerate(row_dirs):
+#             axs[i][j].set_title('Meta Test Avg Return Push')
+
+
 def plot_exp():
     reprodction_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
     fig, axs = plt.subplots(2, 3)
@@ -68,8 +77,8 @@ def plot_exp():
     axs[0][0].set_ylabel('Avg Test Return')
     plot_curve(axs[0][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
                'pearl_metaworld_ml1_push', success_rate=False, limit=500)
-    plot_curve(axs[0][0], reprodction_path, 'multitask_oracle_metaworld_ml1_push', '-',
-               'multitask_oracle_metaworld_ml1_push', success_rate=False, limit=500)
+    plot_curve(axs[0][0], reprodction_path, 'multitask_oracle_metaworld_ml1_push_1', '-',
+               'multitask_oracle_metaworld_ml1_push_1', success_rate=False, limit=500)
     plot_curve(axs[0][0], reprodction_path,
                'deeper_multitask_oracle_metaworld_ml1_push', '-',
                'deeper_multitask_oracle_metaworld_ml1_push', success_rate=False, limit=500)
@@ -83,8 +92,8 @@ def plot_exp():
     axs[0][1].set_ylabel('Avg Test Return')
     plot_curve(axs[0][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
                'pearl_metaworld_ml1_reach', success_rate=False, limit=500)
-    plot_curve(axs[0][1], reprodction_path, 'multitask_oracle_metaworld_ml1_reach', '-',
-               'multitask_oracle_metaworld_ml1_reach', success_rate=False, limit=500)
+    plot_curve(axs[0][1], reprodction_path, 'multitask_oracle_metaworld_ml1_reach_1', '-',
+               'multitask_oracle_metaworld_ml1_reach_1', success_rate=False, limit=500)
     plot_curve(axs[0][1], reprodction_path,
                'deeper_multitask_oracle_metaworld_ml1_reach_1', '-',
                'deeper_multitask_oracle_metaworld_ml1_reach', success_rate=False, limit=500)
@@ -100,63 +109,14 @@ def plot_exp():
     plot_curve(axs[0][2], reprodction_path, 'pearl_metaworld_ml1_pick-place', '-',
                'pearl_metaworld_ml1_pick-place', success_rate=False, limit=500)
     plot_curve(axs[0][2], reprodction_path,
-               'multitask_oracle_metaworld_ml1_pick_place', '-',
-               'multitask_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
+               'multitask_oracle_metaworld_ml1_pick_place_1', '-',
+               'multitask_oracle_metaworld_ml1_pick_place_1', success_rate=False, limit=500)
     plot_curve(axs[0][2], reprodction_path,
                'deeper_multitask_oracle_metaworld_ml1_pick_place_1', '-',
                'deeper_multitask_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
     plot_curve(axs[0][2], reprodction_path,
                'multitask_emphasized_oracle_metaworld_ml1_pick_place', '-',
                'multitask_emphasized_oracle_metaworld_ml1_pick_place', success_rate=False, limit=500)
-
-
-    axs[1][0].set_title('Meta Test Success Rate Push')
-    axs[1][0].set_xlabel('Total Env Steps')
-    axs[1][0].set_ylabel('Avg Test Return')
-    plot_curve(axs[1][0], reprodction_path, 'pearl_metaworld_ml1_push_1', '-',
-               'pearl_metaworld_ml1_push', success_rate=True, limit=500)
-    plot_curve(axs[1][0], reprodction_path,
-               'multitask_oracle_metaworld_ml1_push', '-',
-               'multitask_oracle_metaworld_ml1_push', success_rate=True, limit=500)
-    plot_curve(axs[1][0], reprodction_path,
-               'deeper_multitask_oracle_metaworld_ml1_push', '-',
-               'deeper_multitask_oracle_metaworld_ml1_push', success_rate=True, limit=500)
-    plot_curve(axs[1][0], reprodction_path,
-               'multitask_emphasized_oracle_metaworld_ml1_push', '-',
-               'multitask_emphasized_oracle_metaworld_ml1_push', success_rate=True, limit=500)
-
-
-    axs[1][1].set_title('Meta Test Success Rate Reach')
-    axs[1][1].set_xlabel('Total Env Steps')
-    axs[1][1].set_ylabel('Avg Test Return')
-    plot_curve(axs[1][1], reprodction_path, 'pearl_metaworld_ml1_reach_1', '-',
-               'pearl_metaworld_ml1_reach', success_rate=True, limit=500)
-    plot_curve(axs[1][1], reprodction_path,
-               'multitask_oracle_metaworld_ml1_reach', '-',
-               'multitask_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
-    plot_curve(axs[1][1], reprodction_path,
-               'deeper_multitask_oracle_metaworld_ml1_reach', '-',
-               'deeper_multitask_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
-    plot_curve(axs[1][1], reprodction_path,
-               'multitask_emphasized_oracle_metaworld_ml1_reach', '-',
-               'multitask_emphasized_oracle_metaworld_ml1_reach', success_rate=True, limit=500)
-
-    axs[1][2].set_title('Meta Test Success Rate Pick Place')
-    axs[1][2].set_xlabel('Total Env Steps')
-    axs[1][2].set_ylabel('Avg Test Return')
-    plot_curve(axs[1][2], reprodction_path, 'pearl_metaworld_ml1_pick-place',
-               '-',
-               'pearl_metaworld_ml1_pick-place', success_rate=True, limit=500)
-    plot_curve(axs[1][2], reprodction_path,
-               'multitask_oracle_metaworld_ml1_pick_place', '-',
-               'multitask_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
-    plot_curve(axs[1][2], reprodction_path,
-               'deeper_multitask_oracle_metaworld_ml1_pick_place', '-',
-               'deeper_multitask_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
-    plot_curve(axs[1][2], reprodction_path,
-               'multitask_emphasized_oracle_metaworld_ml1_pick_place', '-',
-               'multitask_emphasized_oracle_metaworld_ml1_pick_place', success_rate=True, limit=500)
-
 
     plt.show()
 
@@ -186,5 +146,5 @@ def sim_policy():
     env.close()
 
 if __name__ == '__main__':
-    # plot_exp()
-    sim_policy()
+    plot_exp()
+    # sim_policy()

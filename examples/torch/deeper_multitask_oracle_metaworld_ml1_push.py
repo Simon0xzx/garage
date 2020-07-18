@@ -41,8 +41,8 @@ def deeper_multitask_oracle_metaworld_ml1_push(ctxt=None,
                              num_test_tasks=10,
                              encoder_hidden_size=200,
                              net_size=300,
-                             meta_batch_size=16,
-                             num_steps_per_epoch=4000,
+                             meta_batch_size=128,
+                             num_steps_per_epoch=500,
                              num_initial_steps=4000,
                              num_tasks_sample=15,
                              num_steps_prior=750,
@@ -135,6 +135,7 @@ def deeper_multitask_oracle_metaworld_ml1_push(ctxt=None,
         embedding_mini_batch_size=embedding_mini_batch_size,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
+        replay_buffer_size=200000
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
