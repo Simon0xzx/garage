@@ -92,6 +92,7 @@ class MultiHeadedOracleEmphasizedModule(nn.Module):
 
         # ======================= Adding Oracle Emphasized Component
         self._context_layers = nn.ModuleList()
+        self._latent_size = latent_sizes
         context_layers = nn.Sequential()
         if layer_normalization:
             context_layers.add_module('layer_normalization',
@@ -166,10 +167,10 @@ class MultiHeadedOracleEmphasizedModule(nn.Module):
             x = layer(x)
 
         if len(x.size()) == 3:
-            context_val = input_val[:, :, -3:]
+            context_val = input_val[:, :, -self._latent_size:]
             agg_dim = 2
         elif len(x.size()) == 2:
-            context_val = input_val[:, -3:]
+            context_val = input_val[:, -self._latent_size:]
             agg_dim = 1
         for layer in self._context_layers:
             context_val = layer(context_val)
