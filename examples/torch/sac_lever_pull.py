@@ -65,7 +65,7 @@ def sac_metaworld_ml1_lever_pull(ctxt=None, seed=1, gpu_id=0):
               discount=0.99,
               buffer_batch_size=256,
               reward_scale=1.,
-              num_tasks=1)
+              steps_per_epoch=1)
 
     set_gpu_mode(True, gpu_id)
     sac.to()

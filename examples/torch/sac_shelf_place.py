@@ -20,7 +20,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @wrap_experiment(snapshot_mode='none')
 @click.option('--gpu_id', default=0)
-def sac_metaworld_ml1_lever_pull(ctxt=None, seed=1, gpu_id=0):
+def sac_metaworld_ml1_shelf_place(ctxt=None, seed=1, gpu_id=0):
     """Set up environment and algorithm and run the task.
 
     Args:
@@ -65,7 +65,7 @@ def sac_metaworld_ml1_lever_pull(ctxt=None, seed=1, gpu_id=0):
               discount=0.99,
               buffer_batch_size=256,
               reward_scale=1.,
-              num_tasks=1)
+              steps_per_epoch=1)
 
     set_gpu_mode(True, gpu_id)
     sac.to()
@@ -74,4 +74,4 @@ def sac_metaworld_ml1_lever_pull(ctxt=None, seed=1, gpu_id=0):
 
 
 s = np.random.randint(0, 1000)
-sac_metaworld_ml1_lever_pull(seed=521)
+sac_metaworld_ml1_shelf_place(seed=521)
