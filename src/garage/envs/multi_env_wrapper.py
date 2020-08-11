@@ -73,7 +73,7 @@ class MultiEnvWrapper(gym.Wrapper):
     def __init__(self,
                  envs,
                  sample_strategy=uniform_random_strategy,
-                 mode='add-onehot',
+                 mode='vanilla',
                  env_names=None):
         assert mode in ['vanilla', 'add-onehot', 'del-onehot']
 
@@ -153,6 +153,16 @@ class MultiEnvWrapper(gym.Wrapper):
         return self._active_task_index
 
     @property
+    def active_task_goal(self):
+        """Goal of active task.
+
+        Returns:
+            numpy.ndarray: one-hot representation of active task
+
+        """
+        return self.env.active_env.goal
+
+    @property
     def observation_space(self):
         """Observation space.
 
@@ -193,6 +203,8 @@ class MultiEnvWrapper(gym.Wrapper):
         index = self.active_task_index or 0
         one_hot[index] = self.task_space.high[index]
         return one_hot
+
+
 
     def reset(self, **kwargs):
         """Sample new task and call reset on new task env.

@@ -1,4 +1,4 @@
-"""PEARL and PEARLWorker in Pytorch.
+"""CURL and CURLWorker in Pytorch.
 
 Code is adapted from https://github.com/katerakelly/oyster.
 """
@@ -17,11 +17,12 @@ from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
 from garage.sampler import DefaultWorker
 from garage.torch import global_device
-from garage.torch.embeddings import IdentityEncoder
-from garage.torch.policies import GoalConditionedPolicy
+from garage.torch.modules import MLPModule
+from garage.torch.embeddings import MLPEncoder
+from garage.torch.policies import CurlPolicy
 
 
-class MULTITASKORACLE(MetaRLAlgorithm):
+class CURL(MetaRLAlgorithm):
     """A PEARL model based on https://arxiv.org/abs/1903.08254.
 
     PEARL, which stands for Probablistic Embeddings for Actor-Critic
@@ -100,17 +101,21 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
+                 encoder_hidden_sizes,
                  test_env_sampler,
-                 policy_class=GoalConditionedPolicy,
+                 policy_class=CurlPolicy,
+                 encoder_class=MLPEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
                  vf_lr=3E-4,
+                 context_lr=3E-4,
                  policy_mean_reg_coeff=1E-3,
                  policy_std_reg_coeff=1E-3,
                  policy_pre_activation_coeff=0.,
                  soft_target_tau=0.005,
                  kl_lambda=.1,
                  optimizer_class=torch.optim.Adam,
+                 use_information_bottleneck=True,
                  use_next_obs_in_context=False,
                  meta_batch_size=64,
                  num_steps_per_epoch=1000,
@@ -141,6 +146,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         self._policy_pre_activation_coeff = policy_pre_activation_coeff
         self._soft_target_tau = soft_target_tau
         self._kl_lambda = kl_lambda
+        self._use_information_bottleneck = use_information_bottleneck
         self._use_next_obs_in_context = use_next_obs_in_context
 
         self._meta_batch_size = meta_batch_size
@@ -165,16 +171,36 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
                                         max_path_length=max_path_length,
-                                        worker_class=MULTITASKORACLEWorker,
+                                        worker_class=CURLWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks)
 
+        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder', use_information_bottleneck)
+        encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
+        encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
+        self._context_encoder = encoder_class(input_dim=encoder_in_dim,
+                                        output_dim=encoder_out_dim,
+                                        hidden_sizes=encoder_hidden_sizes,
+                                        query_sizes=encoder_hidden_sizes)
+        self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
+
+        # self._contrastive_loss = ContrastiveLoss(latent_dim)
+
+        self._context_lr = context_lr
         self._policy = policy_class(
             latent_dim=latent_dim,
-            policy=inner_policy)
+            context_encoder=self._context_encoder,
+            policy=inner_policy,
+            use_information_bottleneck=use_information_bottleneck,
+            use_next_obs=use_next_obs_in_context)
 
         # buffer for training RL update
         self._replay_buffers = {
+            i: PathBuffer(replay_buffer_size)
+            for i in range(num_train_tasks)
+        }
+
+        self._context_replay_buffers = {
             i: PathBuffer(replay_buffer_size)
             for i in range(num_train_tasks)
         }
@@ -183,7 +209,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         self.vf_criterion = torch.nn.MSELoss()
 
         self._policy_optimizer = optimizer_class(
-            self._policy.networks[0].parameters(),
+            self._policy.networks[1].parameters(),
             lr=policy_lr,
         )
         self.qf1_optimizer = optimizer_class(
@@ -198,6 +224,15 @@ class MULTITASKORACLE(MetaRLAlgorithm):
             self._vf.parameters(),
             lr=vf_lr,
         )
+        self.context_optimizer = optimizer_class(
+            self._context_encoder.networks[0].parameters(),
+            lr=context_lr,
+        )
+        self.query_optimizer = optimizer_class(
+            self._context_encoder.networks[1].parameters(),
+            lr=context_lr,
+        )
+
 
     def __getstate__(self):
         """Object.__getstate__.
@@ -208,6 +243,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         """
         data = self.__dict__.copy()
         del data['_replay_buffers']
+        del data['_context_replay_buffers']
         return data
 
     def __setstate__(self, state):
@@ -253,6 +289,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
             for _ in range(self._num_tasks_sample):
                 idx = np.random.randint(self._num_train_tasks)
                 self._task_idx = idx
+                self._context_replay_buffers[idx].clear()
                 # obtain samples with z ~ prior
                 if self._num_steps_prior > 0:
                     self._obtain_samples(runner, epoch, self._num_steps_prior,
@@ -267,7 +304,8 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                     self._obtain_samples(runner,
                                          epoch,
                                          self._num_extra_rl_steps_posterior,
-                                         self._update_post_train)
+                                         self._update_post_train,
+                                         add_to_enc_buffer=False)
 
             logger.log('Training...')
             # sample train tasks and optimize networks
@@ -276,6 +314,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
 
             logger.log('Evaluating...')
             # evaluate
+            self._policy.reset_belief()
             self._evaluator.evaluate(self)
 
     def _train_once(self):
@@ -285,6 +324,79 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                                        self._meta_batch_size)
             self._optimize_policy(indices)
 
+    def augment_path(self, path, batch_size, in_sequence = False):
+        path_len = path['observations'].shape[0]
+        if batch_size > path_len:
+            raise Exception('Embedding_batch size cannot be longer than path length')
+        augmented_path = {}
+        if in_sequence:
+            seq_begin = np.random.randint(0, path_len - batch_size)
+            augmented_path['observations'] = path['observations'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['actions'] = path['actions'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['rewards'] = path['rewards'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['next_observations'] = path['next_observations'][
+                                             seq_begin:seq_begin + batch_size]
+        else:
+            seq_idx = np.random.choice(path_len, batch_size)
+            augmented_path['observations'] = path['observations'][seq_idx]
+            augmented_path['actions'] = path['actions'][seq_idx]
+            augmented_path['rewards'] = path['rewards'][seq_idx]
+            augmented_path['next_observations'] = path['next_observations'][seq_idx]
+
+        return augmented_path
+
+    def calc_contrastive_loss(self, query, key):
+        left_product = torch.matmul(query, self._contrastive_weight)
+        logits = torch.matmul(left_product, key)
+        logits = logits - torch.max(logits, axis=1)
+        labels = torch.arange(logits.shape[0])
+        loss = torch.nn.CrossEntropyLoss(logits, labels)
+        return loss
+
+    def _optimize_curl_encoder(self, indices):
+        # Optimize CURL encoder
+        context_encoder = self._context_encoder.networks[0]
+        query_net = self._context_encoder.networks[1]
+        key_net = self._context_encoder.networks[2]
+        context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
+        aug1 = torch.as_tensor(context_augs[0], device=global_device())
+        aug2 = torch.as_tensor(context_augs[1], device=global_device())
+
+        # similar_contrastive
+        query = self._context_encoder(aug1, query=True)
+        key = self._context_encoder(aug2, query=False)
+        loss_fun = torch.nn.CrossEntropyLoss()
+        loss = None
+        for i in range(len(indices)):
+            left_product = torch.matmul(query[i], self._contrastive_weight.to(global_device()))
+            logits = torch.matmul(left_product, key[i].T)
+            logits = logits - torch.max(logits, axis=1)[0]
+            labels = torch.arange(logits.shape[0]).to(global_device())
+            if not loss:
+                loss = loss_fun(logits, labels)
+            else:
+                loss += loss_fun(logits, labels)
+
+
+        # loss = self.calc_contrastive_loss(query, key)
+        # loss = self._contrastive_loss(query, key)
+
+        self.query_optimizer.zero_grad()
+        self.context_optimizer.zero_grad()
+
+        loss.backward()
+        self.query_optimizer.step()
+        self.context_optimizer.step()
+        with torch.no_grad():
+            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
+            self._contrastive_weight.grad.zero_()
+            # update key net with 0.05 of query net
+            for target_param, param in zip(key_net.parameters(), query_net.parameters()):
+                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
+
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
 
@@ -293,11 +405,17 @@ class MULTITASKORACLE(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-        context = np.array([self._env[idx]._task['info'] for idx in indices])
+
+        self._optimize_curl_encoder(indices)
+        context = self._sample_context(indices)
+
+        # clear context and reset belief of policy
+        self._policy.reset_belief(num_tasks=num_tasks)
 
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
         policy_outputs, task_z = self._policy(obs, context)
+        task_z.detach()
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         # flatten out the task dimension
@@ -315,6 +433,10 @@ class MULTITASKORACLE(MetaRLAlgorithm):
             target_v_values = self.target_vf(next_obs, task_z)
 
         # KL constraint on z if probabilistic
+        if self._use_information_bottleneck:
+            kl_div = self._policy.compute_kl_div()
+            kl_loss = self._kl_lambda * kl_div
+            kl_loss.backward(retain_graph=True)
 
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
@@ -322,10 +444,8 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         rewards_flat = rewards.view(self._batch_size * num_tasks, -1)
         rewards_flat = rewards_flat * self._reward_scale
         terms_flat = terms.view(self._batch_size * num_tasks, -1)
-        q_target = rewards_flat + (
-            1. - terms_flat) * self._discount * target_v_values
-        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean(
-            (q2_pred - q_target)**2)
+        q_target = rewards_flat + (1. - terms_flat) * self._discount * target_v_values
+        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean((q2_pred - q_target)**2)
         qf_loss.backward()
 
         self.qf1_optimizer.step()
@@ -365,7 +485,8 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                         runner,
                         itr,
                         num_samples,
-                        update_posterior_rate):
+                        update_posterior_rate,
+                        add_to_enc_buffer=True):
         """Obtain samples.
 
         Args:
@@ -378,12 +499,11 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                 buffer.
 
         """
-        self._policy.reset_belief(self._env[self._task_idx])
+        self._policy.reset_belief()
         total_samples = 0
 
         if update_posterior_rate != np.inf:
-            num_samples_per_batch = (update_posterior_rate *
-                                     self.max_path_length)
+            num_samples_per_batch = (update_posterior_rate * self.max_path_length)
         else:
             num_samples_per_batch = num_samples
 
@@ -402,6 +522,13 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                     'dones': path['dones'].reshape(-1, 1)
                 }
                 self._replay_buffers[self._task_idx].add_path(p)
+
+                if add_to_enc_buffer:
+                    self._context_replay_buffers[self._task_idx].add_path(p)
+
+            if update_posterior_rate != np.inf:
+                context = self._sample_context(self._task_idx)
+                self._policy.infer_posterior(context)
 
     def _sample_data(self, indices):
         """Sample batch of training data from a list of tasks.
@@ -445,6 +572,41 @@ class MULTITASKORACLE(MetaRLAlgorithm):
 
         return o, a, r, no, d
 
+    def _sample_contrastive_pairs(self, indices, num_aug=2):
+        # make method work given a single task index
+        if not hasattr(indices, '__iter__'):
+            indices = [indices]
+
+        path_augs = []
+        for j in range(num_aug):
+            initialized = False
+            for idx in indices:
+                path = self._context_replay_buffers[idx].sample_path()
+                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                o = batch_aug['observations']
+                a = batch_aug['actions']
+                r = batch_aug['rewards']
+                context = np.hstack((np.hstack((o, a)), r))
+                if self._use_next_obs_in_context:
+                    context = np.hstack((context, batch_aug['next_observations']))
+
+                if not initialized:
+                    final_context = context[np.newaxis]
+                    initialized = True
+                else:
+                    final_context = np.vstack(
+                        (final_context, context[np.newaxis]))
+
+            final_context = torch.as_tensor(final_context,
+                                            device=global_device()).float()
+            if len(indices) == 1:
+                final_context = final_context.unsqueeze(0)
+
+            path_augs.append(final_context)
+
+        return path_augs
+
+
     def _sample_context(self, indices):
         """Sample batch of context from a list of tasks.
 
@@ -465,8 +627,8 @@ class MULTITASKORACLE(MetaRLAlgorithm):
 
         initialized = False
         for idx in indices:
-            batch = self._context_replay_buffers[idx].sample_transitions(
-                self._embedding_batch_size)
+            path = self._context_replay_buffers[idx].sample_path()
+            batch = self.augment_path(path, self._embedding_batch_size)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']
@@ -514,7 +676,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
 
         """
         return self._policy.networks + [self._policy] + [
-            self._qf1, self._qf2, self._vf, self.target_vf
+            self._qf1, self._qf2, self._vf, self.target_vf, self._contrastive_weight
         ]
 
     def get_exploration_policy(self):
@@ -594,7 +756,7 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         return EnvSpec(aug_obs, aug_act)
 
     @classmethod
-    def get_env_spec(cls, env_spec, latent_dim, module):
+    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=False):
         """Get environment specs of encoder with latent dimension.
 
         Args:
@@ -611,7 +773,10 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         action_dim = int(np.prod(env_spec.action_space.shape))
         if module == 'encoder':
             in_dim = obs_dim + action_dim + 1
-            out_dim = latent_dim * 2
+            out_dim = latent_dim
+            if use_information_bottleneck:
+                out_dim = out_dim * 2
+
         elif module == 'vf':
             in_dim = obs_dim
             out_dim = latent_dim
@@ -628,8 +793,22 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         return spec
 
 
-class MULTITASKORACLEWorker(DefaultWorker):
-    """A worker class used in sampling for MULTITASKORACLE.
+# class ContrastiveLoss(torch.nn.Module):
+#     def __init__(self, latent_dim):
+#         super.__init__()
+#         self._contrastive_weight = torch.rand(latent_dim, latent_dim, device=global_device(), requires_grad=True)
+#         self.add_module("weight", self._contrastive_weight)
+#
+#     def forward(self, query, key):
+#         left_product = torch.matmul(query, self._contrastive_weight)
+#         logits = torch.matmul(left_product, key)
+#         logits = logits - torch.max(logits, axis=1)
+#         labels = torch.arange(logits.shape[0])
+#         loss = torch.nn.CrossEntropyLoss(logits, labels)
+#         return loss
+
+class CURLWorker(DefaultWorker):
+    """A worker class used in sampling for CURL.
 
     It stores context and resample belief in the policy every step.
 
@@ -691,6 +870,16 @@ class MULTITASKORACLEWorker(DefaultWorker):
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
+            if self._accum_context:
+                s = TimeStep(env_spec=self.env,
+                             observation=self._prev_obs,
+                             next_observation=next_o,
+                             action=a,
+                             reward=float(r),
+                             terminal=d,
+                             env_info=env_info,
+                             agent_info=agent_info)
+                self.agent.update_context(s)
             if not d:
                 self._prev_obs = next_o
                 return False
@@ -705,9 +894,10 @@ class MULTITASKORACLEWorker(DefaultWorker):
             garage.TrajectoryBatch: The collected trajectory.
 
         """
-        self.agent.infer_posterior(np.array([self.env.env.active_env.goal]))
+        self.agent.sample_from_belief()
         self.start_rollout()
         while not self.step_rollout():
             pass
-        self._agent_infos['context'] = [self.env] * self._max_path_length
+        self._agent_infos['context'] = [self.agent.z.detach().cpu().numpy()
+                                        ] * self._max_path_length
         return self.collect_rollout()

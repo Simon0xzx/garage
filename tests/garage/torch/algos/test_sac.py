@@ -207,7 +207,7 @@ def test_sac_inverted_double_pendulum():
               discount=0.99,
               buffer_batch_size=64,
               reward_scale=1.,
-              steps_per_epoch=2)
+              num_tasks=2)
     runner.setup(sac, env, sampler_cls=LocalSampler)
     if torch.cuda.is_available():
         set_gpu_mode(True)
@@ -261,7 +261,7 @@ def test_fixed_alpha():
               discount=0.99,
               buffer_batch_size=64,
               reward_scale=1.,
-              steps_per_epoch=1,
+              num_tasks=1,
               fixed_alpha=np.exp(0.5))
     runner.setup(sac, env, sampler_cls=LocalSampler)
     sac.to()

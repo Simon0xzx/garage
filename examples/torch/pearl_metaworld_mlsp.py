@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""MULTITASKORACLE ML1 example."""
+"""PEARL MLSP example."""
+
 import click
 import metaworld.benchmarks as mwb
 
@@ -7,20 +8,21 @@ from garage import wrap_experiment
 from garage.envs import GarageEnv, normalize
 from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
-from garage.experiment.task_sampler import SetTaskSampler
+from garage.experiment.task_sampler import EnvPoolSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import MULTITASKORACLE
-from garage.torch.algos.multi_task_oracle import MULTITASKORACLEWorker
-from garage.torch.policies import GoalConditionedPolicy
-from garage.torch.policies import TanhGaussianMLPPolicy
+from garage.torch.algos import PEARL
+from garage.torch.algos.pearl import PEARLWorker
+from garage.torch.embeddings import MLPEncoder
+from garage.torch.policies import (ContextConditionedPolicy,
+                                   TanhGaussianContextEmphasizedPolicy)
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=500)
-@click.option('--num_train_tasks', default=50)
-@click.option('--num_test_tasks', default=10)
+@click.option('--num_epochs', default=1000)
+@click.option('--num_train_tasks', default=10)
+@click.option('--num_test_tasks', default=5)
 @click.option('--encoder_hidden_size', default=200)
 @click.option('--net_size', default=300)
 @click.option('--num_steps_per_epoch', default=4000)
@@ -31,30 +33,30 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=150)
-@click.option('--seed', default=1)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
-                             seed=1,
-                             num_epochs=500,
-                             num_train_tasks=50,
-                             num_test_tasks=10,
-                             encoder_hidden_size=200,
-                             net_size=300,
-                             meta_batch_size=128,
-                             num_steps_per_epoch=500,
-                             num_initial_steps=4000,
-                             num_tasks_sample=15,
-                             num_steps_prior=750,
-                             num_extra_rl_steps_posterior=750,
-                             batch_size=256,
-                             embedding_batch_size=64,
-                             embedding_mini_batch_size=64,
-                             max_path_length=150,
-                             reward_scale=10.,
-                             use_gpu=True,
-                             gpu_id = 0):
-    """Train MULTITASKORACLE with ML1 environments.
+def pearl_metaworld_mlsp(ctxt=None,
+                         seed=1,
+                         num_epochs=1000,
+                         num_train_tasks=10,
+                         num_test_tasks=5,
+                         latent_size=7,
+                         encoder_hidden_size=200,
+                         net_size=300,
+                         meta_batch_size=32,
+                         num_steps_per_epoch=4000,
+                         num_initial_steps=4000,
+                         num_tasks_sample=15,
+                         num_steps_prior=750,
+                         num_extra_rl_steps_posterior=750,
+                         batch_size=512,
+                         embedding_batch_size=128,
+                         embedding_mini_batch_size=128,
+                         max_path_length=150,
+                         reward_scale=10.,
+                         gpu_id=0,
+                         use_gpu=True):
+    """Train PEARL with ML10 environments.
 
     Args:
         ctxt (garage.experiment.ExperimentContext): The experiment
@@ -91,38 +93,53 @@ def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
 
     """
     set_seed(seed)
+    encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
+                            encoder_hidden_size)
     # create multi-task environment and sample tasks
-    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('pick-place-v1')))
-    env_sampler = SetTaskSampler(lambda: train_env)
-    env = env_sampler.sample_with_goals(num_train_tasks)
+    ml_train_envs = [
+        GarageEnv(normalize(mwb.MLSP.from_task(task_name)))
+        for task_name in mwb.MLSP.get_train_tasks().all_task_names
+    ]
 
-    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('pick-place-v1')))
-    test_env_sampler = SetTaskSampler(lambda: test_env)
+    ml_test_envs = [
+        GarageEnv(normalize(mwb.MLSP.from_task(task_name)))
+        for task_name in mwb.MLSP.get_test_tasks().all_task_names
+    ]
+
+    env_sampler = EnvPoolSampler(ml_train_envs)
+    env_sampler.grow_pool(num_train_tasks)
+    env = env_sampler.sample(num_train_tasks)
+    test_env_sampler = EnvPoolSampler(ml_test_envs)
+    test_env_sampler.grow_pool(num_test_tasks)
 
     runner = LocalRunner(ctxt)
 
+
+
     # instantiate networks
-    latent_size = 3 # (NEW) 3-Dimensional context variable addressing task goal
-    augmented_env = MULTITASKORACLE.augment_env_spec(env[0](), latent_size)
+    augmented_env = PEARL.augment_env_spec(env[0](), latent_size)
     qf = ContinuousMLPQFunction(env_spec=augmented_env,
                                 hidden_sizes=[net_size, net_size, net_size])
 
-    vf_env = MULTITASKORACLE.get_env_spec(env[0](), latent_size, 'vf')
+    vf_env = PEARL.get_env_spec(env[0](), latent_size, 'vf')
     vf = ContinuousMLPQFunction(env_spec=vf_env,
                                 hidden_sizes=[net_size, net_size, net_size])
 
-    inner_policy = TanhGaussianMLPPolicy(
-        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size, net_size, net_size])
+    inner_policy = TanhGaussianContextEmphasizedPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
+        latent_sizes=latent_size)
 
-    multitask_oracle = MULTITASKORACLE(
+    pearl = PEARL(
         env=env,
-        policy_class=GoalConditionedPolicy,
+        policy_class=ContextConditionedPolicy,
+        encoder_class=MLPEncoder,
         inner_policy=inner_policy,
         qf=qf,
         vf=vf,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
+        encoder_hidden_sizes=encoder_hidden_sizes,
         test_env_sampler=test_env_sampler,
         meta_batch_size=meta_batch_size,
         num_steps_per_epoch=num_steps_per_epoch,
@@ -135,22 +152,25 @@ def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
         embedding_mini_batch_size=embedding_mini_batch_size,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
-        replay_buffer_size=200000
+        replay_buffer_size=500000,
+        policy_lr=6E-4,
+        qf_lr=6E-4,
+        vf_lr=6E-4,
+        context_lr=6E-4,
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
-        multitask_oracle.to()
+        pearl.to()
 
-    runner.setup(algo=multitask_oracle,
+    runner.setup(algo=pearl,
                  env=env[0](),
                  sampler_cls=LocalSampler,
                  sampler_args=dict(max_path_length=max_path_length),
                  n_workers=1,
-                 worker_class=MULTITASKORACLEWorker)
+                 worker_class=PEARLWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-
-
-deeper_multitask_oracle_metaworld_ml1_pick_place()
+if __name__ == '__main__':
+    pearl_metaworld_mlsp()

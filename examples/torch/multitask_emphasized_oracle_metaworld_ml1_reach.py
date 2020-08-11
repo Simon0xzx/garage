@@ -12,7 +12,7 @@ from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.algos import MULTITASKORACLE
 from garage.torch.algos.multi_task_oracle import MULTITASKORACLEWorker
-from garage.torch.policies import OracleConditionedPolicy
+from garage.torch.policies import GoalConditionedPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
@@ -116,7 +116,7 @@ def multitask_emphasized_oracle_metaworld_ml1_reach(ctxt=None,
 
     multitask_oracle = MULTITASKORACLE(
         env=env,
-        policy_class=OracleConditionedPolicy,
+        policy_class=GoalConditionedPolicy,
         inner_policy=inner_policy,
         qf=qf,
         vf=vf,

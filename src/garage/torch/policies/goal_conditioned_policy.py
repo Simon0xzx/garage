@@ -15,7 +15,7 @@ from garage.torch import global_device, product_of_gaussians
 
 # pylint: disable=attribute-defined-outside-init
 # pylint does not recognize attributes initialized as buffers in constructor
-class OracleConditionedPolicy(nn.Module):
+class GoalConditionedPolicy(nn.Module):
     def __init__(self, latent_dim, policy):
         super().__init__()
         self._latent_dim = latent_dim
@@ -43,15 +43,8 @@ class OracleConditionedPolicy(nn.Module):
             self._context = torch.cat([self._context, data], dim=1)
 
     def infer_posterior(self, context):
-        r"""Compute :math:`q(z \| c)` as a function of input context and sample new z.
-
-        Args:
-            context (torch.Tensor): Context values, with shape
-                :math:`(X, N, C)`. X is the number of tasks. N is batch size. C
-                is the combined size of observation, action, reward, and next
-                observation if next observation is used in context. Otherwise,
-                C is the combined size of observation, action, and reward.
-
+        """
+            Context in this case is the goal vector of the active env
         """
         self.z = torch.as_tensor(context, device=global_device()).float()
 
@@ -61,21 +54,15 @@ class OracleConditionedPolicy(nn.Module):
         task_z = self.z
 
         # task, batch
-        t, b, _ = obs.size()
-        obs = obs.view(t * b, -1)
-        task_z = [z.repeat(b, 1) for z in task_z]
-        task_z = torch.cat(task_z, dim=0)
+        b, _ = obs.size()
+        obs = obs.view(b, -1)
+        task_z = torch.cat([z.repeat(b, 1) for z in task_z], dim=1)
 
         # run policy, get log probs and new actions
         obs_z = torch.cat([obs, task_z.detach()], dim=1)
         dist = self._policy(obs_z)[0]
-        pre_tanh, actions = dist.rsample_with_pre_tanh_value()
-        log_pi = dist.log_prob(value=actions, pre_tanh_value=pre_tanh)
-        log_pi = log_pi.unsqueeze(1)
-        mean = dist.mean.to('cpu').detach().numpy()
-        log_std = (dist.variance**.5).log().to('cpu').detach().numpy()
 
-        return (actions, mean, log_std, log_pi, pre_tanh), task_z
+        return dist, task_z
 
     def reset_belief(self, env, num_tasks=1):
         r"""Reset :math:`q(z \| c)` to the prior and sample a new z from the prior.
@@ -87,6 +74,9 @@ class OracleConditionedPolicy(nn.Module):
 
         self.z = torch.as_tensor(env._task['info'][None], device=global_device()).float()
 
+
+    def reset(self):
+        pass
 
     def get_action(self, obs):
         """Sample action from the policy, conditioned on the task embedding.

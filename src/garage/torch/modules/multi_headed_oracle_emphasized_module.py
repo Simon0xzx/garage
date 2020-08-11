@@ -184,7 +184,7 @@ class _NonLinearity(nn.Module):
     Args:
         non_linear (callable or type): Non-linear function or type to be
             wrapped.
-
+s
     """
 
     def __init__(self, non_linear):

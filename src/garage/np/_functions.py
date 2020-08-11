@@ -29,7 +29,7 @@ def samples_to_tensors(paths):
     return samples_data
 
 
-def obtain_evaluation_samples(policy, env, max_path_length=1000,
+def obtain_evaluation_samples(policy, env, max_path_length=150,
                               num_trajs=100):
     """Sample the policy for num_trajs trajectories and return average values.
 

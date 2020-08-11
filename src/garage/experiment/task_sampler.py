@@ -173,7 +173,7 @@ class EnvPoolSampler(TaskSampler):
     """TaskSampler that samples from a finite pool of environments.
 
     This can be used with any environments, but is generally best when using
-    in-process samplers with environments that are expensive to construct.
+    in-process m with environments that are expensive to construct.
 
     Args:
         envs (list[gym.Env]): List of environments to use as a pool.
@@ -217,6 +217,10 @@ class EnvPoolSampler(TaskSampler):
         envs = list(self._envs)
         np.random.shuffle(envs)
         return [ExistingEnvUpdate(env) for env in envs[:n_tasks]]
+
+    def sample_with_goals(self, n_tasks):
+        return self.sample(n_tasks)
+
 
     def grow_pool(self, new_size):
         """Increase the size of the pool by copying random tasks in it.

@@ -7,7 +7,7 @@ from garage.np.embeddings import Encoder
 from garage.torch.modules import MLPModule
 
 
-class OracleEncoder(Encoder):
+class IdentityEncoder(Encoder):
     """This MLP network encodes context of RL tasks.
 
     Context is stored in the terms of observation, action, and reward, and this
@@ -67,7 +67,7 @@ class OracleEncoder(Encoder):
             torch.Tensor: Output value
 
         """
-        return np.array([1,2,3])
+        return np.array([input_value])
 
     @property
     def input_dim(self):
@@ -94,3 +94,4 @@ class OracleEncoder(Encoder):
                 to be reset.
 
         """
+        pass

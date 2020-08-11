@@ -35,7 +35,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def pearl_metaworld_ml1_pick_place(ctxt=None,
+def pearl_emphasized_metaworld_ml1_pick_place(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
@@ -156,4 +156,4 @@ def pearl_metaworld_ml1_pick_place(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 
-pearl_metaworld_ml1_pick_place()
+pearl_emphasized_metaworld_ml1_pick_place()

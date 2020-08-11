@@ -33,6 +33,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=150)
+@click.option('--gpu_id', default=0)
 @wrap_experiment
 def pearl_metaworld_ml10(ctxt=None,
                          seed=1,
@@ -53,7 +54,8 @@ def pearl_metaworld_ml10(ctxt=None,
                          embedding_mini_batch_size=64,
                          max_path_length=150,
                          reward_scale=10.,
-                         use_gpu=False):
+                         gpu_id=0,
+                         use_gpu=True):
     """Train PEARL with ML10 environments.
 
     Args:
@@ -94,20 +96,20 @@ def pearl_metaworld_ml10(ctxt=None,
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
     # create multi-task environment and sample tasks
-    ML_train_envs = [
+    ml_train_envs = [
         GarageEnv(normalize(mwb.ML10.from_task(task_name)))
         for task_name in mwb.ML10.get_train_tasks().all_task_names
     ]
 
-    ML_test_envs = [
+    ml_test_envs = [
         GarageEnv(normalize(mwb.ML10.from_task(task_name)))
         for task_name in mwb.ML10.get_test_tasks().all_task_names
     ]
 
-    env_sampler = EnvPoolSampler(ML_train_envs)
+    env_sampler = EnvPoolSampler(ml_train_envs)
     env_sampler.grow_pool(num_train_tasks)
     env = env_sampler.sample(num_train_tasks)
-    test_env_sampler = EnvPoolSampler(ML_test_envs)
+    test_env_sampler = EnvPoolSampler(ml_test_envs)
     test_env_sampler.grow_pool(num_test_tasks)
 
     runner = LocalRunner(ctxt)
@@ -149,7 +151,7 @@ def pearl_metaworld_ml10(ctxt=None,
         reward_scale=reward_scale,
     )
 
-    set_gpu_mode(use_gpu, gpu_id=0)
+    set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
         pearl.to()
 
@@ -162,5 +164,5 @@ def pearl_metaworld_ml10(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-
-pearl_metaworld_ml10()
+if __name__ == '__main__':
+    pearl_metaworld_ml10()

@@ -7,14 +7,16 @@ from garage.torch.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from garage.torch.policies.policy import Policy
 from garage.torch.policies.tanh_gaussian_mlp_policy import (
     TanhGaussianMLPPolicy)
-from garage.torch.policies.oracle_conditioned_policy import OracleConditionedPolicy
+from garage.torch.policies.goal_conditioned_policy import GoalConditionedPolicy
 from garage.torch.policies.tanh_gaussian_context_emphasized_policy import TanhGaussianContextEmphasizedPolicy
+from garage.torch.policies.curl_policy import CurlPolicy
 __all__ = [
     'DeterministicMLPPolicy',
     'GaussianMLPPolicy',
     'Policy',
     'TanhGaussianMLPPolicy',
     'ContextConditionedPolicy',
-    'OracleConditionedPolicy',
-    'TanhGaussianContextEmphasizedPolicy'
+    'GoalConditionedPolicy',
+    'TanhGaussianContextEmphasizedPolicy',
+    'CurlPolicy'
 ]

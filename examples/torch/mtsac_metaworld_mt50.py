@@ -88,7 +88,7 @@ def mtsac_metaworld_mt50(ctxt=None, seed=1, use_gpu=False, _gpu=0):
                   eval_env=mt50_test_envs,
                   env_spec=mt50_train_envs.spec,
                   num_tasks=10,
-                  steps_per_epoch=epoch_cycles,
+                  num_tasks=epoch_cycles,
                   replay_buffer=replay_buffer,
                   min_buffer_size=7500,
                   target_update_tau=5e-3,

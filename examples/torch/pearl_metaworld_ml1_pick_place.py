@@ -155,5 +155,5 @@ def pearl_metaworld_ml1_pick_place(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-
-pearl_metaworld_ml1_pick_place()
+if __name__ == '__main__':
+    pearl_metaworld_ml1_pick_place()

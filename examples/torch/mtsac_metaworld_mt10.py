@@ -23,9 +23,9 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @click.command()
 @click.option('--seed', 'seed', type=int, default=1)
-@click.option('--gpu', '_gpu', type=int, default=None)
+@click.option('--gpu_id', 'gpu_id', type=int, default=None)
 @wrap_experiment(snapshot_mode='none')
-def mtsac_metaworld_mt10(ctxt=None, seed=1, _gpu=None):
+def mtsac_metaworld_mt10(ctxt=None, seed=1, gpu_id=0):
     """Train MTSAC with MT10 environment.
 
     Args:
@@ -86,14 +86,13 @@ def mtsac_metaworld_mt10(ctxt=None, seed=1, _gpu=None):
                   eval_env=mt10_test_envs,
                   env_spec=mt10_train_envs.spec,
                   num_tasks=10,
-                  steps_per_epoch=epoch_cycles,
+                  num_tasks=epoch_cycles,
                   replay_buffer=replay_buffer,
                   min_buffer_size=1500,
                   target_update_tau=5e-3,
                   discount=0.99,
                   buffer_batch_size=1280)
-    if _gpu is not None:
-        set_gpu_mode(True, _gpu)
+    set_gpu_mode(True, gpu_id)
     mtsac.to()
     runner.setup(algo=mtsac, env=mt10_train_envs, sampler_cls=LocalSampler)
     runner.train(n_epochs=epochs, batch_size=batch_size)

@@ -92,7 +92,7 @@ def mtsac_metaworld_ml1_push(ctxt=None, seed=1, gpu_id=None):
                   eval_env=ml1_test_envs,
                   env_spec=ml1_train_envs.spec,
                   num_tasks=50,
-                  steps_per_epoch=epoch_cycles,
+                  num_tasks=epoch_cycles,
                   replay_buffer=replay_buffer,
                   min_buffer_size=1500,
                   target_update_tau=5e-3,

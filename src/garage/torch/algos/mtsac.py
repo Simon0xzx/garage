@@ -63,7 +63,7 @@ class MTSAC(SAC):
         optimizer (torch.optim.Optimizer): Optimizer to be used for
             policy/actor, q_functions/critics, and temperature/entropy
             optimizations.
-        steps_per_epoch (int): Number of train_once calls per epoch.
+        num_tasks (int): Number of train_once calls per epoch.
         num_evaluation_trajectories (int): The number of evaluation
             trajectories used for computing eval stats at the end of every
             epoch.

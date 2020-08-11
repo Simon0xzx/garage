@@ -13,12 +13,12 @@ from garage.torch import set_gpu_mode
 from garage.torch.algos import MULTITASKORACLE
 from garage.torch.algos.multi_task_oracle import MULTITASKORACLEWorker
 from garage.torch.policies import GoalConditionedPolicy
-from garage.torch.policies import TanhGaussianMLPPolicy
+from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=500)
+@click.option('--num_epochs', default=1000)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)
 @click.option('--encoder_hidden_size', default=200)
@@ -34,7 +34,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--seed', default=1)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
+def curl_emphasized_oracle_metaworld_ml1_pick_place(ctxt=None,
                              seed=1,
                              num_epochs=500,
                              num_train_tasks=50,
@@ -111,8 +111,8 @@ def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
     vf = ContinuousMLPQFunction(env_spec=vf_env,
                                 hidden_sizes=[net_size, net_size, net_size])
 
-    inner_policy = TanhGaussianMLPPolicy(
-        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size, net_size, net_size])
+    inner_policy = TanhGaussianContextEmphasizedPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size], latent_sizes=3)
 
     multitask_oracle = MULTITASKORACLE(
         env=env,
@@ -152,5 +152,4 @@ def deeper_multitask_oracle_metaworld_ml1_pick_place(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 
-
-deeper_multitask_oracle_metaworld_ml1_pick_place()
+curl_emphasized_oracle_metaworld_ml1_pick_place()
