@@ -660,8 +660,9 @@ class CURL(MetaRLAlgorithm):
                     new_context = context[np.newaxis]
                     if final_context.shape[1] != new_context.shape[1]:
                         min_length = min(final_context.shape[1], new_context.shape[1])
-                        final_context = np.vstack((final_context[:, :min_length, :], new_context[:, :min_length, :]))
-                    final_context = np.vstack((final_context, context[np.newaxis]))
+                        new_context = new_context[:, :min_length, :]
+                        final_context = np.vstack((final_context[:, :min_length, :], new_context))
+                    final_context = np.vstack((final_context, new_context))
 
             final_context = torch.as_tensor(final_context,
                                             device=global_device()).float()
