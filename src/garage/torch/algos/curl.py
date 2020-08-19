@@ -643,7 +643,8 @@ class CURL(MetaRLAlgorithm):
             initialized = False
             for idx in indices:
                 path = self._context_replay_buffers[idx].sample_path()
-                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                path_len = path['observations'].shape[0]
+                batch_aug = self.augment_path(path, min(path_len, self._embedding_batch_size)) # conduct random path augmentations
                 o = batch_aug['observations']
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
