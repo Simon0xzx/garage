@@ -639,6 +639,7 @@ class CURL(MetaRLAlgorithm):
             indices = [indices]
 
         path_augs = []
+        min_path_len = self._embedding_batch_size
         for j in range(num_aug):
             initialized = False
             for idx in indices:
@@ -656,8 +657,11 @@ class CURL(MetaRLAlgorithm):
                     final_context = context[np.newaxis]
                     initialized = True
                 else:
-                    final_context = np.vstack(
-                        (final_context, context[np.newaxis]))
+                    new_context = context[np.newaxis]
+                    if final_context.shape[1] != new_context.shape[1]:
+                        min_length = min(final_context.shape[1], new_context.shape[1])
+                        final_context = np.vstack((final_context[:, :min_length, :], new_context[:, :min_length, :]))
+                    final_context = np.vstack((final_context, context[np.newaxis]))
 
             final_context = torch.as_tensor(final_context,
                                             device=global_device()).float()
@@ -665,8 +669,13 @@ class CURL(MetaRLAlgorithm):
                 final_context = final_context.unsqueeze(0)
 
             path_augs.append(final_context)
+            min_path_len = min(min_path_len, final_context.shape[1])
 
-        return path_augs
+        final_path_augs = []
+        for aug in path_augs:
+            final_path_augs.append(aug[:, :min_path_len, :])
+
+        return final_path_augs
 
 
     def _sample_context(self, indices):
