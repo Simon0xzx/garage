@@ -922,7 +922,6 @@ class CURLWorker(DefaultWorker):
             if self._deterministic:
                 a = agent_info['mean']
             next_o, r, d, env_info = self.env.step(a)
-            d = env_info['success']
             self._observations.append(self._prev_obs)
             self._rewards.append(r)
             self._actions.append(a)
@@ -942,7 +941,7 @@ class CURLWorker(DefaultWorker):
                              env_info=env_info,
                              agent_info=agent_info)
                 self.agent.update_context(s)
-            if not d:
+            if not env_info['success']:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)
@@ -961,5 +960,5 @@ class CURLWorker(DefaultWorker):
         while not self.step_rollout():
             pass
         self._agent_infos['context'] = [self.agent.z.detach().cpu().numpy()
-                                        ] * self._max_path_length
+                                        ] * self._path_length
         return self.collect_rollout()
