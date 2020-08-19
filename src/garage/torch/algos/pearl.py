@@ -4,7 +4,7 @@ Code is adapted from https://github.com/katerakelly/oyster.
 """
 
 import copy
-
+import pickle
 import akro
 from dowel import logger
 import numpy as np
@@ -190,12 +190,12 @@ class PEARL(MetaRLAlgorithm):
 
         # buffer for training RL update
         self._replay_buffers = {
-            i: PathBuffer(replay_buffer_size)
+            i: PathBuffer(self._replay_buffer_size)
             for i in range(num_train_tasks)
         }
 
         self._context_replay_buffers = {
-            i: PathBuffer(replay_buffer_size)
+            i: PathBuffer(self._replay_buffer_size)
             for i in range(num_train_tasks)
         }
 
@@ -253,6 +253,67 @@ class PEARL(MetaRLAlgorithm):
             for i in range(self._num_train_tasks)
         }
         self._is_resuming = True
+
+    def update_env(self, env, evaluator, num_train_tasks, num_test_tasks):
+        print("Updating environments")
+        self._env = env
+        self._evaluator = evaluator
+        self._num_train_tasks = num_train_tasks
+        self._num_test_tasks = num_test_tasks
+        # buffer for training RL update
+        self._replay_buffers = {
+            i: PathBuffer(self._replay_buffer_size)
+            for i in range(num_train_tasks)
+        }
+
+        self._context_replay_buffers = {
+            i: PathBuffer(self._replay_buffer_size)
+            for i in range(num_train_tasks)
+        }
+        self._task_idx = 0
+        print("Updated with new envipickleronment setup")
+
+    def fill_expert_traj(self, expert_traj_dir):
+        print("Filling Expert trajectory to replay buffer")
+        from os import listdir
+        from os.path import isfile, join
+        expert_traj_paths = [join(expert_traj_dir, f) for f in
+                             listdir(expert_traj_dir) if
+                             isfile(join(expert_traj_dir, f))]
+        expert_trajs = []
+        for exp_path in expert_traj_paths:
+            with open(exp_path, 'rb') as handle:
+                data = pickle.load(handle)
+                expert_trajs.append(data)
+
+        for path in expert_trajs:
+            p = {
+                'observations': path['observations'],
+                'actions': path['actions'],
+                'rewards': path['rewards'].reshape(-1, 1),
+                'next_observations': path['next_observations'],
+                'dones': path['dones'].reshape(-1, 1)
+            }
+            self._replay_buffers[self._task_idx].add_path(p)
+            self._context_replay_buffers[self._task_idx].add_path(p)
+
+    def adapt_expert_traj(self, runner):
+        """Obtain samples, train, and evaluate for each epoch.
+
+                Args:
+                    runner (LocalRunner): LocalRunner is passed to give algorithm
+                        the access to runner.step_epochs(), which provides services
+                        such as snapshotting and sampler control.
+
+                """
+        for _ in runner.step_epochs():
+            logger.log('Adapting Policy {}...'.format(runner.step_itr))
+            self._train_once()
+            runner.step_itr += 1
+            logger.log('Evaluating...')
+            # evaluate
+            self._policy.reset_belief()
+            self._evaluator.evaluate(self)
 
     def train(self, runner):
         """Obtain samples, train, and evaluate for each epoch.
@@ -726,6 +787,7 @@ class PEARLWorker(DefaultWorker):
             if self._deterministic:
                 a = agent_info['mean']
             next_o, r, d, env_info = self.env.step(a)
+            d = env_info['success']
             self._observations.append(self._prev_obs)
             self._rewards.append(r)
             self._actions.append(a)

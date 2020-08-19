@@ -502,6 +502,46 @@ class LocalRunner:
 
         return average_return
 
+    def adapt_policy(self,
+              n_epochs,
+              expert_traj_path,
+              batch_size=None,
+              plot=False,
+              store_paths=False,
+              pause_for_plot=False):
+        """Start training.
+
+        Args:
+            n_epochs (int): Number of epochs.
+            batch_size (int or None): Number of environment steps in one batch.
+            plot (bool): Visualize policy by doing rollout after each epoch.
+            store_paths (bool): Save paths in snapshot.
+            pause_for_plot (bool): Pause for plot.
+
+        Raises:
+            NotSetupError: If train() is called before setup().
+
+        Returns:
+            float: The average return in last epoch cycle.
+
+        """
+        if not self._has_setup:
+            raise NotSetupError('Use setup() to setup runner before training.')
+
+        # Save arguments for restore
+        self._train_args = TrainArgs(n_epochs=n_epochs,
+                                     batch_size=batch_size,
+                                     plot=plot,
+                                     store_paths=store_paths,
+                                     pause_for_plot=pause_for_plot,
+                                     start_epoch=0)
+
+        self._plot = plot
+        self._algo.fill_expert_traj(expert_traj_path)
+        self._algo.adapt_expert_traj(self)
+        self._shutdown_worker()
+
+
     def step_epochs(self):
         """Step through each epoch.
 
