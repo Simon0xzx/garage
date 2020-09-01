@@ -539,10 +539,63 @@ class LocalRunner:
         self._plot = plot
         self._algo.fill_expert_traj(expert_traj_path)
         self._algo.adapt_expert_traj(self)
-        self._shutdown_worker()
 
+        # average_return = self._algo.train(self)
+        # self._shutdown_worker()
+        # return average_return
 
     def step_epochs(self):
+        """Step through each epoch.
+
+        This function returns a magic generator. When iterated through, this
+        generator automatically performs services such as snapshotting and log
+        management. It is used inside train() in each algorithm.
+
+        The generator initializes two variables: `self.step_itr` and
+        `self.step_path`. To use the generator, these two have to be
+        updated manually in each epoch, as the example shows below.
+
+        Yields:
+            int: The next training epoch.
+
+        Examples:
+            for epoch in runner.step_epochs():
+                runner.step_path = runner.obtain_samples(...)
+                self.train_once(...)
+                runner.step_itr += 1
+
+        """
+        self._start_worker()
+        self._start_time = time.time()
+        self.step_itr = self._stats.total_itr
+        self.step_path = None
+
+        # Used by integration tests to ensure examples can run one epoch.
+        n_epochs = int(
+            os.environ.get('GARAGE_EXAMPLE_TEST_N_EPOCHS',
+                           self._train_args.n_epochs))
+
+        logger.log('Obtaining samples...')
+
+        for epoch in range(self._train_args.start_epoch, n_epochs):
+            self._itr_start_time = time.time()
+            with logger.prefix('epoch #%d | ' % epoch):
+                yield epoch
+                save_path = (self.step_path
+                             if self._train_args.store_paths else None)
+
+                self._stats.last_path = save_path
+                self._stats.total_epoch = epoch
+                self._stats.total_itr = self.step_itr
+
+                self.save(epoch)
+
+                if self.enable_logging:
+                    self.log_diagnostics(self._train_args.pause_for_plot)
+                    logger.dump_all(self.step_itr)
+                    tabular.clear()
+
+    def step_epochs_adapt(self):
         """Step through each epoch.
 
         This function returns a magic generator. When iterated through, this

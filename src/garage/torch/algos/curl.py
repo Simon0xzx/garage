@@ -173,7 +173,8 @@ class CURL(MetaRLAlgorithm):
                                         max_path_length=max_path_length,
                                         worker_class=CURLWorker,
                                         worker_args=worker_args,
-                                        n_test_tasks=num_test_tasks)
+                                        n_test_tasks=num_test_tasks,
+                                        n_test_rollouts=5)
 
         encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder', use_information_bottleneck)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
@@ -283,6 +284,32 @@ class CURL(MetaRLAlgorithm):
         }
         self._task_idx = 0
         print("Updated with new envipickleronment setup")
+
+        self._policy_optimizer = torch.optim.Adam(
+            self._policy.networks[1].parameters(),
+            lr=3E-4,
+        )
+        self.qf1_optimizer = torch.optim.Adam(
+            self._qf1.parameters(),
+            lr=3E-4,
+        )
+        self.qf2_optimizer = torch.optim.Adam(
+            self._qf2.parameters(),
+            lr=3E-4,
+        )
+        self.vf_optimizer = torch.optim.Adam(
+            self._vf.parameters(),
+            lr=3E-4,
+        )
+        self.context_optimizer = torch.optim.Adam(
+            self._context_encoder.networks[0].parameters(),
+            lr=3E-4,
+        )
+        self.query_optimizer = torch.optim.Adam(
+            self._context_encoder.networks[1].parameters(),
+            lr=3E-4,
+        )
+        print('Reset optimizer state')
 
     def fill_expert_traj(self, expert_traj_dir):
         print("Filling Expert trajectory to replay buffer")
@@ -639,13 +666,11 @@ class CURL(MetaRLAlgorithm):
             indices = [indices]
 
         path_augs = []
-        min_path_len = self._embedding_batch_size
         for j in range(num_aug):
             initialized = False
             for idx in indices:
                 path = self._context_replay_buffers[idx].sample_path()
-                path_len = path['observations'].shape[0]
-                batch_aug = self.augment_path(path, min(path_len, self._embedding_batch_size)) # conduct random path augmentations
+                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
                 o = batch_aug['observations']
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
@@ -657,12 +682,7 @@ class CURL(MetaRLAlgorithm):
                     final_context = context[np.newaxis]
                     initialized = True
                 else:
-                    new_context = context[np.newaxis]
-                    if final_context.shape[1] != new_context.shape[1]:
-                        min_length = min(final_context.shape[1], new_context.shape[1])
-                        new_context = new_context[:, :min_length, :]
-                        final_context = np.vstack((final_context[:, :min_length, :], new_context))
-                    final_context = np.vstack((final_context, new_context))
+                    final_context = np.vstack((final_context, context[np.newaxis]))
 
             final_context = torch.as_tensor(final_context,
                                             device=global_device()).float()
@@ -670,13 +690,8 @@ class CURL(MetaRLAlgorithm):
                 final_context = final_context.unsqueeze(0)
 
             path_augs.append(final_context)
-            min_path_len = min(min_path_len, final_context.shape[1])
 
-        final_path_augs = []
-        for aug in path_augs:
-            final_path_augs.append(aug[:, :min_path_len, :])
-
-        return final_path_augs
+        return path_augs
 
 
     def _sample_context(self, indices):
@@ -700,8 +715,7 @@ class CURL(MetaRLAlgorithm):
         initialized = False
         for idx in indices:
             path = self._context_replay_buffers[idx].sample_path()
-            path_len = path['observations'].shape[0]
-            batch = self.augment_path(path, min(path_len, self._embedding_batch_size))  # conduct random path augmentations
+            batch = self.augment_path(path, self._embedding_batch_size)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']
@@ -713,7 +727,14 @@ class CURL(MetaRLAlgorithm):
                 final_context = context[np.newaxis]
                 initialized = True
             else:
-                final_context = np.vstack((final_context, context[np.newaxis]))
+                new_context = context[np.newaxis]
+                if final_context.shape[1] != new_context.shape[1]:
+                    min_length = min(final_context.shape[1],
+                                     new_context.shape[1])
+                    new_context = new_context[:, :min_length, :]
+                    final_context = np.vstack(
+                        (final_context[:, :min_length, :], new_context))
+                final_context = np.vstack((final_context, new_context))
 
         final_context = torch.as_tensor(final_context,
                                         device=global_device()).float()
@@ -953,7 +974,7 @@ class CURLWorker(DefaultWorker):
                              env_info=env_info,
                              agent_info=agent_info)
                 self.agent.update_context(s)
-            if not env_info['success']:
+            if not d:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)

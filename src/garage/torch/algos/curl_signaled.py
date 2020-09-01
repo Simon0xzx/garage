@@ -1,4 +1,4 @@
-"""PEARL and PEARLWorker in Pytorch.
+"""CURL and CURLWorker in Pytorch.
 
 Code is adapted from https://github.com/katerakelly/oyster.
 """
@@ -17,12 +17,13 @@ from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
 from garage.sampler import DefaultWorker
 from garage.torch import global_device
+from garage.torch.modules import MLPModule
 from garage.torch.embeddings import MLPEncoder
-from garage.torch.policies import ContextConditionedPolicy
+from garage.torch.policies import CurlPolicy
 
 
-class PEARL(MetaRLAlgorithm):
-    r"""A PEARL model based on https://arxiv.org/abs/1903.08254.
+class CURL(MetaRLAlgorithm):
+    """A PEARL model based on https://arxiv.org/abs/1903.08254.
 
     PEARL, which stands for Probablistic Embeddings for Actor-Critic
     Reinforcement Learning, is an off-policy meta-RL algorithm. It is built
@@ -102,7 +103,7 @@ class PEARL(MetaRLAlgorithm):
                  latent_dim,
                  encoder_hidden_sizes,
                  test_env_sampler,
-                 policy_class=ContextConditionedPolicy,
+                 policy_class=CurlPolicy,
                  encoder_class=MLPEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
@@ -170,32 +171,38 @@ class PEARL(MetaRLAlgorithm):
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
                                         max_path_length=max_path_length,
-                                        worker_class=PEARLWorker,
+                                        worker_class=CURLWorker,
                                         worker_args=worker_args,
-                                        n_test_tasks=num_test_tasks)
+                                        n_test_tasks=num_test_tasks,
+                                        n_test_rollouts=5)
 
-        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder')
+        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder', use_information_bottleneck)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
-        context_encoder = encoder_class(input_dim=encoder_in_dim,
+        self._context_encoder = encoder_class(input_dim=encoder_in_dim,
                                         output_dim=encoder_out_dim,
-                                        hidden_sizes=encoder_hidden_sizes)
+                                        hidden_sizes=encoder_hidden_sizes,
+                                        query_sizes=encoder_hidden_sizes)
+        self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
 
+        # self._contrastive_loss = ContrastiveLoss(latent_dim)
+
+        self._context_lr = context_lr
         self._policy = policy_class(
             latent_dim=latent_dim,
-            context_encoder=context_encoder,
+            context_encoder=self._context_encoder,
             policy=inner_policy,
             use_information_bottleneck=use_information_bottleneck,
             use_next_obs=use_next_obs_in_context)
 
         # buffer for training RL update
         self._replay_buffers = {
-            i: PathBuffer(self._replay_buffer_size)
+            i: PathBuffer(replay_buffer_size)
             for i in range(num_train_tasks)
         }
 
         self._context_replay_buffers = {
-            i: PathBuffer(self._replay_buffer_size)
+            i: PathBuffer(replay_buffer_size)
             for i in range(num_train_tasks)
         }
 
@@ -219,9 +226,14 @@ class PEARL(MetaRLAlgorithm):
             lr=vf_lr,
         )
         self.context_optimizer = optimizer_class(
-            self._policy.networks[0].parameters(),
+            self._context_encoder.networks[0].parameters(),
             lr=context_lr,
         )
+        self.query_optimizer = optimizer_class(
+            self._context_encoder.networks[1].parameters(),
+            lr=context_lr,
+        )
+
 
     def __getstate__(self):
         """Object.__getstate__.
@@ -272,28 +284,6 @@ class PEARL(MetaRLAlgorithm):
         }
         self._task_idx = 0
         print("Updated with new envipickleronment setup")
-        self._policy_optimizer = torch.optim.Adam(
-            self._policy.networks[1].parameters(),
-            lr=3E-4,
-        )
-        self.qf1_optimizer = torch.optim.Adam(
-            self._qf1.parameters(),
-            lr=3E-4,
-        )
-        self.qf2_optimizer = torch.optim.Adam(
-            self._qf2.parameters(),
-            lr=3E-4,
-        )
-        self.vf_optimizer = torch.optim.Adam(
-            self._vf.parameters(),
-            lr=3E-4,
-        )
-        self.context_optimizer = torch.optim.Adam(
-            self._policy.networks[0].parameters(),
-            lr=3E-4,
-        )
-
-        print('Reset optimizer state')
 
     def fill_expert_traj(self, expert_traj_dir):
         print("Filling Expert trajectory to replay buffer")
@@ -396,6 +386,79 @@ class PEARL(MetaRLAlgorithm):
                                        self._meta_batch_size)
             self._optimize_policy(indices)
 
+    def augment_path(self, path, batch_size, in_sequence = False):
+        path_len = path['observations'].shape[0]
+        if batch_size > path_len:
+            raise Exception('Embedding_batch size cannot be longer than path length')
+        augmented_path = {}
+        if in_sequence:
+            seq_begin = np.random.randint(0, path_len - batch_size)
+            augmented_path['observations'] = path['observations'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['actions'] = path['actions'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['rewards'] = path['rewards'][
+                                             seq_begin:seq_begin + batch_size]
+            augmented_path['next_observations'] = path['next_observations'][
+                                             seq_begin:seq_begin + batch_size]
+        else:
+            seq_idx = np.random.choice(path_len, batch_size)
+            augmented_path['observations'] = path['observations'][seq_idx]
+            augmented_path['actions'] = path['actions'][seq_idx]
+            augmented_path['rewards'] = path['rewards'][seq_idx]
+            augmented_path['next_observations'] = path['next_observations'][seq_idx]
+
+        return augmented_path
+
+    def calc_contrastive_loss(self, query, key):
+        left_product = torch.matmul(query, self._contrastive_weight)
+        logits = torch.matmul(left_product, key)
+        logits = logits - torch.max(logits, axis=1)
+        labels = torch.arange(logits.shape[0])
+        loss = torch.nn.CrossEntropyLoss(logits, labels)
+        return loss
+
+    def _optimize_curl_encoder(self, indices):
+        # Optimize CURL encoder
+        context_encoder = self._context_encoder.networks[0]
+        query_net = self._context_encoder.networks[1]
+        key_net = self._context_encoder.networks[2]
+        context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
+        aug1 = torch.as_tensor(context_augs[0], device=global_device())
+        aug2 = torch.as_tensor(context_augs[1], device=global_device())
+
+        # similar_contrastive
+        query = self._context_encoder(aug1, query=True)
+        key = self._context_encoder(aug2, query=False)
+        loss_fun = torch.nn.CrossEntropyLoss()
+        loss = None
+        for i in range(len(indices)):
+            left_product = torch.matmul(query[i], self._contrastive_weight.to(global_device()))
+            logits = torch.matmul(left_product, key[i].T)
+            logits = logits - torch.max(logits, axis=1)[0]
+            labels = torch.arange(logits.shape[0]).to(global_device())
+            if not loss:
+                loss = loss_fun(logits, labels)
+            else:
+                loss += loss_fun(logits, labels)
+
+
+        # loss = self.calc_contrastive_loss(query, key)
+        # loss = self._contrastive_loss(query, key)
+
+        self.query_optimizer.zero_grad()
+        self.context_optimizer.zero_grad()
+
+        loss.backward()
+        self.query_optimizer.step()
+        self.context_optimizer.step()
+        with torch.no_grad():
+            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
+            self._contrastive_weight.grad.zero_()
+            # update key net with 0.05 of query net
+            for target_param, param in zip(key_net.parameters(), query_net.parameters()):
+                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
+
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
 
@@ -404,13 +467,17 @@ class PEARL(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
+
+        self._optimize_curl_encoder(indices)
         context = self._sample_context(indices)
+
         # clear context and reset belief of policy
         self._policy.reset_belief(num_tasks=num_tasks)
 
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
         policy_outputs, task_z = self._policy(obs, context)
+        task_z.detach()
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         # flatten out the task dimension
@@ -428,7 +495,6 @@ class PEARL(MetaRLAlgorithm):
             target_v_values = self.target_vf(next_obs, task_z)
 
         # KL constraint on z if probabilistic
-        self.context_optimizer.zero_grad()
         if self._use_information_bottleneck:
             kl_div = self._policy.compute_kl_div()
             kl_loss = self._kl_lambda * kl_div
@@ -440,15 +506,12 @@ class PEARL(MetaRLAlgorithm):
         rewards_flat = rewards.view(self._batch_size * num_tasks, -1)
         rewards_flat = rewards_flat * self._reward_scale
         terms_flat = terms.view(self._batch_size * num_tasks, -1)
-        q_target = rewards_flat + (
-            1. - terms_flat) * self._discount * target_v_values
-        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean(
-            (q2_pred - q_target)**2)
+        q_target = rewards_flat + (1. - terms_flat) * self._discount * target_v_values
+        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean((q2_pred - q_target)**2)
         qf_loss.backward()
 
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
-        self.context_optimizer.step()
 
         # compute min Q on the new actions
         q1 = self._qf1(torch.cat([obs, new_actions], dim=1), task_z.detach())
@@ -502,8 +565,7 @@ class PEARL(MetaRLAlgorithm):
         total_samples = 0
 
         if update_posterior_rate != np.inf:
-            num_samples_per_batch = (update_posterior_rate *
-                                     self.max_path_length)
+            num_samples_per_batch = (update_posterior_rate * self.max_path_length)
         else:
             num_samples_per_batch = num_samples
 
@@ -572,6 +634,40 @@ class PEARL(MetaRLAlgorithm):
 
         return o, a, r, no, d
 
+    def _sample_contrastive_pairs(self, indices, num_aug=2):
+        # make method work given a single task index
+        if not hasattr(indices, '__iter__'):
+            indices = [indices]
+
+        path_augs = []
+        for j in range(num_aug):
+            initialized = False
+            for idx in indices:
+                path = self._context_replay_buffers[idx].sample_path()
+                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                o = batch_aug['observations']
+                a = batch_aug['actions']
+                r = batch_aug['rewards']
+                context = np.hstack((np.hstack((o, a)), r))
+                if self._use_next_obs_in_context:
+                    context = np.hstack((context, batch_aug['next_observations']))
+
+                if not initialized:
+                    final_context = context[np.newaxis]
+                    initialized = True
+                else:
+                    final_context = np.vstack((final_context, context[np.newaxis]))
+
+            final_context = torch.as_tensor(final_context,
+                                            device=global_device()).float()
+            if len(indices) == 1:
+                final_context = final_context.unsqueeze(0)
+
+            path_augs.append(final_context)
+
+        return path_augs
+
+
     def _sample_context(self, indices):
         """Sample batch of context from a list of tasks.
 
@@ -592,8 +688,8 @@ class PEARL(MetaRLAlgorithm):
 
         initialized = False
         for idx in indices:
-            batch = self._context_replay_buffers[idx].sample_transitions(
-                self._embedding_batch_size)
+            path = self._context_replay_buffers[idx].sample_path()
+            batch = self.augment_path(path, self._embedding_batch_size)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']
@@ -605,7 +701,14 @@ class PEARL(MetaRLAlgorithm):
                 final_context = context[np.newaxis]
                 initialized = True
             else:
-                final_context = np.vstack((final_context, context[np.newaxis]))
+                new_context = context[np.newaxis]
+                if final_context.shape[1] != new_context.shape[1]:
+                    min_length = min(final_context.shape[1],
+                                     new_context.shape[1])
+                    new_context = new_context[:, :min_length, :]
+                    final_context = np.vstack(
+                        (final_context[:, :min_length, :], new_context))
+                final_context = np.vstack((final_context, new_context))
 
         final_context = torch.as_tensor(final_context,
                                         device=global_device()).float()
@@ -641,7 +744,7 @@ class PEARL(MetaRLAlgorithm):
 
         """
         return self._policy.networks + [self._policy] + [
-            self._qf1, self._qf2, self._vf, self.target_vf
+            self._qf1, self._qf2, self._vf, self.target_vf, self._contrastive_weight
         ]
 
     def get_exploration_policy(self):
@@ -721,7 +824,7 @@ class PEARL(MetaRLAlgorithm):
         return EnvSpec(aug_obs, aug_act)
 
     @classmethod
-    def get_env_spec(cls, env_spec, latent_dim, module):
+    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=False):
         """Get environment specs of encoder with latent dimension.
 
         Args:
@@ -738,7 +841,10 @@ class PEARL(MetaRLAlgorithm):
         action_dim = int(np.prod(env_spec.action_space.shape))
         if module == 'encoder':
             in_dim = obs_dim + action_dim + 1
-            out_dim = latent_dim * 2
+            out_dim = latent_dim
+            if use_information_bottleneck:
+                out_dim = out_dim * 2
+
         elif module == 'vf':
             in_dim = obs_dim
             out_dim = latent_dim
@@ -755,8 +861,22 @@ class PEARL(MetaRLAlgorithm):
         return spec
 
 
-class PEARLWorker(DefaultWorker):
-    """A worker class used in sampling for PEARL.
+# class ContrastiveLoss(torch.nn.Module):
+#     def __init__(self, latent_dim):
+#         super.__init__()
+#         self._contrastive_weight = torch.rand(latent_dim, latent_dim, device=global_device(), requires_grad=True)
+#         self.add_module("weight", self._contrastive_weight)
+#
+#     def forward(self, query, key):
+#         left_product = torch.matmul(query, self._contrastive_weight)
+#         logits = torch.matmul(left_product, key)
+#         logits = logits - torch.max(logits, axis=1)
+#         labels = torch.arange(logits.shape[0])
+#         loss = torch.nn.CrossEntropyLoss(logits, labels)
+#         return loss
+
+class CURLWorker(DefaultWorker):
+    """A worker class used in sampling for CURL.
 
     It stores context and resample belief in the policy every step.
 
@@ -818,18 +938,17 @@ class PEARLWorker(DefaultWorker):
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
-            done_signal = bool(env_info['success'])
             if self._accum_context:
                 s = TimeStep(env_spec=self.env,
                              observation=self._prev_obs,
                              next_observation=next_o,
                              action=a,
                              reward=float(r),
-                             terminal=done_signal,
+                             terminal=d,
                              env_info=env_info,
                              agent_info=agent_info)
                 self.agent.update_context(s)
-            if not done_signal:
+            if not d:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)

@@ -14,13 +14,13 @@ from garage.torch.algos import CURL
 from garage.torch.algos.curl import CURLWorker
 from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
-from garage.torch.policies import TanhGaussianMLPPolicy
+from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
 @click.option('--num_epochs', default=1000)
-@click.option('--num_train_tasks', default=50)
+@click.option('--num_train_tasks', default=10)
 @click.option('--num_test_tasks', default=10)
 @click.option('--encoder_hidden_size', default=200)
 @click.option('--net_size', default=300)
@@ -38,17 +38,17 @@ def curl_metaworld_mlsp(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=10,
-                             num_test_tasks=5,
-                             latent_size=7,
-                             encoder_hidden_size=200,
+                             num_test_tasks=10,
+                             latent_size=10,
+                             encoder_hidden_size=300,
                              net_size=300,
-                             meta_batch_size=16,
+                             meta_batch_size=32,
                              num_steps_per_epoch=4000,
                              num_initial_steps=4000,
-                             num_tasks_sample=15,
+                             num_tasks_sample=20,
                              num_steps_prior=750,
                              num_extra_rl_steps_posterior=750,
-                             batch_size=256,
+                             batch_size=512,
                              embedding_batch_size=64,
                              embedding_mini_batch_size=64,
                              max_path_length=150,
@@ -93,7 +93,7 @@ def curl_metaworld_mlsp(ctxt=None,
     """
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
-                            encoder_hidden_size)
+                            encoder_hidden_size, encoder_hidden_size, encoder_hidden_size)
 
     # create multi-task environment and sample tasks
     ml_train_envs = [
@@ -101,20 +101,19 @@ def curl_metaworld_mlsp(ctxt=None,
         for task_name in mwb.MLSP.get_train_tasks().all_task_names
     ]
 
+
     ml_test_envs = [
         GarageEnv(normalize(mwb.MLSP.from_task(task_name)))
-        for task_name in mwb.MLSP.get_test_tasks().all_task_names
+        for task_name in mwb.MLSP.get_train_tasks().all_task_names
     ]
 
     env_sampler = EnvPoolSampler(ml_train_envs)
-    env_sampler.grow_pool(num_train_tasks)
     env = env_sampler.sample(num_train_tasks)
     test_env_sampler = EnvPoolSampler(ml_test_envs)
-    test_env_sampler.grow_pool(num_test_tasks)
 
+    ctxt.snapshot_mode = 'gap_and_last'
+    ctxt.snapshot_gap = 10
     runner = LocalRunner(ctxt)
-
-
 
     # instantiate networks
     augmented_env = CURL.augment_env_spec(env[0](), latent_size)
@@ -125,8 +124,9 @@ def curl_metaworld_mlsp(ctxt=None,
     vf = ContinuousMLPQFunction(env_spec=vf_env,
                                 hidden_sizes=[net_size, net_size, net_size])
 
-    inner_policy = TanhGaussianMLPPolicy(
-        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size])
+    inner_policy = TanhGaussianContextEmphasizedPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
+        latent_sizes=latent_size)
 
     curl = CURL(
         env=env,
@@ -151,6 +151,7 @@ def curl_metaworld_mlsp(ctxt=None,
         embedding_mini_batch_size=embedding_mini_batch_size,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
+        replay_buffer_size=100000,
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
@@ -165,5 +166,5 @@ def curl_metaworld_mlsp(ctxt=None,
                  worker_class=CURLWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
-
-curl_metaworld_mlsp()
+if __name__ == '__main__':
+    curl_metaworld_mlsp()

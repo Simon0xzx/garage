@@ -103,7 +103,7 @@ def curl_emphasized_metaworld_mlsp(ctxt=None,
 
     ml_test_envs = [
         GarageEnv(normalize(mwb.MLSP.from_task(task_name)))
-        for task_name in mwb.MLSP.get_test_tasks().all_task_names
+        for task_name in mwb.MLSP.get_train_tasks().all_task_names
     ]
 
     env_sampler = EnvPoolSampler(ml_train_envs)

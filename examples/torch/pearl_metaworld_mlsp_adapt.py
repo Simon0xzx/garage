@@ -31,7 +31,7 @@ from garage.torch.algos.pearl import PEARLWorker
 @click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def pearl_metaworld_mlsp_adapt(ctxt=None,
+def pearl_metaworld_mlsp_adapt_new(ctxt=None,
                          seed=1,
                          num_epochs=1000,
                          num_train_tasks=1,
@@ -124,8 +124,13 @@ def pearl_metaworld_mlsp_adapt(ctxt=None,
                  n_workers=1,
                  worker_class=PEARLWorker)
     expert_traj_dir = '/home/simon0xzx/research/berkely_research/garage/data/expert/metaworld_mlsp_button_press_wall'
-    runner.adapt_policy(n_epochs=40, expert_traj_path=expert_traj_dir, batch_size=batch_size)
+    print(
+        "==================================\nAdapting\n==================================")
+    runner.adapt_policy(n_epochs=50, expert_traj_path=expert_traj_dir, batch_size=batch_size)
+
+    print(
+        "==================================\nSelf Training\n==================================")
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 if __name__ == '__main__':
-    pearl_metaworld_mlsp_adapt()
+    pearl_metaworld_mlsp_adapt_new()
