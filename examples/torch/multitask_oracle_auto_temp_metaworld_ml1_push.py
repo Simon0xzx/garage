@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
-"""PEARL ML1 example."""
+"""MULTITASKORACLE ML1 example."""
 import click
-import torch
 import metaworld.benchmarks as mwb
 
 from garage import wrap_experiment
-from garage.experiment import Snapshotter
 from garage.envs import GarageEnv, normalize
 from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
-from garage.experiment.task_sampler import EnvPoolSampler
+from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.experiment import MetaEvaluator
-from garage.torch.algos.curl import CURLWorker
+from garage.torch.algos import MULTITASKORACLE
+from garage.torch.algos.multi_task_oracle import MULTITASKORACLEWorker
+from garage.torch.policies import GoalConditionedPolicy
+from garage.torch.policies import TanhGaussianMLPPolicy
+from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=500)
-@click.option('--num_train_tasks', default=1)
-@click.option('--num_test_tasks', default=1)
-@click.option('--encoder_hidden_size', default=200)
+@click.option('--num_epochs', default=1000)
+@click.option('--num_train_tasks', default=50)
+@click.option('--num_test_tasks', default=10)
 @click.option('--net_size', default=300)
 @click.option('--num_steps_per_epoch', default=4000)
 @click.option('--num_initial_steps', default=4000)
@@ -32,16 +32,14 @@ from garage.torch.algos.curl import CURLWorker
 @click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
+def multitask_oracle_metaworld_ml1_push(ctxt=None,
                              seed=1,
                              num_epochs=500,
-                             num_train_tasks=1,
-                             num_test_tasks=1,
-                             latent_size=7,
-                             encoder_hidden_size=200,
+                             num_train_tasks=50,
+                             num_test_tasks=10,
                              net_size=300,
-                             meta_batch_size=16,
-                             num_steps_per_epoch=4000,
+                             meta_batch_size=128,
+                             num_steps_per_epoch=500,
                              num_initial_steps=4000,
                              num_tasks_sample=15,
                              num_steps_prior=750,
@@ -51,9 +49,9 @@ def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
                              embedding_mini_batch_size=64,
                              max_path_length=150,
                              reward_scale=10.,
-                             gpu_id = 0,
-                             use_gpu=True):
-    """Train PEARL with ML1 environments.
+                             use_gpu=True,
+                             gpu_id = 0):
+    """Train MULTITASKORACLE with ML1 environments.
 
     Args:
         ctxt (garage.experiment.ExperimentContext): The experiment
@@ -91,71 +89,63 @@ def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
     """
     set_seed(seed)
     # create multi-task environment and sample tasks
-    ml_test_envs = [
-        GarageEnv(normalize(mwb.MLSP.from_task('button-press-wall-v1')))
-    ]
+    train_env = GarageEnv(normalize(mwb.ML1.get_train_tasks('push-v1')))
+    env_sampler = SetTaskSampler(lambda: train_env)
+    env = env_sampler.sample_with_goals(num_train_tasks)
 
-    test_env_sampler = EnvPoolSampler(ml_test_envs)
-    test_env_sampler.grow_pool(num_test_tasks)
-    env = test_env_sampler.sample(num_train_tasks)
+    test_env = GarageEnv(normalize(mwb.ML1.get_test_tasks('push-v1')))
+    test_env_sampler = SetTaskSampler(lambda: test_env)
 
-    ctxt.snapshot_mode = 'gap_and_last'
-    ctxt.snapshot_gap = 10
     runner = LocalRunner(ctxt)
-    worker_args = dict(deterministic=True, accum_context=True)
-    evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                    max_path_length=max_path_length,
-                                    worker_class=CURLWorker,
-                                    worker_args=worker_args,
-                                    n_test_tasks=num_test_tasks)
 
-    exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    # instantiate networks
+    latent_size = 3 # (NEW) 3-Dimensional context variable addressing task goal
+    augmented_env = MULTITASKORACLE.augment_env_spec(env[0](), latent_size)
+    qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
+                                  hidden_sizes=[net_size, net_size, net_size])
 
-    base_agent_path = '{}/curl_metaworld_mlsp_2'.format(exp_path)
-    snapshotter = Snapshotter()
-    snapshot = snapshotter.load(base_agent_path, itr=100)
-    curl = snapshot['algo']
-    curl.update_env(env, evaluator, 1, 1)
-    curl._policy_optimizer = torch.optim.Adam(
-        curl._policy.networks[1].parameters(),
-        lr=3E-4,
+    qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
+                                  hidden_sizes=[net_size, net_size, net_size])
+
+    inner_policy = TanhGaussianMLPPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size])
+
+    multitask_oracle = MULTITASKORACLE(
+        env=env,
+        policy_class=GoalConditionedPolicy,
+        inner_policy=inner_policy,
+        qf1=qf_1,
+        qf2=qf_2,
+        num_train_tasks=num_train_tasks,
+        num_test_tasks=num_test_tasks,
+        latent_dim=latent_size,
+        test_env_sampler=test_env_sampler,
+        meta_batch_size=meta_batch_size,
+        num_steps_per_epoch=num_steps_per_epoch,
+        num_initial_steps=num_initial_steps,
+        num_tasks_sample=num_tasks_sample,
+        num_steps_prior=num_steps_prior,
+        num_extra_rl_steps_posterior=num_extra_rl_steps_posterior,
+        batch_size=batch_size,
+        embedding_batch_size=embedding_batch_size,
+        embedding_mini_batch_size=embedding_mini_batch_size,
+        max_path_length=max_path_length,
+        reward_scale=reward_scale,
     )
-    curl.qf1_optimizer = torch.optim.Adam(
-        curl._qf1.parameters(),
-        lr=3E-4,
-    )
-    curl.qf2_optimizer = torch.optim.Adam(
-        curl._qf2.parameters(),
-        lr=3E-4,
-    )
-    curl.vf_optimizer = torch.optim.Adam(
-        curl._vf.parameters(),
-        lr=3E-4,
-    )
-    curl.context_optimizer = torch.optim.Adam(
-        curl._context_encoder.networks[0].parameters(),
-        lr=3E-4,
-    )
-    curl.query_optimizer = torch.optim.Adam(
-        curl._context_encoder.networks[1].parameters(),
-        lr=3E-4,
-    )
+
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
-        curl.to()
+        multitask_oracle.to()
 
-    runner.setup(algo=curl,
+    runner.setup(algo=multitask_oracle,
                  env=env[0](),
                  sampler_cls=LocalSampler,
                  sampler_args=dict(max_path_length=max_path_length),
                  n_workers=1,
-                 worker_class=CURLWorker)
-    expert_traj_dir = '/home/simon0xzx/research/berkely_research/garage/data/expert/metaworld_mlsp_button_press_wall'
-    print("==================================\nAdapting\n==================================")
-    runner.adapt_policy(n_epochs=50, expert_traj_path=expert_traj_dir, batch_size=batch_size)
-    print(
-        "==================================\nSelf Training\n==================================")
+                 worker_class=MULTITASKORACLEWorker)
+
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
+
 if __name__ == '__main__':
-    curl_metaworld_harder_mlsp_adapt_new()
+    multitask_oracle_metaworld_ml1_push()

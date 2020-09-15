@@ -18,7 +18,8 @@ def read_progress_file(file_path):
                 data_dict[k].append(float(v))
     return data_dict
 
-def plot_curve(matplot, path, exp_name, format='-', title = 'MetaTest/Average/AverageReturn',  legend = None, limit = -1):
+def plot_curve(matplot, path, exp_name, format='-',
+               title = 'MetaTest/Average/AverageReturn',  legend = None, limit = -1):
     result_path = os.path.join(path, exp_name, 'progress.csv')
     data_dict = read_progress_file(result_path)
     # x = data_dict['MetaTest/Average/Iteration']
@@ -40,33 +41,34 @@ def plot_curve(matplot, path, exp_name, format='-', title = 'MetaTest/Average/Av
                 max_ret = max(max_ret, y[i])
                 max_itr = i
 
-    print("{} max iter: {}, max return: {}".format(title, max_itr, max_ret))
+    print("{} max iter: {}, max return: {}".format(exp_name, max_itr, max_ret))
     matplot.plot(x, y, format, label=label)
     matplot.legend()
 
-def plot_curve_avg(matplot, root_path, exps, format='-', label='', plot_train = True, avg = True):
-    result_paths = [os.path.join(root_path, exp_name, 'progress.csv') for exp_name in exps]
+def plot_curve_avg(matplot, path, exps, format='-',
+                   title = 'MetaTest/Average/AverageReturn',  legend = None, limit = -1):
+    result_paths = [os.path.join(path, name, 'progress.csv') for name in exps]
     data_dicts = [read_progress_file(result_path) for result_path in result_paths]
 
-    step_length = [len(data_dict['Number of env steps total']) for data_dict in data_dicts]
-    print("Step length [{}]: \n{}".format(root_path, step_length))
-    min_step = min(step_length)
+    min_step_length = min([len(data_dict['TotalEnvSteps']) for data_dict in data_dicts])
+    if limit != -1:
+        min_step_length = min(min_step_length, limit)
+    print("Minimum step length: {}".format(min_step_length))
+    label = '{}_{}'.format(result_paths[0], title)
+    if legend != None:
+        label = legend
+    x = data_dicts[0]['TotalEnvSteps'][:min_step_length]
+    y_ave = np.average([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
+    y_min = np.min(
+        [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
+         data_dict in data_dicts], axis=0)
+    y_max = np.max(
+        [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
+         data_dict in data_dicts], axis=0)
 
-    x = data_dicts[0]['Number of env steps total'][:min_step]
-    # x_avg = np.average(np.array([data_dict['Number of env steps total'] for data_dict in data_dicts]))
-    # assert x == x_avg # otherwise something is wrong
+    matplot.plot(x, y_ave, format, lw=2,label=label)
+    matplot.fill_between(x, y_min, y_max, alpha=0.2)
 
-    if plot_train:
-        y_avg = np.average([list(map(lambda x: float(x), data_dict['AverageReturn_all_train_tasks'][:min_step])) for data_dict in data_dicts], axis=0)
-        y_med = np.median([list(map(lambda x: float(x), data_dict['AverageReturn_all_train_tasks'][:min_step])) for data_dict in data_dicts], axis=0)
-    else:
-        y_avg = np.average([list(map(lambda x: float(x), data_dict['AverageReturn_all_test_tasks'][:min_step])) for data_dict in data_dicts], axis=0)
-        y_med = np.median([list(map(lambda x: float(x), data_dict['AverageReturn_all_test_tasks'][:min_step])) for data_dict in data_dicts], axis=0)
-
-    if avg:
-        matplot.plot(x, y_avg, format, label=label)
-    else:
-        matplot.plot(x, y_med, format, label=label)
     matplot.legend()
 
 def generate_report(exp_path_root, exps_matrix, success_rate=False, limit=500):
@@ -115,72 +117,81 @@ def ml1_exp_plot():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
     fig, axs = plt.subplots(1, 3)
 
+    limit = 500
+
     axs[0].set_title('ML1 Push Avg Return')
     axs[0].set_xlabel('Total Env Steps')
     axs[0].set_ylabel('Avg Test Return')
-    # plot_curve(axs[0], local_path,
-    #            'pearl_metaworld_ml1_push', '-', limit=250)
-    # plot_curve(axs[0], leviathan_path,
-    #            'pearl_metaworld_ml1_push', '-', limit=250)
-
     plot_curve(axs[0], local_path,
-               'pearl_emphasized_metaworld_ml1_push', '-', limit=250, legend="pearl_emphasized_ml1_push")
-    plot_curve(axs[0], local_path,
-               'pearl_emphasized_metaworld_ml1_push_1', '-', limit=250, legend="pearl_emphasized_ml1_push_correct_done_signal")
-
-    # plot_curve(axs[0], namazu_path,
-    #            'multitask_oracle_metaworld_ml1_push', '-', limit=250)
+               'pearl_metaworld_ml1_push_1', '-', legend='pearl_rerun', limit=200)
     # plot_curve(axs[0], leviathan_path,
-    #            'multitask_emphasized_oracle_metaworld_ml1_push', '-', limit=250)
+    #            'pearl_metaworld_ml1_push', '-', limit=500)
     #
     # plot_curve(axs[0], local_path,
-    #            'curl_metaworld_ml1_push', '-', limit=250)
+    #            'pearl_emphasized_metaworld_ml1_push', '-', limit=250, legend="pearl_emphasized")
+    # plot_curve(axs[0], local_path,
+    #            'pearl_emphasized_metaworld_ml1_push_1', '-', limit=250, legend="pearl_emphasized_corrected_done_signal")
+
+    # plot_curve(axs[0], namazu_path,
+    #            'multitask_oracle_metaworld_ml1_push', '-', limit=200)
+    plot_curve(axs[0], leviathan_path,
+               'multitask_emphasized_oracle_metaworld_ml1_push', '-', legend="multitask_oracle", limit=200)
+    #
+    plot_curve(axs[0], local_path,
+               'curl_metaworld_ml1_push', '-', legend="curl", limit=200)
+    #
+    plot_curve(axs[0], local_path, 'curl_traj_emphasized_metaworld_ml1_push_2', '-', legend="curl_traj_2_step", limit=200)
+
+    plot_curve(axs[0], local_path, 'curl_shaped_metaworld_ml1_push_2',
+               '-', legend="curl_rich_traj_5_step", limit=200)
 
 
     axs[1].set_title('ML1 Reach Avg Return')
     axs[1].set_xlabel('Total Env Steps')
     axs[1].set_ylabel('Avg Test Return')
 
-    # plot_curve(axs[1], local_path,
-    #            'pearl_metaworld_ml1_reach', '-', limit=250)
+    plot_curve(axs[1], local_path,
+               'pearl_metaworld_ml1_reach_1', '-', legend='pearl_rerun', limit=300)
     # plot_curve(axs[1], leviathan_path,
-    #            'pearl_metaworld_ml1_reach', '-', limit=250)
-    plot_curve(axs[1], local_path,
-               'pearl_emphasized_metaworld_ml1_reach', '-', limit=250, legend="pearl_emphasized_ml1_reach")
-    plot_curve(axs[1], local_path,
-               'pearl_emphasized_metaworld_ml1_reach_1', '-', limit=250, legend="pearl_emphasized_ml1_reach_correct_done_signal")
+    #            'pearl_metaworld_ml1_reach', '-', limit=500)
+    # plot_curve(axs[1], local_path,
+    #            'pearl_emphasized_metaworld_ml1_reach', '-', limit=250, legend="pearl_emphasized")
+    # plot_curve(axs[1], local_path,
+    #            'pearl_emphasized_metaworld_ml1_reach_1', '-', limit=250, legend="pearl_emphasized_correct_done_signal")
 
     # plot_curve(axs[1], namazu_path,
     #            'multitask_oracle_metaworld_ml1_reach', '-', limit=250)
-    # plot_curve(axs[1], leviathan_path,
-    #            'multitask_emphasized_oracle_metaworld_ml1_reach', '-', limit=250)
+    plot_curve(axs[1], leviathan_path,
+               'multitask_emphasized_oracle_metaworld_ml1_reach', '-', legend="multitask_oracle", limit=300)
     #
-    # plot_curve(axs[1], local_path,
-    #            'curl_metaworld_ml1_reach', '-', limit=250)
+    plot_curve(axs[1], local_path,
+               'curl_metaworld_ml1_reach', '-', legend='curl', limit=300)
+    plot_curve(axs[1], local_path,
+               'curl_traj_emphasized_metaworld_ml1_reach_2', '-', legend='curl_traj_2_step', limit=300)
 
 
     axs[2].set_title('ML1 Pick Place Avg Return')
     axs[2].set_xlabel('Total Env Steps')
     axs[2].set_ylabel('Avg Test Return')
-    # plot_curve(axs[2], namazu_path,
-    #            'pearl_metaworld_ml1_pick_place', '-', limit=250) # YES
+    plot_curve(axs[2], local_path,
+               'pearl_metaworld_ml1_pick_place_1', '-', legend='pearl', limit=500) # YES
     # plot_curve(axs[2], leviathan_path,
     #            'pearl_metaworld_ml1_pick_place', '-', limit=250) # Keep
     # plot_curve(axs[2], leviathan_path,
-    #            'pearl_metaworld_ml1_pick_place_2', '-', limit=250)
+    #            'pearl_metaworld_ml1_pick_place_2', '-', limit=500)
 
-    plot_curve(axs[2], local_path,
-               'pearl_emphasized_metaworld_ml1_pick_place', '-', limit=250, legend="pearl_emphasized_ml1_pick_place")
-    plot_curve(axs[2], local_path,
-               'pearl_emphasized_metaworld_ml1_pick_place_1', '-', limit=250, legend="pearl_emphasized_ml1_pick_place_correct_done_signal")
+    # plot_curve(axs[2], local_path,
+    #            'pearl_emphasized_metaworld_ml1_pick_place', '-', limit=250, legend="pearl_emphasized")
+    # plot_curve(axs[2], local_path,
+    #            'pearl_emphasized_metaworld_ml1_pick_place_1', '-', limit=250, legend="pearl_emphasized_correct_done_signal")
 
     # plot_curve(axs[2], namazu_path,
     #            'multitask_oracle_metaworld_ml1_pick_place', '-', limit=250)
     # plot_curve(axs[2], leviathan_path,
     #            'multitask_emphasized_oracle_metaworld_ml1_pick_place', '-', limit=250)
     #
-    # plot_curve(axs[2], namazu_path,
-    #            'curl_metaworld_ml1_pick_place', '-', limit=250)
+    plot_curve(axs[2], namazu_path,
+               'curl_metaworld_ml1_pick_place', '-', legend='curl', limit=250)
 
     plt.show()
 
@@ -248,69 +259,70 @@ def mlsp_plot_single():
     fig, axs = plt.subplots(1, 2)
 
     exp_name = 'curl_metaworld_mlsp_ram'
-
+    limit = 200
     axs[0].set_title('MLSP {} Avg Return'.format('MetaTest/Average/AverageReturn'))
     axs[0].set_xlabel('Total Env Steps')
     axs[0].set_ylabel('Avg Test Return')
 
     plot_curve(axs[0], local_path,
-               exp_name, '-', title='MetaTest/Average/AverageReturn', limit=500)
+               exp_name, '-', title='MetaTest/Average/AverageReturn', legend='',limit=limit)
 
-    axs[1].set_title('MLSP {} Avg Return'.format('MetaTest/Average/Per Test'))
+    axs[1].set_title('MLSP Random Average Return Per Task')
     axs[1].set_xlabel('Total Env Steps')
     axs[1].set_ylabel('Avg Test Return')
 
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/pick-place-v1/AverageReturn', limit=500)
+               title='MetaTest/pick-place-v1/AverageReturn', legend='pick-place-return',limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/reach-v1/AverageReturn', limit=500)
+               title='MetaTest/reach-v1/AverageReturn', legend='reach-return', limit=500)
     # plot_curve(axs[1], local_path,
     #            exp_name, '-',
-    #            title='MetaTest/plate-slide-v1/AverageReturn', limit=500)
+    #            title='MetaTest/plate-slide-v1/AverageReturn', legend='plate-slide-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/window-open-v1/AverageReturn', limit=500)
+               title='MetaTest/window-open-v1/AverageReturn', legend='window-open-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/stick-pull-v1/AverageReturn', limit=500)
+               title='MetaTest/stick-pull-v1/AverageReturn', legend='stick-pull-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/push-v1/AverageReturn', limit=500)
+               title='MetaTest/push-v1/AverageReturn', legend='push-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/door-open-v1/AverageReturn', limit=500)
+               title='MetaTest/door-open-v1/AverageReturn', legend='door-open-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/hammer-v1/AverageReturn', limit=500)
+               title='MetaTest/hammer-v1/AverageReturn', legend='hammer-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/sweep-v1/AverageReturn', limit=500)
+               title='MetaTest/sweep-v1/AverageReturn', legend='sweep-return', limit=limit)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/sweep-into-v1/AverageReturn', limit=500)
+               title='MetaTest/sweep-into-v1/AverageReturn', legend='sweep-into-return', limit=500)
     plot_curve(axs[1], local_path,
                exp_name, '-',
-               title='MetaTest/basketball-v1/AverageReturn', limit=500)
+               title='MetaTest/basketball-v1/AverageReturn', legend='basketball-return', limit=500)
 
     plt.show()
 
 def mlsp_plot():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-
+    leviathan_path = '/home/simon0xzx/research/berkely_research/garage/data/leviathan/experiment'
     fig, axs = plt.subplots(1, 1)
     plot_order = ['MetaTest/Average/AverageReturn']
 
     axs.set_title('MLSP Training Average Return')
     axs.set_xlabel('Total Env Steps')
     axs.set_ylabel('Avg Test Return')
-    # plot_curve(axs, local_path,
-    #            'pearl_metaworld_mlsp', '-', title=plot_order[0], limit=250)
+    plot_curve(axs, leviathan_path,
+               'pearl_metaworld_mlsp', '-', title=plot_order[0], legend='pearl_mlsp',limit=250)
+
     # plot_curve(axs, local_path,
     #            'curl_metaworld_mlsp', '-', title=plot_order[0], limit=250)
-    plot_curve(axs, local_path,
-               'curl_emphasized_metaworld_mlsp', '-', title=plot_order[0], legend='curl_emphasized',limit=500)
+    plot_curve(axs, leviathan_path,
+               'curl_emphasized_metaworld_mlsp_1', '-', title=plot_order[0], legend='curl_emphasized',limit=500)
     plot_curve(axs, local_path,
                'curl_metaworld_mlsp_2', '-', title=plot_order[0], legend='curl_harder_problems', limit=500)
     plot_curve(axs, local_path,
@@ -318,6 +330,7 @@ def mlsp_plot():
     plot_curve(axs, local_path,
                'curl_metaworld_mlsp_ram', '-', title=plot_order[0],
                legend='curl_mlsp_randomized', limit=500)
+
 
 
     plt.show()
@@ -436,7 +449,7 @@ def mlsp_adapt_plot():
     fig, axs = plt.subplots(1, num_plot)
 
     axs.set_title('MLSP Adaptation Avg Return')
-    axs.set_xlabel('Total Env Steps')
+    axs.set_xlabel('Adapting Epoch')
     axs.set_ylabel('Avg Test Return')
 
     # Original MLSP last
@@ -446,39 +459,50 @@ def mlsp_adapt_plot():
     #            legend='pearl_mlsp_adapt')
 
     # # Original MLSP last
-    # plot_curve(axs, local_path,
-    #            'curl_metaworld_mlsp_adapt_4', '-',
-    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_original_mlsp_last_iter')
+    plot_curve(axs, local_path,
+               'curl_metaworld_mlsp_adapt_4', '-',
+               title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_mlsp_last_iter')
+
+    plot_curve(axs, local_path,
+               'curl_metaworld_mlsp_adapt_new', '-',
+               title='MetaTest/Average/AverageReturn', limit=-1,
+               legend='curl_mlsp_best_iter')
+
     # # New MLSP 100th iter
-    # plot_curve(axs, local_path,
-    #            'curl_metaworld_mlsp_adapt_5', '-',
-    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_new_mlsp_best_iter')
+    plot_curve(axs, local_path,
+               'curl_metaworld_mlsp_adapt_5', '-',
+               title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_harder_mlsp_best_iter')
     # # New MLSP last
     # plot_curve(axs, local_path,
     #            'curl_metaworld_mlsp_adapt_5', '-',
-    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_new_mlsp_last_iter')
+    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_harder_mlsp_last_iter')
     #
     # # Original MLSP last self training
     # plot_curve(axs, local_path,
     #            'curl_metaworld_mlsp_adapt_2nd', '-',
-    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_original_mlsp_last_iter_retraining')
+    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_mlsp_adapt')
     #
     # # New MLSP 100th iter self training
     # plot_curve(axs, local_path,
     #            'curl_metaworld_mlsp_adapt_2nd_1', '-',
-    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_new_mlsp_best_iter_retraining')
-    #
-    # # corrected pearl adapt best
-    plot_curve(axs, local_path,
-               'pearl_metaworld_mlsp_adapt_new', '-',
-               title='MetaTest/Average/AverageReturn', limit=-1,
-               legend='pearl_mlsp_adapt')
+    #            title='MetaTest/Average/AverageReturn', limit=-1, legend='curl_harder_mlsp_adapt')
 
     # corrected pearl adapt best
     # plot_curve(axs, local_path,
-    #            'curl_metaworld_mlsp_adapt_new', '-',
+    #            'pearl_metaworld_mlsp_adapt_new', '-',
     #            title='MetaTest/Average/AverageReturn', limit=-1,
-    #            legend='curl_corrected_mlsp_last_iter')
+    #            legend='pearl_mlsp_adapt')
+
+    # corrected pearl adapt best
+
+    plot_curve(axs, local_path,
+               'curl_metaworld_mlsp_ram_adapt_new', '-',
+               title='MetaTest/Average/AverageReturn', limit=-1,
+               legend='curl_mlsp_ram_adapt')
+    # plot_curve(axs, local_path,
+    #            'curl_metaworld_harder_mlsp_adapt_new', '-',
+    #            title='MetaTest/Average/AverageReturn', limit=-1,
+    #            legend='curl_harder_mlsp_best_iter')
 
     plt.show()
 
@@ -511,6 +535,55 @@ class CameraWrapper(object):
     def __getattr__(self, attrname):
         return getattr(self._wrapped_env, attrname)
 
+def sim_policy2():
+    from garage.experiment.task_sampler import SetTaskSampler
+    from garage.envs import GarageEnv, normalize
+    import metaworld.benchmarks as mwb
+    from garage.experiment import Snapshotter
+    from garage.torch import set_gpu_mode
+
+    exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    base_agent_path = '{}/curl_traj_emphasized_metaworld_ml1_push_3'.format(exp_path)
+    snapshotter = Snapshotter()
+    snapshot = snapshotter.load(base_agent_path, itr=70)
+    curl = snapshot['algo']
+    curl_policy = curl._policy
+    set_gpu_mode(True, gpu_id=0)
+    curl.to()
+
+    env_sampler = SetTaskSampler(lambda: GarageEnv(
+        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+    envs = env_sampler.sample(10)
+    sim_env = envs[1]()
+    rander_env = sim_env._env.env.active_env
+    rander_env._task = {'partially_observable': None}
+    rander_env.reset_model()
+    rander_env.frame_skip = 300
+    viewer = rander_env._get_viewer('human')
+
+    prev_obs = sim_env.reset()
+    sim_env.render()
+    curl_policy.sample_from_belief()
+    for i in range(150):
+        a, agent_info = curl_policy.get_action(prev_obs)
+        next_o, r, d, env_info = sim_env.step(a)
+        print(
+            'Step: {}\nObs:\n {}, \nAction: \n{}\n Reward: \n{}'.format(i, prev_obs,
+                                                                        a,
+                                                                        r))
+        prev_obs = next_o
+        sim_env.render()
+        sim_env.render()
+        sim_env.render()
+        sim_env.render()
+        sim_env.render()
+        if d:
+            print("Done")
+        if i == 149:
+            print("here")
+
+
+
 def sim_policy():
     import pickle
     import metaworld.benchmarks as mwb
@@ -518,7 +591,7 @@ def sim_policy():
     from garage.experiment.task_sampler import EnvPoolSampler
     # create multi-task environment and sample tasks
     ml_test_envs = [
-        GarageEnv(normalize(mwb.MLSP.from_task('button-press-wall-v1')))
+        GarageEnv(normalize(mwb.MLSP.from_task('push-v1')))
     ]
 
     env_sampler = EnvPoolSampler(ml_test_envs)
@@ -527,7 +600,7 @@ def sim_policy():
     rander_env = envs[0]._env._env.env.active_env
     rander_env._task = {'partially_observable': None}
     rander_env.reset_model()
-    rander_env.frame_skip=200
+    rander_env.frame_skip=500
     viewer = rander_env._get_viewer('human')
     env = envs[0]._env
     obs = env.reset()
@@ -538,15 +611,17 @@ def sim_policy():
                    'next_observations': [],
                    'dones': []}
 
-    # original_curl_with_iter
-
-    #
-    expert_actions = expert_action()
     for i in range(150):
-        action = expert_actions[i]
-        # action[0] += np.random.rand(1)*0.04-0.
-        # action[1] += np.random.rand(1) * 0.04 - 0.02
-        # action[2] += np.random.rand(1) * 0.04 - 0.02
+        action_str = ""
+        while len(action_str) == 0:
+            env.render()
+            env.render()
+            env.render()
+            env.render()
+            env.render()
+            action_str = input(":")
+
+        action = np.array(eval(action_str))
         expert_path['observations'].append(obs)
         expert_path['actions'].append(action)
         obs, rew, done, env_infos = env.step(action)
@@ -555,6 +630,11 @@ def sim_policy():
         expert_path['dones'].append(done)
         print('Step: {}\nObs:\n {}, \nAction: \n{}\n Reward: \n{}'.format(i, obs, action, rew))
         env.render()
+        env.render()
+        env.render()
+        env.render()
+        env.render()
+
         if done:
             break
 
@@ -754,13 +834,68 @@ def load_pearl_mlsp_policy():
 
     env.close()
 
+
+def ml1_push_exp_plot():
+    leviathan_path = '/home/simon0xzx/research/berkely_research/garage/data/leviathan/experiment'
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/experiment'
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    fig, axs = plt.subplots(1, 3)
+
+    limit = 500
+
+    axs[0].set_title('Pearl ML1 Push Avg Return')
+    axs[0].set_xlabel('Total Env Steps')
+    axs[0].set_ylabel('Avg Test Return')
+    plot_curve_avg(axs[0], local_path,
+               ['pearl_metaworld_ml1_push_1'], '-', legend='pearl', limit=limit)
+    plot_curve_avg(axs[0], local_path, ['pearl_auto_temp_metaworld_ml1_push',
+                                        'pearl_auto_temp_metaworld_ml1_push_1',
+                                        'pearl_auto_temp_metaworld_ml1_push_2'],
+                   '-', legend="pearl_auto_temp", limit=limit)
+
+
+
+    axs[1].set_title('CURL ML1 multi step Push Avg Return')
+    axs[1].set_xlabel('Total Env Steps')
+    axs[1].set_ylabel('Avg Test Return')
+
+    plot_curve_avg(axs[1], local_path, ['curl_traj_emphasized_metaworld_ml1_push_2'],
+               '-', legend="curl_traj_2_step", limit=limit)
+    plot_curve_avg(axs[1], local_path,
+                   ['curl_auto_temp_traj_metaworld_ml1_push',
+                    'curl_auto_temp_traj_metaworld_ml1_push_1',
+                    'curl_auto_temp_traj_metaworld_ml1_push_2'],
+                   '-', legend="curl_auto_temp", limit=limit)
+
+    axs[2].set_title('ML1 Comparison Avg Return')
+    axs[2].set_xlabel('Total Env Steps')
+    axs[2].set_ylabel('Avg Test Return')
+    # plot_curve(axs[2], local_path,
+    #            'pearl_auto_temp_metaworld_ml1_push', '-',
+    #            legend="pearl_auto_temp", limit=limit)
+    #
+    # plot_curve(axs[2], local_path, 'curl_auto_temp_traj_metaworld_ml1_push',
+    #            '-', legend="curl_traj_2_step_auto_temp", limit=limit)
+    plot_curve_avg(axs[2], local_path, ['pearl_auto_temp_metaworld_ml1_push',
+                                        'pearl_auto_temp_metaworld_ml1_push_1',
+                                        'pearl_auto_temp_metaworld_ml1_push_2'],
+                   '-', legend="pearl_auto_temp", limit=limit)
+
+    plot_curve_avg(axs[2], local_path, ['curl_auto_temp_traj_metaworld_ml1_push',
+                                        'curl_auto_temp_traj_metaworld_ml1_push_1',
+                                        'curl_auto_temp_traj_metaworld_ml1_push_2'],
+                   '-', legend="curl_auto_temp", limit=limit)
+    plt.show()
+
 if __name__ == '__main__':
     # ml1_exp_plot()
-    mlsp_plot()
+    # mlsp_plot()
     # mlsp_plot_single()
     # expert_plot()
     # mtsac_mt10_plot()
     # mlsp_adapt_plot()
     # sim_policy()
+    # sim_policy2()
+    ml1_push_exp_plot()
 
     # load_pearl_mlsp_policy()

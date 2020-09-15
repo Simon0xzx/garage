@@ -9,7 +9,10 @@ import akro
 from dowel import logger
 import numpy as np
 import torch
+from collections import deque, defaultdict, namedtuple
+import torch.nn.functional as F
 
+from garage import TrajectoryBatch
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
 from garage.experiment import MetaEvaluator
@@ -17,12 +20,11 @@ from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
 from garage.sampler import DefaultWorker
 from garage.torch import global_device
-from garage.torch.modules import MLPModule
-from garage.torch.embeddings import MLPEncoder
-from garage.torch.policies import CurlPolicy
+from garage.torch.embeddings import ContrastiveEncoder
+from garage.torch.policies import CurlShapedPolicy
 
 
-class CURL(MetaRLAlgorithm):
+class CURLShaped(MetaRLAlgorithm):
     """A PEARL model based on https://arxiv.org/abs/1903.08254.
 
     PEARL, which stands for Probablistic Embeddings for Actor-Critic
@@ -63,7 +65,7 @@ class CURL(MetaRLAlgorithm):
         optimizer_class (callable): Type of optimizer for training networks.
         use_information_bottleneck (bool): False means latent context is
             deterministic.
-        use_next_obs_in_context (bool): Whether or not to use next observation
+        context_step_len (bool): Whether or not to use next observation
             in distinguishing between tasks.
         meta_batch_size (int): Meta batch size.
         num_steps_per_epoch (int): Number of iterations per epoch.
@@ -96,27 +98,29 @@ class CURL(MetaRLAlgorithm):
     def __init__(self,
                  env,
                  inner_policy,
-                 qf,
-                 vf,
+                 qf1,
+                 qf2,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
                  encoder_hidden_sizes,
                  test_env_sampler,
-                 policy_class=CurlPolicy,
-                 encoder_class=MLPEncoder,
+                 policy_class=CurlShapedPolicy,
+                 encoder_class=ContrastiveEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
-                 vf_lr=3E-4,
                  context_lr=3E-4,
                  policy_mean_reg_coeff=1E-3,
                  policy_std_reg_coeff=1E-3,
                  policy_pre_activation_coeff=0.,
                  soft_target_tau=0.005,
                  kl_lambda=.1,
+                 fixed_alpha=None,
+                 target_entropy=None,
+                 initial_log_entropy=0.,
                  optimizer_class=torch.optim.Adam,
                  use_information_bottleneck=True,
-                 use_next_obs_in_context=False,
+                 context_step_len=1,
                  meta_batch_size=64,
                  num_steps_per_epoch=1000,
                  num_initial_steps=100,
@@ -134,9 +138,13 @@ class CURL(MetaRLAlgorithm):
                  update_post_train=1):
 
         self._env = env
-        self._qf1 = qf
-        self._qf2 = copy.deepcopy(qf)
-        self._vf = vf
+        self._env = env
+        self._qf1 = qf1
+        self._qf2 = qf2
+        # use 2 target q networks
+        self._target_qf1 = copy.deepcopy(self._qf1)
+        self._target_qf2 = copy.deepcopy(self._qf2)
+
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
         self._latent_dim = latent_dim
@@ -147,7 +155,7 @@ class CURL(MetaRLAlgorithm):
         self._soft_target_tau = soft_target_tau
         self._kl_lambda = kl_lambda
         self._use_information_bottleneck = use_information_bottleneck
-        self._use_next_obs_in_context = use_next_obs_in_context
+        self._context_step_len = context_step_len
 
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
@@ -165,27 +173,42 @@ class CURL(MetaRLAlgorithm):
         self._reward_scale = reward_scale
         self._update_post_train = update_post_train
         self._task_idx = None
-
         self._is_resuming = False
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
                                         max_path_length=max_path_length,
-                                        worker_class=CURLWorker,
+                                        worker_class=CURLShapedWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks,
                                         n_test_rollouts=5)
-
-        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder', use_information_bottleneck)
+        env_spec = env[0]()
+        encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck, num_context_step=self._context_step_len)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         self._context_encoder = encoder_class(input_dim=encoder_in_dim,
-                                        output_dim=encoder_out_dim,
-                                        hidden_sizes=encoder_hidden_sizes,
-                                        query_sizes=encoder_hidden_sizes)
+                                              output_dim=encoder_out_dim,
+                                              hidden_sizes=encoder_hidden_sizes,
+                                              query_sizes=encoder_hidden_sizes)
         self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
 
-        # self._contrastive_loss = ContrastiveLoss(latent_dim)
+        # Automatic entropy coefficient tuning
+        self._use_automatic_entropy_tuning = fixed_alpha is None
+        self._initial_log_entropy = initial_log_entropy
+        self._fixed_alpha = fixed_alpha
+        if self._use_automatic_entropy_tuning:
+            if target_entropy:
+                self._target_entropy = target_entropy
+            else:
+                self._target_entropy = -np.prod(
+                    env_spec.action_space.shape).item()
+            self._log_alpha = torch.Tensor([
+                                               self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = optimizer_class([self._log_alpha],
+                                                    lr=policy_lr)
+        else:
+            self._log_alpha = torch.Tensor(
+                [self._fixed_alpha] * self._num_train_tasks).log()
 
         self._context_lr = context_lr
         self._policy = policy_class(
@@ -193,7 +216,7 @@ class CURL(MetaRLAlgorithm):
             context_encoder=self._context_encoder,
             policy=inner_policy,
             use_information_bottleneck=use_information_bottleneck,
-            use_next_obs=use_next_obs_in_context)
+            context_step_len=context_step_len)
 
         # buffer for training RL update
         self._replay_buffers = {
@@ -206,9 +229,6 @@ class CURL(MetaRLAlgorithm):
             for i in range(num_train_tasks)
         }
 
-        self.target_vf = copy.deepcopy(self._vf)
-        self.vf_criterion = torch.nn.MSELoss()
-
         self._policy_optimizer = optimizer_class(
             self._policy.networks[1].parameters(),
             lr=policy_lr,
@@ -220,10 +240,6 @@ class CURL(MetaRLAlgorithm):
         self.qf2_optimizer = optimizer_class(
             self._qf2.parameters(),
             lr=qf_lr,
-        )
-        self.vf_optimizer = optimizer_class(
-            self._vf.parameters(),
-            lr=vf_lr,
         )
         self.context_optimizer = optimizer_class(
             self._context_encoder.networks[0].parameters(),
@@ -386,27 +402,25 @@ class CURL(MetaRLAlgorithm):
                                        self._meta_batch_size)
             self._optimize_policy(indices)
 
-    def augment_path(self, path, batch_size, in_sequence = False):
+    def augment_path(self, path, batch_size, in_sequence=False):
         path_len = path['observations'].shape[0]
         if batch_size > path_len:
-            raise Exception('Embedding_batch size cannot be longer than path length')
+            raise Exception(
+                'Embedding_batch size cannot be longer than path length')
         augmented_path = {}
         if in_sequence:
             seq_begin = np.random.randint(0, path_len - batch_size)
             augmented_path['observations'] = path['observations'][
                                              seq_begin:seq_begin + batch_size]
             augmented_path['actions'] = path['actions'][
-                                             seq_begin:seq_begin + batch_size]
+                                        seq_begin:seq_begin + batch_size]
             augmented_path['rewards'] = path['rewards'][
-                                             seq_begin:seq_begin + batch_size]
-            augmented_path['next_observations'] = path['next_observations'][
-                                             seq_begin:seq_begin + batch_size]
+                                        seq_begin:seq_begin + batch_size]
         else:
             seq_idx = np.random.choice(path_len, batch_size)
             augmented_path['observations'] = path['observations'][seq_idx]
             augmented_path['actions'] = path['actions'][seq_idx]
             augmented_path['rewards'] = path['rewards'][seq_idx]
-            augmented_path['next_observations'] = path['next_observations'][seq_idx]
 
         return augmented_path
 
@@ -467,7 +481,6 @@ class CURL(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-
         self._optimize_curl_encoder(indices)
         context = self._sample_context(indices)
 
@@ -476,72 +489,85 @@ class CURL(MetaRLAlgorithm):
 
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
-        policy_outputs, task_z = self._policy(obs, context)
-        task_z.detach()
-        new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         # flatten out the task dimension
         t, b, _ = obs.size()
-        obs = obs.view(t * b, -1)
-        actions = actions.view(t * b, -1)
-        next_obs = next_obs.view(t * b, -1)
+        batch_obs = obs.view(t * b, -1)
+        batch_action = actions.view(t * b, -1)
+        batch_next_obs = next_obs.view(t * b, -1)
 
-        # optimize qf and encoder networks
-        q1_pred = self._qf1(torch.cat([obs, actions], dim=1), task_z)
-        q2_pred = self._qf2(torch.cat([obs, actions], dim=1), task_z)
-        v_pred = self._vf(obs, task_z.detach())
+        policy_outputs, task_z = self._policy(next_obs, context)
+        new_next_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
+
+        # ===== Critic Objective =====
+        with torch.no_grad():
+            alpha = self._get_log_alpha(indices).exp()
+        q1_pred = self._qf1(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        q2_pred = self._qf2(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        target_q_values = torch.min(self._target_qf1(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z),
+            self._target_qf2(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z)).flatten() - (alpha * log_pi.flatten())
+
+        rewards_flat = rewards.view(self._batch_size * num_tasks, -1).flatten()
+        rewards_flat = rewards_flat * self._reward_scale
+        terms_flat = terms.view(self._batch_size * num_tasks, -1).flatten()
 
         with torch.no_grad():
-            target_v_values = self.target_vf(next_obs, task_z)
+            q_target = rewards_flat + ((1. - terms_flat) * self._discount) * target_q_values
+
+        qf1_loss = F.mse_loss(q1_pred.flatten(), q_target)
+        qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
+        qf_loss = qf1_loss + qf2_loss
 
         # KL constraint on z if probabilistic
+        self.context_optimizer.zero_grad()
         if self._use_information_bottleneck:
             kl_div = self._policy.compute_kl_div()
             kl_loss = self._kl_lambda * kl_div
             kl_loss.backward(retain_graph=True)
 
+        # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
-
-        rewards_flat = rewards.view(self._batch_size * num_tasks, -1)
-        rewards_flat = rewards_flat * self._reward_scale
-        terms_flat = terms.view(self._batch_size * num_tasks, -1)
-        q_target = rewards_flat + (1. - terms_flat) * self._discount * target_v_values
-        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean((q2_pred - q_target)**2)
         qf_loss.backward()
-
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
+        self.context_optimizer.step()
 
+        # ===== Actor Objective =====
+        policy_outputs, task_z = self._policy(obs, context)
+        new_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
         # compute min Q on the new actions
-        q1 = self._qf1(torch.cat([obs, new_actions], dim=1), task_z.detach())
-        q2 = self._qf2(torch.cat([obs, new_actions], dim=1), task_z.detach())
+        q1 = self._qf1(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
+        q2 = self._qf2(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
         min_q = torch.min(q1, q2)
-
-        # optimize vf
-        v_target = min_q - log_pi
-        vf_loss = self.vf_criterion(v_pred, v_target.detach())
-        self.vf_optimizer.zero_grad()
-        vf_loss.backward()
-        self.vf_optimizer.step()
-        self._update_target_network()
-
         # optimize policy
-        log_policy_target = min_q
-        policy_loss = (log_pi - log_policy_target).mean()
-
+        policy_loss = ((alpha * log_pi) - min_q.flatten()).mean()
         mean_reg_loss = self._policy_mean_reg_coeff * (policy_mean**2).mean()
         std_reg_loss = self._policy_std_reg_coeff * (policy_log_std**2).mean()
         pre_tanh_value = policy_outputs[-1]
-        pre_activation_reg_loss = self._policy_pre_activation_coeff * (
-            (pre_tanh_value**2).sum(dim=1).mean())
-        policy_reg_loss = (mean_reg_loss + std_reg_loss +
-                           pre_activation_reg_loss)
-        policy_loss = policy_loss + policy_reg_loss
+        pre_activation_reg_loss = self._policy_pre_activation_coeff * ((pre_tanh_value**2).sum(dim=1).mean())
+        policy_reg_loss = (mean_reg_loss + std_reg_loss + pre_activation_reg_loss)
+        policy_loss += policy_reg_loss
 
         self._policy_optimizer.zero_grad()
         policy_loss.backward()
         self._policy_optimizer.step()
+
+        # ===== Temperature Objective =====
+        if self._use_automatic_entropy_tuning:
+            alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
+            self._alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            self._alpha_optimizer.step()
+
+        # ===== Update Target Network =====
+        target_qfs = [self._target_qf1, self._target_qf2]
+        qfs = [self._qf1, self._qf2]
+        for target_qf, qf in zip(target_qfs, qfs):
+            for t_param, param in zip(target_qf.parameters(), qf.parameters()):
+                t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
+
+
 
     def _obtain_samples(self,
                         runner,
@@ -579,7 +605,7 @@ class CURL(MetaRLAlgorithm):
                 p = {
                     'observations': path['observations'],
                     'actions': path['actions'],
-                    'rewards': path['rewards'].reshape(-1, 1),
+                    'rewards': path['rewards'],
                     'next_observations': path['next_observations'],
                     'dones': path['dones'].reshape(-1, 1)
                 }
@@ -649,8 +675,6 @@ class CURL(MetaRLAlgorithm):
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
                 context = np.hstack((np.hstack((o, a)), r))
-                if self._use_next_obs_in_context:
-                    context = np.hstack((context, batch_aug['next_observations']))
 
                 if not initialized:
                     final_context = context[np.newaxis]
@@ -694,8 +718,6 @@ class CURL(MetaRLAlgorithm):
             a = batch['actions']
             r = batch['rewards']
             context = np.hstack((np.hstack((o, a)), r))
-            if self._use_next_obs_in_context:
-                context = np.hstack((context, batch['next_observations']))
 
             if not initialized:
                 final_context = context[np.newaxis]
@@ -781,7 +803,7 @@ class CURL(MetaRLAlgorithm):
         total_steps = sum(exploration_trajectories.lengths)
         o = exploration_trajectories.observations
         a = exploration_trajectories.actions
-        r = exploration_trajectories.rewards.reshape(total_steps, 1)
+        r = exploration_trajectories.rewards
         ctxt = np.hstack((o, a, r)).reshape(1, total_steps, -1)
         context = torch.as_tensor(ctxt, device=global_device()).float()
         self._policy.infer_posterior(context)
@@ -824,7 +846,7 @@ class CURL(MetaRLAlgorithm):
         return EnvSpec(aug_obs, aug_act)
 
     @classmethod
-    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=False):
+    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=False, num_context_step=1):
         """Get environment specs of encoder with latent dimension.
 
         Args:
@@ -840,7 +862,7 @@ class CURL(MetaRLAlgorithm):
         obs_dim = int(np.prod(env_spec.observation_space.shape))
         action_dim = int(np.prod(env_spec.action_space.shape))
         if module == 'encoder':
-            in_dim = obs_dim + action_dim + 1
+            in_dim = (obs_dim + action_dim + 1) * num_context_step + obs_dim
             out_dim = latent_dim
             if use_information_bottleneck:
                 out_dim = out_dim * 2
@@ -861,21 +883,7 @@ class CURL(MetaRLAlgorithm):
         return spec
 
 
-# class ContrastiveLoss(torch.nn.Module):
-#     def __init__(self, latent_dim):
-#         super.__init__()
-#         self._contrastive_weight = torch.rand(latent_dim, latent_dim, device=global_device(), requires_grad=True)
-#         self.add_module("weight", self._contrastive_weight)
-#
-#     def forward(self, query, key):
-#         left_product = torch.matmul(query, self._contrastive_weight)
-#         logits = torch.matmul(left_product, key)
-#         logits = logits - torch.max(logits, axis=1)
-#         labels = torch.arange(logits.shape[0])
-#         loss = torch.nn.CrossEntropyLoss(logits, labels)
-#         return loss
-
-class CURLWorker(DefaultWorker):
+class CURLShapedWorker(DefaultWorker):
     """A worker class used in sampling for CURL.
 
     It stores context and resample belief in the policy every step.
@@ -911,10 +919,65 @@ class CURLWorker(DefaultWorker):
                          max_path_length=max_path_length,
                          worker_number=worker_number)
 
+        self._multi_step_obs = []
+        self._multi_step_reward = []
+        self._multi_step_action = []
+
     def start_rollout(self):
         """Begin a new rollout."""
         self._path_length = 0
+        # Finding dimensions
+        self._context_obs_len = self.agent._context_step_len
+        self._action_dim = self.agent._policy._action_dim
+        self._reward_dim = 1
+        deque_max_len = self._context_obs_len + 1
+        # Initialize bank to store short term experiences
+        self._obs_bank = deque(maxlen=deque_max_len)
+        self._reward_bank = deque(maxlen=deque_max_len)
+        self._action_bank = deque(maxlen=deque_max_len)
+
+        # Perform as step with zero action to obtain static rewards
         self._prev_obs = self.env.reset()
+        static_action = np.zeros(self._action_dim)
+        next_o, r, d, env_info = self.env.step(static_action)
+
+
+
+        for i in range(self._context_obs_len):
+            self._obs_bank.append(self._prev_obs)
+        self._obs_bank.append(next_o)
+
+        for i in range(self._context_obs_len):
+            self._reward_bank.append(r)
+
+        for i in range(self._context_obs_len):
+            self._action_bank.append(static_action)
+
+        self._prev_obs = next_o
+
+    def add_to_obs_bank(self, next_obs):
+        self._obs_bank.popleft()
+        self._obs_bank.append(next_obs)
+        obs_bank_snapshot = []
+        for obs in self._obs_bank:
+            obs_bank_snapshot.extend(obs)
+        self._multi_step_obs.append(obs_bank_snapshot)
+
+    def add_to_reward_bank(self, reward):
+        self._reward_bank.popleft()
+        self._reward_bank.append(reward)
+        reward_bank_snapshot = []
+        for r in self._reward_bank:
+            reward_bank_snapshot.append(r)
+        self._multi_step_reward.append(reward_bank_snapshot)
+
+    def add_to_action_bank(self, action):
+        self._action_bank.popleft()
+        self._action_bank.append(action)
+        action_bank_snapshot = []
+        for a in self._action_bank:
+            action_bank_snapshot.extend(a)
+        self._multi_step_action.append(action_bank_snapshot)
 
     def step_rollout(self):
         """Take a single time-step in the current rollout.
@@ -930,30 +993,59 @@ class CURLWorker(DefaultWorker):
                 a = agent_info['mean']
             next_o, r, d, env_info = self.env.step(a)
             self._observations.append(self._prev_obs)
-            self._rewards.append(r)
-            self._actions.append(a)
+            self.add_to_obs_bank(next_o)
+            self.add_to_reward_bank(r)
+            self.add_to_action_bank(a)
             for k, v in agent_info.items():
                 self._agent_infos[k].append(v)
             for k, v in env_info.items():
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
-            if self._accum_context:
-                s = TimeStep(env_spec=self.env,
-                             observation=self._prev_obs,
-                             next_observation=next_o,
-                             action=a,
-                             reward=float(r),
-                             terminal=d,
-                             env_info=env_info,
-                             agent_info=agent_info)
-                self.agent.update_context(s)
             if not d:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)
         self._last_observations.append(self._prev_obs)
         return True
+
+    def collect_rollout(self):
+        """Collect the current rollout, clearing the internal buffer.
+
+        Returns:
+            garage.TrajectoryBatch: A batch of the trajectories completed since
+                the last call to collect_rollout().
+
+        """
+        observations = self._observations
+        self._observations = []
+
+        _multi_step_obs = self._multi_step_obs
+        self._multi_step_obs = []
+        _multi_step_reward= self._multi_step_reward
+        self._multi_step_reward = []
+        _multi_step_action = self._multi_step_action
+        self._multi_step_action = []
+        terminals = self._terminals
+        self._terminals = []
+
+        env_infos = self._env_infos
+        self._env_infos = defaultdict(list)
+        agent_infos = self._agent_infos
+        self._agent_infos = defaultdict(list)
+        for k, v in agent_infos.items():
+            agent_infos[k] = np.asarray(v)
+        for k, v in env_infos.items():
+            env_infos[k] = np.asarray(v)
+        lengths = self._lengths
+        self._lengths = []
+
+        return TrajectoryBatch(self.env.spec, np.asarray(_multi_step_obs),
+                               np.asarray(observations),
+                               np.asarray(_multi_step_action), np.asarray(_multi_step_reward),
+                               np.asarray(terminals), dict(env_infos),
+                               dict(agent_infos), np.asarray(lengths,
+                                                             dtype='i'))
 
     def rollout(self):
         """Sample a single rollout of the agent in the environment.

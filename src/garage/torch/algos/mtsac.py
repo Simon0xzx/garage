@@ -203,11 +203,7 @@ class MTSAC(SAC):
         if device is None:
             device = global_device()
         if not self._use_automatic_entropy_tuning:
-            self._log_alpha = torch.Tensor([self._fixed_alpha] *
-                                           self._num_tasks).log().to(device)
+            self._log_alpha = torch.Tensor([self._fixed_alpha] * self._num_tasks).log().to(device)
         else:
-            self._log_alpha = torch.Tensor(
-                [self._initial_log_entropy] *
-                self._num_tasks).to(device).requires_grad_()
-            self._alpha_optimizer = self._optimizer([self._log_alpha],
-                                                    lr=self._policy_lr)
+            self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_tasks).to(device).requires_grad_()
+            self._alpha_optimizer = self._optimizer([self._log_alpha], lr=self._policy_lr)

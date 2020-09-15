@@ -31,7 +31,7 @@ from garage.torch.algos.curl import CURLWorker
 @click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_metaworld_mlsp_adapt_2nd(ctxt=None,
+def curl_metaworld_mlsp_ram_adapt_new(ctxt=None,
                              seed=1,
                              num_epochs=500,
                              num_train_tasks=1,
@@ -109,7 +109,8 @@ def curl_metaworld_mlsp_adapt_2nd(ctxt=None,
                                     n_test_tasks=num_test_tasks)
 
     exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-    base_agent_path = '{}/curl_metaworld_mlsp_adapt_5'.format(exp_path)
+
+    base_agent_path = '{}/curl_metaworld_mlsp_ram'.format(exp_path)
     snapshotter = Snapshotter()
     snapshot = snapshotter.load(base_agent_path)
     curl = snapshot['algo']
@@ -126,8 +127,11 @@ def curl_metaworld_mlsp_adapt_2nd(ctxt=None,
                  n_workers=1,
                  worker_class=CURLWorker)
     expert_traj_dir = '/home/simon0xzx/research/berkely_research/garage/data/expert/metaworld_mlsp_button_press_wall'
-    # runner.adapt_policy(n_epochs=100, expert_traj_path=expert_traj_dir, batch_size=batch_size)
+    print("==================================\nAdapting\n==================================")
+    runner.adapt_policy(n_epochs=50, expert_traj_path=expert_traj_dir, batch_size=batch_size)
+    print(
+        "==================================\nSelf Training\n==================================")
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 if __name__ == '__main__':
-    curl_metaworld_mlsp_adapt_2nd()
+    curl_metaworld_mlsp_ram_adapt_new()

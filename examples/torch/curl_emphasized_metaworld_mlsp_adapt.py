@@ -93,7 +93,6 @@ def curl_emphasized_metaworld_mlsp_adapt_new(ctxt=None,
     ml_test_envs = [
         GarageEnv(normalize(mwb.MLSP.from_task('button-press-wall-v1')))
     ]
-
     test_env_sampler = EnvPoolSampler(ml_test_envs)
     test_env_sampler.grow_pool(num_test_tasks)
     env = test_env_sampler.sample(num_train_tasks)
@@ -109,17 +108,16 @@ def curl_emphasized_metaworld_mlsp_adapt_new(ctxt=None,
                                     n_test_tasks=num_test_tasks)
 
     exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-
     base_agent_path = '{}/curl_emphasized_metaworld_mlsp'.format(exp_path)
     snapshotter = Snapshotter()
+    print("2.5")
     snapshot = snapshotter.load(base_agent_path)
+    print("3")
     curl = snapshot['algo']
     curl.update_env(env, evaluator, 1, 1)
-
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
         curl.to()
-
     runner.setup(algo=curl,
                  env=env[0](),
                  sampler_cls=LocalSampler,
@@ -129,9 +127,8 @@ def curl_emphasized_metaworld_mlsp_adapt_new(ctxt=None,
     expert_traj_dir = '/home/simon0xzx/research/berkely_research/garage/data/expert/metaworld_mlsp_button_press_wall'
     print("==================================\nAdapting\n==================================")
     runner.adapt_policy(n_epochs=50, expert_traj_path=expert_traj_dir, batch_size=batch_size)
-    print(
-        "==================================\nSelf Training\n==================================")
+    print("==================================\nSelf Training\n==================================")
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-if __name__ == '__main__':
+if __name__=='__main__':
     curl_emphasized_metaworld_mlsp_adapt_new()

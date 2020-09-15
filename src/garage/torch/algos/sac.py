@@ -368,8 +368,7 @@ class SAC(RLAlgorithm):
 
         target_q_values = torch.min(
             self._target_qf1(next_obs, new_next_actions),
-            self._target_qf2(
-                next_obs, new_next_actions)).flatten() - (alpha * new_log_pi)
+            self._target_qf2(next_obs, new_next_actions)).flatten() - (alpha * new_log_pi)
         with torch.no_grad():
             q_target = rewards * self._reward_scale + (
                 1. - terminals) * self._discount * target_q_values
@@ -511,10 +510,7 @@ class SAC(RLAlgorithm):
         for net in self.networks:
             net.to(device)
         if not self._use_automatic_entropy_tuning:
-            self._log_alpha = torch.Tensor([self._fixed_alpha
-                                            ]).log().to(device)
+            self._log_alpha = torch.Tensor([self._fixed_alpha]).log().to(device)
         else:
-            self._log_alpha = torch.Tensor([self._initial_log_entropy
-                                            ]).to(device).requires_grad_()
-            self._alpha_optimizer = self._optimizer([self._log_alpha],
-                                                    lr=self._policy_lr)
+            self._log_alpha = torch.Tensor([self._initial_log_entropy]).to(device).requires_grad_()
+            self._alpha_optimizer = self._optimizer([self._log_alpha], lr=self._policy_lr)

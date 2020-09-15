@@ -9,6 +9,7 @@ import akro
 from dowel import logger
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
@@ -17,7 +18,6 @@ from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
 from garage.sampler import DefaultWorker
 from garage.torch import global_device
-from garage.torch.modules import MLPModule
 from garage.torch.embeddings import MLPEncoder
 from garage.torch.policies import CurlPolicy
 
@@ -96,8 +96,8 @@ class CURL(MetaRLAlgorithm):
     def __init__(self,
                  env,
                  inner_policy,
-                 qf,
-                 vf,
+                 qf1,
+                 qf2,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
@@ -107,13 +107,15 @@ class CURL(MetaRLAlgorithm):
                  encoder_class=MLPEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
-                 vf_lr=3E-4,
                  context_lr=3E-4,
                  policy_mean_reg_coeff=1E-3,
                  policy_std_reg_coeff=1E-3,
                  policy_pre_activation_coeff=0.,
                  soft_target_tau=0.005,
                  kl_lambda=.1,
+                 fixed_alpha=None,
+                 target_entropy=None,
+                 initial_log_entropy=0.,
                  optimizer_class=torch.optim.Adam,
                  use_information_bottleneck=True,
                  use_next_obs_in_context=False,
@@ -134,9 +136,12 @@ class CURL(MetaRLAlgorithm):
                  update_post_train=1):
 
         self._env = env
-        self._qf1 = qf
-        self._qf2 = copy.deepcopy(qf)
-        self._vf = vf
+        self._qf1 = qf1
+        self._qf2 = qf2
+        # use 2 target q networks
+        self._target_qf1 = copy.deepcopy(self._qf1)
+        self._target_qf2 = copy.deepcopy(self._qf2)
+
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
         self._latent_dim = latent_dim
@@ -176,8 +181,11 @@ class CURL(MetaRLAlgorithm):
                                         n_test_tasks=num_test_tasks,
                                         n_test_rollouts=5)
 
-        encoder_spec = self.get_env_spec(env[0](), latent_dim, 'encoder', use_information_bottleneck)
+        env_spec = env[0]()
+        encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
+        if self._use_next_obs_in_context:
+            encoder_in_dim += int(np.prod(env[0]().observation_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         self._context_encoder = encoder_class(input_dim=encoder_in_dim,
                                         output_dim=encoder_out_dim,
@@ -185,7 +193,23 @@ class CURL(MetaRLAlgorithm):
                                         query_sizes=encoder_hidden_sizes)
         self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
 
-        # self._contrastive_loss = ContrastiveLoss(latent_dim)
+        # Automatic entropy coefficient tuning
+        self._use_automatic_entropy_tuning = fixed_alpha is None
+        self._initial_log_entropy = initial_log_entropy
+        self._fixed_alpha = fixed_alpha
+        if self._use_automatic_entropy_tuning:
+            if target_entropy:
+                self._target_entropy = target_entropy
+            else:
+                self._target_entropy = -np.prod(
+                    env_spec.action_space.shape).item()
+            self._log_alpha = torch.Tensor([
+                                               self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = optimizer_class([self._log_alpha],
+                                                    lr=policy_lr)
+        else:
+            self._log_alpha = torch.Tensor(
+                [self._fixed_alpha] * self._num_train_tasks).log()
 
         self._context_lr = context_lr
         self._policy = policy_class(
@@ -206,9 +230,6 @@ class CURL(MetaRLAlgorithm):
             for i in range(num_train_tasks)
         }
 
-        self.target_vf = copy.deepcopy(self._vf)
-        self.vf_criterion = torch.nn.MSELoss()
-
         self._policy_optimizer = optimizer_class(
             self._policy.networks[1].parameters(),
             lr=policy_lr,
@@ -220,10 +241,6 @@ class CURL(MetaRLAlgorithm):
         self.qf2_optimizer = optimizer_class(
             self._qf2.parameters(),
             lr=qf_lr,
-        )
-        self.vf_optimizer = optimizer_class(
-            self._vf.parameters(),
-            lr=vf_lr,
         )
         self.context_optimizer = optimizer_class(
             self._context_encoder.networks[0].parameters(),
@@ -469,9 +486,6 @@ class CURL(MetaRLAlgorithm):
                 loss += loss_fun(logits, labels)
 
 
-        # loss = self.calc_contrastive_loss(query, key)
-        # loss = self._contrastive_loss(query, key)
-
         self.query_optimizer.zero_grad()
         self.context_optimizer.zero_grad()
 
@@ -493,7 +507,6 @@ class CURL(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-
         self._optimize_curl_encoder(indices)
         context = self._sample_context(indices)
 
@@ -502,72 +515,84 @@ class CURL(MetaRLAlgorithm):
 
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
-        policy_outputs, task_z = self._policy(obs, context)
-        task_z.detach()
-        new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         # flatten out the task dimension
         t, b, _ = obs.size()
-        obs = obs.view(t * b, -1)
-        actions = actions.view(t * b, -1)
-        next_obs = next_obs.view(t * b, -1)
+        batch_obs = obs.view(t * b, -1)
+        batch_action = actions.view(t * b, -1)
+        batch_next_obs = next_obs.view(t * b, -1)
 
-        # optimize qf and encoder networks
-        q1_pred = self._qf1(torch.cat([obs, actions], dim=1), task_z)
-        q2_pred = self._qf2(torch.cat([obs, actions], dim=1), task_z)
-        v_pred = self._vf(obs, task_z.detach())
+        policy_outputs, task_z = self._policy(next_obs, context)
+        new_next_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
+
+        # ===== Critic Objective =====
+        with torch.no_grad():
+            alpha = self._get_log_alpha(indices).exp()
+        q1_pred = self._qf1(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        q2_pred = self._qf2(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        target_q_values = torch.min(self._target_qf1(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z),
+            self._target_qf2(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z)).flatten() - (alpha * log_pi.flatten())
+
+        rewards_flat = rewards.view(self._batch_size * num_tasks, -1).flatten()
+        rewards_flat = rewards_flat * self._reward_scale
+        terms_flat = terms.view(self._batch_size * num_tasks, -1).flatten()
 
         with torch.no_grad():
-            target_v_values = self.target_vf(next_obs, task_z)
+            q_target = rewards_flat + ((1. - terms_flat) * self._discount) * target_q_values
+
+        qf1_loss = F.mse_loss(q1_pred.flatten(), q_target)
+        qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
+        qf_loss = qf1_loss + qf2_loss
 
         # KL constraint on z if probabilistic
+        self.context_optimizer.zero_grad()
         if self._use_information_bottleneck:
             kl_div = self._policy.compute_kl_div()
             kl_loss = self._kl_lambda * kl_div
             kl_loss.backward(retain_graph=True)
 
+        # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
-
-        rewards_flat = rewards.view(self._batch_size * num_tasks, -1)
-        rewards_flat = rewards_flat * self._reward_scale
-        terms_flat = terms.view(self._batch_size * num_tasks, -1)
-        q_target = rewards_flat + (1. - terms_flat) * self._discount * target_v_values
-        qf_loss = torch.mean((q1_pred - q_target)**2) + torch.mean((q2_pred - q_target)**2)
         qf_loss.backward()
-
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
+        self.context_optimizer.step()
 
+        # ===== Actor Objective =====
+        policy_outputs, task_z = self._policy(obs, context)
+        new_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
         # compute min Q on the new actions
-        q1 = self._qf1(torch.cat([obs, new_actions], dim=1), task_z.detach())
-        q2 = self._qf2(torch.cat([obs, new_actions], dim=1), task_z.detach())
+        q1 = self._qf1(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
+        q2 = self._qf2(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
         min_q = torch.min(q1, q2)
-
-        # optimize vf
-        v_target = min_q - log_pi
-        vf_loss = self.vf_criterion(v_pred, v_target.detach())
-        self.vf_optimizer.zero_grad()
-        vf_loss.backward()
-        self.vf_optimizer.step()
-        self._update_target_network()
-
         # optimize policy
-        log_policy_target = min_q
-        policy_loss = (log_pi - log_policy_target).mean()
-
+        policy_loss = ((alpha * log_pi) - min_q.flatten()).mean()
         mean_reg_loss = self._policy_mean_reg_coeff * (policy_mean**2).mean()
         std_reg_loss = self._policy_std_reg_coeff * (policy_log_std**2).mean()
         pre_tanh_value = policy_outputs[-1]
-        pre_activation_reg_loss = self._policy_pre_activation_coeff * (
-            (pre_tanh_value**2).sum(dim=1).mean())
-        policy_reg_loss = (mean_reg_loss + std_reg_loss +
-                           pre_activation_reg_loss)
-        policy_loss = policy_loss + policy_reg_loss
+        pre_activation_reg_loss = self._policy_pre_activation_coeff * ((pre_tanh_value**2).sum(dim=1).mean())
+        policy_reg_loss = (mean_reg_loss + std_reg_loss + pre_activation_reg_loss)
+        policy_loss += policy_reg_loss
 
         self._policy_optimizer.zero_grad()
         policy_loss.backward()
         self._policy_optimizer.step()
+
+        # ===== Temperature Objective =====
+        if self._use_automatic_entropy_tuning:
+            alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
+            self._alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            self._alpha_optimizer.step()
+
+        # ===== Update Target Network =====
+        target_qfs = [self._target_qf1, self._target_qf2]
+        qfs = [self._qf1, self._qf2]
+        for target_qf, qf in zip(target_qfs, qfs):
+            for t_param, param in zip(target_qf.parameters(), qf.parameters()):
+                t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
+
 
     def _obtain_samples(self,
                         runner,
@@ -769,9 +794,8 @@ class CURL(MetaRLAlgorithm):
             list: A list of networks.
 
         """
-        return self._policy.networks + [self._policy] + [
-            self._qf1, self._qf2, self._vf, self.target_vf, self._contrastive_weight
-        ]
+        return self._policy.networks + [self._policy, self._qf1, self._qf2,
+                                        self._target_qf1, self._target_qf2, self._contrastive_weight]
 
     def get_exploration_policy(self):
         """Return a policy used before adaptation to a specific task.
@@ -808,7 +832,11 @@ class CURL(MetaRLAlgorithm):
         o = exploration_trajectories.observations
         a = exploration_trajectories.actions
         r = exploration_trajectories.rewards.reshape(total_steps, 1)
-        ctxt = np.hstack((o, a, r)).reshape(1, total_steps, -1)
+        no = exploration_trajectories.next_observations
+        ctxt = np.hstack((o, a, r))
+        if self._use_next_obs_in_context:
+            ctxt = np.hstack((ctxt, no))
+        ctxt = ctxt.reshape(1, total_steps, -1)
         context = torch.as_tensor(ctxt, device=global_device()).float()
         self._policy.infer_posterior(context)
 
@@ -824,6 +852,10 @@ class CURL(MetaRLAlgorithm):
         device = device or global_device()
         for net in self.networks:
             net.to(device)
+        if self._use_automatic_entropy_tuning:
+            self._log_alpha = self._log_alpha.to(device).requires_grad_()
+        else:
+            self._log_alpha = self._log_alpha.to(device)
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):
@@ -886,20 +918,34 @@ class CURL(MetaRLAlgorithm):
 
         return spec
 
+    def _get_log_alpha(self, indices):
+        """Return the value of log_alpha.
 
-# class ContrastiveLoss(torch.nn.Module):
-#     def __init__(self, latent_dim):
-#         super.__init__()
-#         self._contrastive_weight = torch.rand(latent_dim, latent_dim, device=global_device(), requires_grad=True)
-#         self.add_module("weight", self._contrastive_weight)
-#
-#     def forward(self, query, key):
-#         left_product = torch.matmul(query, self._contrastive_weight)
-#         logits = torch.matmul(left_product, key)
-#         logits = logits - torch.max(logits, axis=1)
-#         labels = torch.arange(logits.shape[0])
-#         loss = torch.nn.CrossEntropyLoss(logits, labels)
-#         return loss
+        Args:
+            samples_data (dict): Transitions(S,A,R,S') that are sampled from
+                the replay buffer. It should have the keys 'observation',
+                'action', 'reward', 'terminal', and 'next_observations'.
+
+        Note:
+            samples_data's entries should be torch.Tensor's with the following
+            shapes:
+                observation: :math:`(N, O^*)`
+                action: :math:`(N, A^*)`
+                reward: :math:`(N, 1)`
+                terminal: :math:`(N, 1)`
+                next_observation: :math:`(N, O^*)`
+
+        Returns:
+            torch.Tensor: log_alpha. shape is (1, self.buffer_batch_size)
+
+        """
+        log_alpha = self._log_alpha
+        one_hots = np.zeros((len(indices) * self._batch_size, self._num_train_tasks), dtype=np.float32)
+        for i in range(len(indices)):
+            one_hots[self._batch_size * i: self._batch_size * (i + 1), indices[i]] = 1
+        one_hots = torch.as_tensor(one_hots, device=global_device())
+        ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
+        return ret
 
 class CURLWorker(DefaultWorker):
     """A worker class used in sampling for CURL.

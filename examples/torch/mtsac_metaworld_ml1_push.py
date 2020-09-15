@@ -92,7 +92,6 @@ def mtsac_metaworld_ml1_push(ctxt=None, seed=1, gpu_id=None):
                   eval_env=ml1_test_envs,
                   env_spec=ml1_train_envs.spec,
                   num_tasks=50,
-                  num_tasks=epoch_cycles,
                   replay_buffer=replay_buffer,
                   min_buffer_size=1500,
                   target_update_tau=5e-3,
@@ -105,5 +104,5 @@ def mtsac_metaworld_ml1_push(ctxt=None, seed=1, gpu_id=None):
     runner.setup(algo=mtsac, env=ml1_train_envs, sampler_cls=LocalSampler)
     runner.train(n_epochs=epochs, batch_size=batch_size)
 
-
-mtsac_metaworld_ml1_push()
+if __name__=='__main__':
+    mtsac_metaworld_ml1_push()

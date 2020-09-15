@@ -19,11 +19,11 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=1000)
-@click.option('--num_train_tasks', default=50)
-@click.option('--num_test_tasks', default=10)
-@click.option('--encoder_hidden_size', default=200)
-@click.option('--net_size', default=300)
+@click.option('--num_epochs', default=500)
+@click.option('--num_train_tasks', default=5)
+@click.option('--num_test_tasks', default=2)
+@click.option('--encoder_hidden_size', default=300)
+@click.option('--net_size', default=400)
 @click.option('--num_steps_per_epoch', default=4000)
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
@@ -31,10 +31,10 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--batch_size', default=256)
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
-@click.option('--max_path_length', default=150)
+@click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_emphasized_metaworld_ml1_push(ctxt=None,
+def curl_traj_emphasized_metaworld_ml1_pick_place(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
@@ -96,11 +96,13 @@ def curl_emphasized_metaworld_ml1_push(ctxt=None,
                             encoder_hidden_size)
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+        normalize(mwb.ML1.get_train_tasks('pick-place-v1'))))
     env = env_sampler.sample(num_train_tasks)
 
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks('push-v1'))))
+        normalize(mwb.ML1.get_test_tasks('pick-place-v1'))))
+    ctxt.snapshot_mode = 'gap_and_last'
+    ctxt.snapshot_gap = 5
     runner = LocalRunner(ctxt)
 
     # instantiate networks
@@ -139,6 +141,8 @@ def curl_emphasized_metaworld_ml1_push(ctxt=None,
         embedding_mini_batch_size=embedding_mini_batch_size,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
+        replay_buffer_size=100000,
+        use_next_obs_in_context=True
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
@@ -154,4 +158,5 @@ def curl_emphasized_metaworld_ml1_push(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-curl_emphasized_metaworld_ml1_push()
+if __name__=='__main__':
+    curl_traj_emphasized_metaworld_ml1_pick_place()

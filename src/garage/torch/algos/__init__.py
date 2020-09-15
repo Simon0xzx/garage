@@ -18,8 +18,9 @@ from garage.torch.algos.gcmtsac import GCMTSAC
 from garage.torch.algos.pearl import PEARL
 from garage.torch.algos.multi_task_oracle import MULTITASKORACLE
 from garage.torch.algos.curl import CURL
+from garage.torch.algos.curl_shaped import CURLShaped
 
 __all__ = [
     'BC', 'DDPG', 'VPG', 'PPO', 'TRPO', 'MAMLPPO', 'MAMLTRPO', 'MAMLVPG',
-    'MTSAC', 'PEARL', 'SAC', 'MULTITASKORACLE', 'CURL', 'GCMTSAC'
+    'MTSAC', 'PEARL', 'SAC', 'MULTITASKORACLE', 'CURL', 'GCMTSAC', 'CURLShaped'
 ]

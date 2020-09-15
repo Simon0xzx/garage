@@ -1,43 +1,45 @@
 #!/usr/bin/env python3
 """PEARL ML1 example."""
 import click
-import torch
 import metaworld.benchmarks as mwb
 
 from garage import wrap_experiment
-from garage.experiment import Snapshotter
 from garage.envs import GarageEnv, normalize
 from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
-from garage.experiment.task_sampler import EnvPoolSampler
+from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.experiment import MetaEvaluator
+from garage.torch.algos import CURL
 from garage.torch.algos.curl import CURLWorker
+from garage.torch.embeddings import ContrastiveEncoder
+from garage.torch.policies import CurlPolicy
+from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
+from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
 @click.option('--num_epochs', default=500)
-@click.option('--num_train_tasks', default=1)
-@click.option('--num_test_tasks', default=1)
-@click.option('--encoder_hidden_size', default=200)
+@click.option('--num_train_tasks', default=100)
+@click.option('--num_test_tasks', default=20)
+@click.option('--encoder_hidden_size', default=300)
 @click.option('--net_size', default=300)
 @click.option('--num_steps_per_epoch', default=4000)
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
-@click.option('--batch_size', default=256)
+@click.option('--batch_size', default=512)
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=150)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
+def curl_traj_emphasized_metaworld_ml1_push(ctxt=None,
                              seed=1,
-                             num_epochs=500,
-                             num_train_tasks=1,
-                             num_test_tasks=1,
-                             latent_size=7,
+                             num_epochs=1000,
+                             num_train_tasks=50,
+                             num_test_tasks=10,
+                             latent_size=14,
                              encoder_hidden_size=200,
                              net_size=300,
                              meta_batch_size=16,
@@ -90,56 +92,59 @@ def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
 
     """
     set_seed(seed)
+    encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
+                            encoder_hidden_size, encoder_hidden_size)
     # create multi-task environment and sample tasks
-    ml_test_envs = [
-        GarageEnv(normalize(mwb.MLSP.from_task('button-press-wall-v1')))
-    ]
+    env_sampler = SetTaskSampler(lambda: GarageEnv(
+        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+    env = env_sampler.sample(num_train_tasks)
 
-    test_env_sampler = EnvPoolSampler(ml_test_envs)
-    test_env_sampler.grow_pool(num_test_tasks)
-    env = test_env_sampler.sample(num_train_tasks)
-
+    test_env_sampler = SetTaskSampler(lambda: GarageEnv(
+        normalize(mwb.ML1.get_test_tasks('push-v1'))))
     ctxt.snapshot_mode = 'gap_and_last'
-    ctxt.snapshot_gap = 10
+    ctxt.snapshot_gap = 5
     runner = LocalRunner(ctxt)
-    worker_args = dict(deterministic=True, accum_context=True)
-    evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                    max_path_length=max_path_length,
-                                    worker_class=CURLWorker,
-                                    worker_args=worker_args,
-                                    n_test_tasks=num_test_tasks)
 
-    exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    # instantiate networks
+    augmented_env = CURL.augment_env_spec(env[0](), latent_size)
+    qf = ContinuousMLPQFunction(env_spec=augmented_env,
+                                hidden_sizes=[net_size, net_size, net_size])
 
-    base_agent_path = '{}/curl_metaworld_mlsp_2'.format(exp_path)
-    snapshotter = Snapshotter()
-    snapshot = snapshotter.load(base_agent_path, itr=100)
-    curl = snapshot['algo']
-    curl.update_env(env, evaluator, 1, 1)
-    curl._policy_optimizer = torch.optim.Adam(
-        curl._policy.networks[1].parameters(),
-        lr=3E-4,
+    vf_env = CURL.get_env_spec(env[0](), latent_size, 'vf')
+    vf = ContinuousMLPQFunction(env_spec=vf_env,
+                                hidden_sizes=[net_size, net_size, net_size])
+
+    inner_policy = TanhGaussianContextEmphasizedPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
+        latent_sizes=latent_size)
+
+    curl = CURL(
+        env=env,
+        policy_class=CurlPolicy,
+        encoder_class=ContrastiveEncoder,
+        inner_policy=inner_policy,
+        qf=qf,
+        vf=vf,
+        num_train_tasks=num_train_tasks,
+        num_test_tasks=num_test_tasks,
+        latent_dim=latent_size,
+        encoder_hidden_sizes=encoder_hidden_sizes,
+        test_env_sampler=test_env_sampler,
+        meta_batch_size=meta_batch_size,
+        num_steps_per_epoch=num_steps_per_epoch,
+        num_initial_steps=num_initial_steps,
+        num_tasks_sample=num_tasks_sample,
+        num_steps_prior=num_steps_prior,
+        num_extra_rl_steps_posterior=num_extra_rl_steps_posterior,
+        batch_size=batch_size,
+        embedding_batch_size=embedding_batch_size,
+        embedding_mini_batch_size=embedding_mini_batch_size,
+        max_path_length=max_path_length,
+        reward_scale=reward_scale,
+        replay_buffer_size=100000,
+        use_next_obs_in_context=True
     )
-    curl.qf1_optimizer = torch.optim.Adam(
-        curl._qf1.parameters(),
-        lr=3E-4,
-    )
-    curl.qf2_optimizer = torch.optim.Adam(
-        curl._qf2.parameters(),
-        lr=3E-4,
-    )
-    curl.vf_optimizer = torch.optim.Adam(
-        curl._vf.parameters(),
-        lr=3E-4,
-    )
-    curl.context_optimizer = torch.optim.Adam(
-        curl._context_encoder.networks[0].parameters(),
-        lr=3E-4,
-    )
-    curl.query_optimizer = torch.optim.Adam(
-        curl._context_encoder.networks[1].parameters(),
-        lr=3E-4,
-    )
+
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
         curl.to()
@@ -150,12 +155,8 @@ def curl_metaworld_harder_mlsp_adapt_new(ctxt=None,
                  sampler_args=dict(max_path_length=max_path_length),
                  n_workers=1,
                  worker_class=CURLWorker)
-    expert_traj_dir = '/home/simon0xzx/research/berkely_research/garage/data/expert/metaworld_mlsp_button_press_wall'
-    print("==================================\nAdapting\n==================================")
-    runner.adapt_policy(n_epochs=50, expert_traj_path=expert_traj_dir, batch_size=batch_size)
-    print(
-        "==================================\nSelf Training\n==================================")
+
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-if __name__ == '__main__':
-    curl_metaworld_harder_mlsp_adapt_new()
+if __name__=='__main__':
+    curl_traj_emphasized_metaworld_ml1_push()
