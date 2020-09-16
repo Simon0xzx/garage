@@ -54,15 +54,20 @@ class GoalConditionedPolicy(nn.Module):
         task_z = self.z
 
         # task, batch
-        b, _ = obs.size()
-        obs = obs.view(b, -1)
-        task_z = torch.cat([z.repeat(b, 1) for z in task_z], dim=1)
+        t, b, _ = obs.size()
+        obs = obs.view(t * b, -1)
+        task_z = torch.cat([z.repeat(b, 1) for z in task_z], dim=0)
 
         # run policy, get log probs and new actions
         obs_z = torch.cat([obs, task_z.detach()], dim=1)
         dist = self._policy(obs_z)[0]
+        pre_tanh, actions = dist.rsample_with_pre_tanh_value()
+        log_pi = dist.log_prob(value=actions, pre_tanh_value=pre_tanh)
+        log_pi = log_pi.unsqueeze(1)
+        mean = dist.mean.to('cpu').detach().numpy()
+        log_std = (dist.variance ** .5).log().to('cpu').detach().numpy()
 
-        return dist, task_z
+        return (actions, mean, log_std, log_pi, pre_tanh), task_z
 
     def reset_belief(self, env, num_tasks=1):
         r"""Reset :math:`q(z \| c)` to the prior and sample a new z from the prior.

@@ -109,7 +109,6 @@ class MULTITASKORACLE(MetaRLAlgorithm):
                  policy_std_reg_coeff=1E-3,
                  policy_pre_activation_coeff=0.,
                  soft_target_tau=0.005,
-                 kl_lambda=.1,
                  fixed_alpha=None,
                  target_entropy=None,
                  initial_log_entropy=0.,
@@ -146,7 +145,6 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         self._policy_std_reg_coeff = policy_std_reg_coeff
         self._policy_pre_activation_coeff = policy_pre_activation_coeff
         self._soft_target_tau = soft_target_tau
-        self._kl_lambda = kl_lambda
         self._use_next_obs_in_context = use_next_obs_in_context
 
         self._meta_batch_size = meta_batch_size
@@ -342,20 +340,12 @@ class MULTITASKORACLE(MetaRLAlgorithm):
         qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
         qf_loss = qf1_loss + qf2_loss
 
-        # KL constraint on z if probabilistic
-        self.context_optimizer.zero_grad()
-        if self._use_information_bottleneck:
-            kl_div = self._policy.compute_kl_div()
-            kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward(retain_graph=True)
-
         # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
         qf_loss.backward()
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
-        self.context_optimizer.step()
 
         # ===== Actor Objective =====
         policy_outputs, task_z = self._policy(obs, context)

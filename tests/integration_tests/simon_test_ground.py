@@ -853,6 +853,9 @@ def ml1_push_exp_plot():
                                         'pearl_auto_temp_metaworld_ml1_push_2'],
                    '-', legend="pearl_auto_temp", limit=limit)
 
+    plot_curve_avg(axs[0], local_path, ['pearl_origin_auto_temp_metaworld_ml1_push'],
+                   '-', legend="pearl_origin_auto_temp", limit=limit)
+
 
 
     axs[1].set_title('CURL ML1 multi step Push Avg Return')
@@ -867,6 +870,15 @@ def ml1_push_exp_plot():
                     'curl_auto_temp_traj_metaworld_ml1_push_2'],
                    '-', legend="curl_auto_temp", limit=limit)
 
+    plot_curve_avg(axs[1], local_path,
+                   ['curl_origin_auto_temp_traj_metaworld_ml1_push'],
+                   '-', legend="curl_origin_auto_temp", limit=limit)
+
+    plot_curve_avg(axs[1], local_path,
+                   ['curl_origin_shaped_metaworld_ml1_push'],
+                   '-', legend="curl_origin_traj_5_step_auto_temp", limit=limit)
+
+
     axs[2].set_title('ML1 Comparison Avg Return')
     axs[2].set_xlabel('Total Env Steps')
     axs[2].set_ylabel('Avg Test Return')
@@ -880,6 +892,7 @@ def ml1_push_exp_plot():
                                         'pearl_auto_temp_metaworld_ml1_push_1',
                                         'pearl_auto_temp_metaworld_ml1_push_2'],
                    '-', legend="pearl_auto_temp", limit=limit)
+
 
     plot_curve_avg(axs[2], local_path, ['curl_auto_temp_traj_metaworld_ml1_push',
                                         'curl_auto_temp_traj_metaworld_ml1_push_1',

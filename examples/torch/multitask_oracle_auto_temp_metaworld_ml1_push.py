@@ -13,12 +13,12 @@ from garage.torch import set_gpu_mode
 from garage.torch.algos import MULTITASKORACLE
 from garage.torch.algos.multi_task_oracle import MULTITASKORACLEWorker
 from garage.torch.policies import GoalConditionedPolicy
-from garage.torch.policies import TanhGaussianMLPPolicy
+from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=1000)
+@click.option('--num_epochs', default=500)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)
 @click.option('--net_size', default=300)
@@ -29,7 +29,8 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--batch_size', default=256)
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
-@click.option('--max_path_length', default=150)
+@click.option('--max_path_length', default=200)
+@click.option('--seed', default=1)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
 def multitask_oracle_metaworld_ml1_push(ctxt=None,
@@ -38,7 +39,7 @@ def multitask_oracle_metaworld_ml1_push(ctxt=None,
                              num_train_tasks=50,
                              num_test_tasks=10,
                              net_size=300,
-                             meta_batch_size=128,
+                             meta_batch_size=16,
                              num_steps_per_epoch=500,
                              num_initial_steps=4000,
                              num_tasks_sample=15,
@@ -47,7 +48,7 @@ def multitask_oracle_metaworld_ml1_push(ctxt=None,
                              batch_size=256,
                              embedding_batch_size=64,
                              embedding_mini_batch_size=64,
-                             max_path_length=150,
+                             max_path_length=200,
                              reward_scale=10.,
                              use_gpu=True,
                              gpu_id = 0):
@@ -107,8 +108,9 @@ def multitask_oracle_metaworld_ml1_push(ctxt=None,
     qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
                                   hidden_sizes=[net_size, net_size, net_size])
 
-    inner_policy = TanhGaussianMLPPolicy(
-        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size])
+    inner_policy = TanhGaussianContextEmphasizedPolicy(
+        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
+        latent_sizes=latent_size)
 
     multitask_oracle = MULTITASKORACLE(
         env=env,
