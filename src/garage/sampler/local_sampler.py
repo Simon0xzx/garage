@@ -1,7 +1,7 @@
 """Sampler that runs workers in the main process."""
 import copy
 
-from garage import TrajectoryBatch
+from garage import TrajectoryBatch, MultiStepTrajectoryBatch
 from garage.sampler.sampler import Sampler
 
 
@@ -87,7 +87,7 @@ class LocalSampler(Sampler):
             worker.update_agent(agent_up)
             worker.update_env(env_up)
 
-    def obtain_samples(self, itr, num_samples, agent_update, env_update=None):
+    def obtain_samples(self, itr, num_samples, agent_update, env_update=None, is_multi_step = False):
         """Collect at least a given number transitions (timesteps).
 
         Args:
@@ -117,7 +117,10 @@ class LocalSampler(Sampler):
                 completed_samples += len(batch.actions)
                 batches.append(batch)
                 if completed_samples >= num_samples:
-                    return TrajectoryBatch.concatenate(*batches)
+                    if is_multi_step:
+                        return MultiStepTrajectoryBatch.concatenate(*batches)
+                    else:
+                        return TrajectoryBatch.concatenate(*batches)
 
     def obtain_exact_trajectories(self,
                                   n_traj_per_worker,

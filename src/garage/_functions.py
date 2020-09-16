@@ -63,7 +63,7 @@ def make_optimizer(optimizer_type, module=None, **kwargs):
         return optimizer_type(**opt_args)
 
 
-def log_multitask_performance(itr, batch, discount, name_map=None):
+def log_multitask_performance(itr, batch, discount, name_map=None, is_multi_step=False):
     r"""Log performance of trajectories from multiple tasks.
 
     Args:
@@ -83,6 +83,10 @@ def log_multitask_performance(itr, batch, discount, name_map=None):
             shape :math:`(N \bullet [T])`.
 
     """
+    traj_class = garage.TrajectoryBatch
+    if is_multi_step:
+        traj_class = garage.MultiStepTrajectoryBatch
+
     traj_by_name = defaultdict(list)
     for trajectory in batch.split():
         task_name = '__unnamed_task__'
@@ -101,7 +105,7 @@ def log_multitask_performance(itr, batch, discount, name_map=None):
         if task_name in traj_by_name:
             trajectories = traj_by_name[task_name]
             log_performance(itr,
-                            garage.TrajectoryBatch.concatenate(*trajectories),
+                            traj_class.concatenate(*trajectories),
                             discount,
                             prefix=task_name)
         else:

@@ -19,7 +19,8 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=1000)
+@click.option('--num_epochs', default=500)
+@click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)
 @click.option('--encoder_hidden_size', default=300)
@@ -31,16 +32,16 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--batch_size', default=512)
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
-@click.option('--max_path_length', default=150)
-@click.option('--context_step_len', default=1)
+@click.option('--max_path_length', default=200)
+@click.option('--context_step_len', default=5)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_shaped_metaworld_ml1_push(ctxt=None,
+def curl_origin_shaped_metaworld_ml1_push(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=100,
                              num_test_tasks=10,
-                             latent_size=20,
+                             latent_size=10,
                              encoder_hidden_size=300,
                              net_size=300,
                              meta_batch_size=32,
@@ -94,6 +95,8 @@ def curl_shaped_metaworld_ml1_push(ctxt=None,
 
     """
     set_seed(seed)
+    encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
+                            encoder_hidden_size, encoder_hidden_size)
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
         normalize(mwb.ML1.get_train_tasks('push-v1'))))
@@ -105,27 +108,25 @@ def curl_shaped_metaworld_ml1_push(ctxt=None,
 
     # instantiate networks
     augmented_env = CURLShaped.augment_env_spec(env[0](), latent_size)
-    qf = ContinuousMLPQFunction(env_spec=augmented_env,
-                                hidden_sizes=[net_size, net_size, net_size])
+    qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
+                                  hidden_sizes=[net_size, net_size, net_size])
 
-    vf_env = CURLShaped.get_env_spec(env[0](), latent_size, 'vf')
-    vf = ContinuousMLPQFunction(env_spec=vf_env,
-                                hidden_sizes=[net_size, net_size, net_size])
+    qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
+                                  hidden_sizes=[net_size, net_size, net_size])
 
     inner_policy = TanhGaussianContextEmphasizedPolicy(
         env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
         latent_sizes=latent_size)
 
-    encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
-                            encoder_hidden_size, encoder_hidden_size, encoder_hidden_size)
+
 
     curl = CURLShaped(
         env=env,
         policy_class=CurlShapedPolicy,
         encoder_class=ContrastiveEncoder,
         inner_policy=inner_policy,
-        qf=qf,
-        vf=vf,
+        qf1=qf_1,
+        qf2=qf_2,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
@@ -160,4 +161,4 @@ def curl_shaped_metaworld_ml1_push(ctxt=None,
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
 if __name__ == '__main__':
-    curl_shaped_metaworld_ml1_push()
+    curl_origin_shaped_metaworld_ml1_push()

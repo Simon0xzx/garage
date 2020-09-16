@@ -2,7 +2,7 @@
 
 from dowel import logger, tabular
 
-from garage import log_multitask_performance, TrajectoryBatch
+from garage import log_multitask_performance, TrajectoryBatch, MultiStepTrajectoryBatch
 from garage.experiment.deterministic import get_seed
 from garage.sampler import DefaultWorker, LocalSampler, WorkerFactory
 
@@ -49,9 +49,11 @@ class MetaEvaluator:
                  prefix='MetaTest',
                  test_task_names=None,
                  worker_class=DefaultWorker,
-                 worker_args=None):
+                 worker_args=None,
+                 is_multi_step=False):
         self._test_task_sampler = test_task_sampler
         self._worker_class = worker_class
+        self._is_multi_step = is_multi_step
         if worker_args is None:
             self._worker_args = {}
         else:
@@ -78,6 +80,9 @@ class MetaEvaluator:
         if test_rollouts_per_task is None:
             test_rollouts_per_task = self._n_test_rollouts
         adapted_trajectories = []
+        traj_class = TrajectoryBatch
+        if self._is_multi_step:
+            traj_class = MultiStepTrajectoryBatch
         logger.log('Sampling for adapation and meta-testing...')
         if self._test_sampler is None:
             self._test_sampler = LocalSampler.from_worker_factory(
@@ -90,15 +95,15 @@ class MetaEvaluator:
                 envs=self._test_task_sampler.sample_with_goals(1))
         for env_up in self._test_task_sampler.sample_with_goals(self._n_test_tasks):
             policy = algo.get_exploration_policy()
-            traj = TrajectoryBatch.concatenate(*[
+            traj = traj_class.concatenate(*[
                 self._test_sampler.obtain_samples(self._eval_itr, self._max_path_length, policy,
-                                                  env_up)
+                                                  env_up, is_multi_step=self._is_multi_step)
                 for _ in range(self._n_exploration_traj)
             ])
             adapted_policy = algo.adapt_policy(policy, traj)
             adapted_traj = self._test_sampler.obtain_samples(
                 self._eval_itr, test_rollouts_per_task * self._max_path_length,
-                adapted_policy)
+                adapted_policy, is_multi_step=self._is_multi_step)
             adapted_trajectories.append(adapted_traj)
         logger.log('Finished meta-testing...')
 
@@ -110,7 +115,8 @@ class MetaEvaluator:
         with tabular.prefix(self._prefix + '/' if self._prefix else ''):
             log_multitask_performance(
                 self._eval_itr,
-                TrajectoryBatch.concatenate(*adapted_trajectories),
+                traj_class.concatenate(*adapted_trajectories),
                 getattr(algo, 'discount', 1.0),
-                name_map=name_map)
+                name_map=name_map,
+                is_multi_step=self._is_multi_step)
         self._eval_itr += 1

@@ -12,7 +12,7 @@ import torch
 from collections import deque, defaultdict, namedtuple
 import torch.nn.functional as F
 
-from garage import TrajectoryBatch
+from garage import MultiStepTrajectoryBatch
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
 from garage.experiment import MetaEvaluator
@@ -181,9 +181,14 @@ class CURLShaped(MetaRLAlgorithm):
                                         worker_class=CURLShapedWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks,
-                                        n_test_rollouts=5)
+                                        n_test_rollouts=5,
+                                        is_multi_step=True)
         env_spec = env[0]()
-        encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck, num_context_step=self._context_step_len)
+        self._obs_dim = int(np.prod(env_spec.observation_space.shape))
+        self._action_dim = int(np.prod(env_spec.action_space.shape))
+        encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder',
+                                         use_information_bottleneck,
+                                         self._context_step_len)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         self._context_encoder = encoder_class(input_dim=encoder_in_dim,
@@ -434,7 +439,6 @@ class CURLShaped(MetaRLAlgorithm):
 
     def _optimize_curl_encoder(self, indices):
         # Optimize CURL encoder
-        context_encoder = self._context_encoder.networks[0]
         query_net = self._context_encoder.networks[1]
         key_net = self._context_encoder.networks[2]
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
@@ -456,10 +460,6 @@ class CURLShaped(MetaRLAlgorithm):
             else:
                 loss += loss_fun(logits, labels)
 
-
-        # loss = self.calc_contrastive_loss(query, key)
-        # loss = self._contrastive_loss(query, key)
-
         self.query_optimizer.zero_grad()
         self.context_optimizer.zero_grad()
 
@@ -471,7 +471,7 @@ class CURLShaped(MetaRLAlgorithm):
             self._contrastive_weight.grad.zero_()
             # update key net with 0.05 of query net
             for target_param, param in zip(key_net.parameters(), query_net.parameters()):
-                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
+                target_param.data.copy_(self._soft_target_tau * param.data + target_param.data * (1 - self._soft_target_tau))
 
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
@@ -486,12 +486,16 @@ class CURLShaped(MetaRLAlgorithm):
 
         # clear context and reset belief of policy
         self._policy.reset_belief(num_tasks=num_tasks)
-
         # data shape is (task, batch, feat)
-        obs, actions, rewards, next_obs, terms = self._sample_data(indices)
+        multi_obs, multi_actions, multi_rewards, terms = self._sample_data(indices)
 
         # flatten out the task dimension
-        t, b, _ = obs.size()
+        t, b, _ = multi_obs.size()
+        obs = multi_obs[:, :, -2 * self._obs_dim : -self._obs_dim]
+        actions = multi_actions[:, :, -self._action_dim:]
+        rewards = multi_rewards[:, :, -1:]
+        next_obs = multi_obs[:, :, -self._obs_dim:]
+
         batch_obs = obs.view(t * b, -1)
         batch_action = actions.view(t * b, -1)
         batch_next_obs = next_obs.view(t * b, -1)
@@ -598,7 +602,8 @@ class CURLShaped(MetaRLAlgorithm):
         while total_samples < num_samples:
             paths = runner.obtain_samples(itr, num_samples_per_batch,
                                           self._policy,
-                                          self._env[self._task_idx])
+                                          self._env[self._task_idx],
+                                          is_multi_step=True)
             total_samples += sum([len(path['rewards']) for path in paths])
 
             for path in paths:
@@ -606,7 +611,6 @@ class CURLShaped(MetaRLAlgorithm):
                     'observations': path['observations'],
                     'actions': path['actions'],
                     'rewards': path['rewards'],
-                    'next_observations': path['next_observations'],
                     'dones': path['dones'].reshape(-1, 1)
                 }
                 self._replay_buffers[self._task_idx].add_path(p)
@@ -642,23 +646,20 @@ class CURLShaped(MetaRLAlgorithm):
                 o = batch['observations'][np.newaxis]
                 a = batch['actions'][np.newaxis]
                 r = batch['rewards'][np.newaxis]
-                no = batch['next_observations'][np.newaxis]
                 d = batch['dones'][np.newaxis]
                 initialized = True
             else:
                 o = np.vstack((o, batch['observations'][np.newaxis]))
                 a = np.vstack((a, batch['actions'][np.newaxis]))
                 r = np.vstack((r, batch['rewards'][np.newaxis]))
-                no = np.vstack((no, batch['next_observations'][np.newaxis]))
                 d = np.vstack((d, batch['dones'][np.newaxis]))
 
         o = torch.as_tensor(o, device=global_device()).float()
         a = torch.as_tensor(a, device=global_device()).float()
         r = torch.as_tensor(r, device=global_device()).float()
-        no = torch.as_tensor(no, device=global_device()).float()
         d = torch.as_tensor(d, device=global_device()).float()
 
-        return o, a, r, no, d
+        return o, a, r, d
 
     def _sample_contrastive_pairs(self, indices, num_aug=2):
         # make method work given a single task index
@@ -739,6 +740,35 @@ class CURLShaped(MetaRLAlgorithm):
 
         return final_context
 
+    def _get_log_alpha(self, indices):
+        """Return the value of log_alpha.
+
+        Args:
+            samples_data (dict): Transitions(S,A,R,S') that are sampled from
+                the replay buffer. It should have the keys 'observation',
+                'action', 'reward', 'terminal', and 'next_observations'.
+
+        Note:
+            samples_data's entries should be torch.Tensor's with the following
+            shapes:
+                observation: :math:`(N, O^*)`
+                action: :math:`(N, A^*)`
+                reward: :math:`(N, 1)`
+                terminal: :math:`(N, 1)`
+                next_observation: :math:`(N, O^*)`
+
+        Returns:
+            torch.Tensor: log_alpha. shape is (1, self.buffer_batch_size)
+
+        """
+        log_alpha = self._log_alpha
+        one_hots = np.zeros((len(indices) * self._batch_size, self._num_train_tasks), dtype=np.float32)
+        for i in range(len(indices)):
+            one_hots[self._batch_size * i: self._batch_size * (i + 1), indices[i]] = 1
+        one_hots = torch.as_tensor(one_hots, device=global_device())
+        ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
+        return ret
+
     def _update_target_network(self):
         """Update parameters in the target vf network."""
         for target_param, param in zip(self.target_vf.parameters(),
@@ -765,9 +795,10 @@ class CURLShaped(MetaRLAlgorithm):
             list: A list of networks.
 
         """
-        return self._policy.networks + [self._policy] + [
-            self._qf1, self._qf2, self._vf, self.target_vf, self._contrastive_weight
-        ]
+        return self._policy.networks + [self._policy, self._qf1, self._qf2,
+                                        self._target_qf1, self._target_qf2,
+                                        self._contrastive_weight]
+
 
     def get_exploration_policy(self):
         """Return a policy used before adaptation to a specific task.
@@ -820,6 +851,10 @@ class CURLShaped(MetaRLAlgorithm):
         device = device or global_device()
         for net in self.networks:
             net.to(device)
+        if self._use_automatic_entropy_tuning:
+            self._log_alpha = self._log_alpha.to(device).requires_grad_()
+        else:
+            self._log_alpha = self._log_alpha.to(device)
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):
@@ -919,9 +954,11 @@ class CURLShapedWorker(DefaultWorker):
                          max_path_length=max_path_length,
                          worker_number=worker_number)
 
-        self._multi_step_obs = []
-        self._multi_step_reward = []
-        self._multi_step_action = []
+        # this should contains 'observations' 'rewards'
+        self._multi_step_dicts = {}
+        self._multi_step_dicts['observations'] = []
+        self._multi_step_dicts['actions'] = []
+        self._multi_step_dicts['rewards'] = []
 
     def start_rollout(self):
         """Begin a new rollout."""
@@ -930,30 +967,21 @@ class CURLShapedWorker(DefaultWorker):
         self._context_obs_len = self.agent._context_step_len
         self._action_dim = self.agent._policy._action_dim
         self._reward_dim = 1
-        deque_max_len = self._context_obs_len + 1
         # Initialize bank to store short term experiences
-        self._obs_bank = deque(maxlen=deque_max_len)
-        self._reward_bank = deque(maxlen=deque_max_len)
-        self._action_bank = deque(maxlen=deque_max_len)
+        self._obs_bank = deque(maxlen=self._context_obs_len + 1)
+        self._reward_bank = deque(maxlen=self._context_obs_len)
+        self._action_bank = deque(maxlen=self._context_obs_len)
 
-        # Perform as step with zero action to obtain static rewards
+        # Perform N steps of static action to preload obs/reward/action/banks
         self._prev_obs = self.env.reset()
         static_action = np.zeros(self._action_dim)
-        next_o, r, d, env_info = self.env.step(static_action)
-
-
-
         for i in range(self._context_obs_len):
+            next_o, r, d, env_info = self.env.step(static_action)
             self._obs_bank.append(self._prev_obs)
-        self._obs_bank.append(next_o)
-
-        for i in range(self._context_obs_len):
             self._reward_bank.append(r)
-
-        for i in range(self._context_obs_len):
             self._action_bank.append(static_action)
-
-        self._prev_obs = next_o
+            self._prev_obs = next_o
+        self._obs_bank.append(self._prev_obs)
 
     def add_to_obs_bank(self, next_obs):
         self._obs_bank.popleft()
@@ -961,7 +989,7 @@ class CURLShapedWorker(DefaultWorker):
         obs_bank_snapshot = []
         for obs in self._obs_bank:
             obs_bank_snapshot.extend(obs)
-        self._multi_step_obs.append(obs_bank_snapshot)
+        self._multi_step_dicts['observations'].append(obs_bank_snapshot)
 
     def add_to_reward_bank(self, reward):
         self._reward_bank.popleft()
@@ -969,7 +997,7 @@ class CURLShapedWorker(DefaultWorker):
         reward_bank_snapshot = []
         for r in self._reward_bank:
             reward_bank_snapshot.append(r)
-        self._multi_step_reward.append(reward_bank_snapshot)
+        self._multi_step_dicts['rewards'].append(reward_bank_snapshot)
 
     def add_to_action_bank(self, action):
         self._action_bank.popleft()
@@ -977,7 +1005,7 @@ class CURLShapedWorker(DefaultWorker):
         action_bank_snapshot = []
         for a in self._action_bank:
             action_bank_snapshot.extend(a)
-        self._multi_step_action.append(action_bank_snapshot)
+        self._multi_step_dicts['actions'].append(action_bank_snapshot)
 
     def step_rollout(self):
         """Take a single time-step in the current rollout.
@@ -992,21 +1020,29 @@ class CURLShapedWorker(DefaultWorker):
             if self._deterministic:
                 a = agent_info['mean']
             next_o, r, d, env_info = self.env.step(a)
-            self._observations.append(self._prev_obs)
             self.add_to_obs_bank(next_o)
-            self.add_to_reward_bank(r)
             self.add_to_action_bank(a)
+            self.add_to_reward_bank(r)
             for k, v in agent_info.items():
                 self._agent_infos[k].append(v)
             for k, v in env_info.items():
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
+            if self._accum_context:
+                s = TimeStep(env_spec=self.env,
+                             observation=self._prev_obs,
+                             next_observation=next_o,
+                             action=a,
+                             reward=float(r),
+                             terminal=d,
+                             env_info=env_info,
+                             agent_info=agent_info)
+                self.agent.update_context(s)
             if not d:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)
-        self._last_observations.append(self._prev_obs)
         return True
 
     def collect_rollout(self):
@@ -1017,18 +1053,14 @@ class CURLShapedWorker(DefaultWorker):
                 the last call to collect_rollout().
 
         """
-        observations = self._observations
-        self._observations = []
-
-        _multi_step_obs = self._multi_step_obs
-        self._multi_step_obs = []
-        _multi_step_reward= self._multi_step_reward
-        self._multi_step_reward = []
-        _multi_step_action = self._multi_step_action
-        self._multi_step_action = []
+        observations = self._multi_step_dicts['observations']
+        self._multi_step_dicts['observations'] = []
+        actions = self._multi_step_dicts['actions']
+        self._multi_step_dicts['actions'] = []
+        rewards = self._multi_step_dicts['rewards']
+        self._multi_step_dicts['rewards'] = []
         terminals = self._terminals
         self._terminals = []
-
         env_infos = self._env_infos
         self._env_infos = defaultdict(list)
         agent_infos = self._agent_infos
@@ -1039,13 +1071,10 @@ class CURLShapedWorker(DefaultWorker):
             env_infos[k] = np.asarray(v)
         lengths = self._lengths
         self._lengths = []
-
-        return TrajectoryBatch(self.env.spec, np.asarray(_multi_step_obs),
-                               np.asarray(observations),
-                               np.asarray(_multi_step_action), np.asarray(_multi_step_reward),
+        return MultiStepTrajectoryBatch(self.env.spec, np.asarray(observations),
+                               np.asarray(actions), np.asarray(rewards),
                                np.asarray(terminals), dict(env_infos),
-                               dict(agent_infos), np.asarray(lengths,
-                                                             dtype='i'))
+                               dict(agent_infos), np.asarray(lengths, dtype='i'))
 
     def rollout(self):
         """Sample a single rollout of the agent in the environment.
