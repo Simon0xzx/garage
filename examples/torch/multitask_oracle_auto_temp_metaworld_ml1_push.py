@@ -33,7 +33,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--seed', default=1)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def multitask_oracle_metaworld_ml1_push(ctxt=None,
+def multitask_oracle_auto_temp_metaworld_ml1_push(ctxt=None,
                              seed=1,
                              num_epochs=500,
                              num_train_tasks=50,
@@ -150,4 +150,4 @@ def multitask_oracle_metaworld_ml1_push(ctxt=None,
 
 
 if __name__ == '__main__':
-    multitask_oracle_metaworld_ml1_push()
+    multitask_oracle_auto_temp_metaworld_ml1_push()
