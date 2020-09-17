@@ -45,15 +45,15 @@ def plot_curve(matplot, path, exp_name, format='-',
     matplot.plot(x, y, format, label=label)
     matplot.legend()
 
-def plot_curve_avg(matplot, path, exps, format='-',
+def plot_curve_avg(matplot, exps, format='-',
                    title = 'MetaTest/Average/AverageReturn',  legend = None, limit = -1):
-    result_paths = [os.path.join(path, name, 'progress.csv') for name in exps]
+    result_paths = [os.path.join(name, 'progress.csv') for name in exps]
     data_dicts = [read_progress_file(result_path) for result_path in result_paths]
 
     min_step_length = min([len(data_dict['TotalEnvSteps']) for data_dict in data_dicts])
     if limit != -1:
         min_step_length = min(min_step_length, limit)
-    print("Minimum step length: {}".format(min_step_length))
+    print("{}: \nMinimum step length: {}".format(exps[0], min_step_length))
     label = '{}_{}'.format(result_paths[0], title)
     if legend != None:
         label = legend
@@ -543,9 +543,9 @@ def sim_policy2():
     from garage.torch import set_gpu_mode
 
     exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-    base_agent_path = '{}/curl_traj_emphasized_metaworld_ml1_push_3'.format(exp_path)
+    base_agent_path = '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(exp_path)
     snapshotter = Snapshotter()
-    snapshot = snapshotter.load(base_agent_path, itr=70)
+    snapshot = snapshotter.load(base_agent_path)
     curl = snapshot['algo']
     curl_policy = curl._policy
     set_gpu_mode(True, gpu_id=0)
@@ -564,7 +564,7 @@ def sim_policy2():
     prev_obs = sim_env.reset()
     sim_env.render()
     curl_policy.sample_from_belief()
-    for i in range(150):
+    for i in range(200):
         a, agent_info = curl_policy.get_action(prev_obs)
         next_o, r, d, env_info = sim_env.step(a)
         print(
@@ -591,7 +591,7 @@ def sim_policy():
     from garage.experiment.task_sampler import EnvPoolSampler
     # create multi-task environment and sample tasks
     ml_test_envs = [
-        GarageEnv(normalize(mwb.MLSP.from_task('push-v1')))
+        GarageEnv(normalize(mwb.ML1.get_train_tasks('push-v1')))
     ]
 
     env_sampler = EnvPoolSampler(ml_test_envs)
@@ -611,7 +611,7 @@ def sim_policy():
                    'next_observations': [],
                    'dones': []}
 
-    for i in range(150):
+    while True:
         action_str = ""
         while len(action_str) == 0:
             env.render()
@@ -620,7 +620,7 @@ def sim_policy():
             env.render()
             env.render()
             action_str = input(":")
-
+        print("action inputed: {}".format(action_str))
         action = np.array(eval(action_str))
         expert_path['observations'].append(obs)
         expert_path['actions'].append(action)
@@ -628,7 +628,7 @@ def sim_policy():
         expert_path['rewards'].append(rew)
         expert_path['next_observations'].append(obs)
         expert_path['dones'].append(done)
-        print('Step: {}\nObs:\n {}, \nAction: \n{}\n Reward: \n{}'.format(i, obs, action, rew))
+        print('Obs:\n {}, \nAction: \n{}\n Reward: \n{}'.format(obs, action, rew))
         env.render()
         env.render()
         env.render()
@@ -843,18 +843,29 @@ def ml1_push_exp_plot():
 
     limit = 500
 
-    axs[0].set_title('Pearl ML1 Push Avg Return')
+    axs[0].set_title('Pearl/Oracle ML1 Push Avg Return')
     axs[0].set_xlabel('Total Env Steps')
     axs[0].set_ylabel('Avg Test Return')
-    plot_curve_avg(axs[0], local_path,
-               ['pearl_metaworld_ml1_push_1'], '-', legend='pearl', limit=limit)
-    plot_curve_avg(axs[0], local_path, ['pearl_auto_temp_metaworld_ml1_push',
-                                        'pearl_auto_temp_metaworld_ml1_push_1',
-                                        'pearl_auto_temp_metaworld_ml1_push_2'],
-                   '-', legend="pearl_auto_temp", limit=limit)
+    # Observation with goal state
+    # plot_curve_avg(axs[0],
+    #            ['{}/pearl_metaworld_ml1_push_1'.format( local_path)], '-', legend='pearl', limit=limit)
+    # plot_curve_avg(axs[0], local_path, ['pearl_auto_temp_metaworld_ml1_push',
+    #                                     'pearl_auto_temp_metaworld_ml1_push_1',
+    #                                     'pearl_auto_temp_metaworld_ml1_push_2'],
+    #                '-', legend="pearl_auto_temp", limit=limit)
 
-    plot_curve_avg(axs[0], local_path, ['pearl_origin_auto_temp_metaworld_ml1_push'],
+    # Only the Observation, but not goal state
+    plot_curve_avg(axs[0], ['{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(local_path),
+                            '{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(namazu_path),
+                            '{}/pearl_origin_auto_temp_metaworld_ml1_push_1'.format(namazu_path),
+                            '{}/pearl_origin_auto_temp_metaworld_ml1_push_2'.format(namazu_path)],
                    '-', legend="pearl_origin_auto_temp", limit=limit)
+
+    plot_curve_avg(axs[0],
+                   ['{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(local_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(namazu_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push_1'.format(namazu_path)],
+                   '-', legend="multitask_oracle_origin_auto_temp", limit=limit)
 
 
 
@@ -862,42 +873,82 @@ def ml1_push_exp_plot():
     axs[1].set_xlabel('Total Env Steps')
     axs[1].set_ylabel('Avg Test Return')
 
-    plot_curve_avg(axs[1], local_path, ['curl_traj_emphasized_metaworld_ml1_push_2'],
-               '-', legend="curl_traj_2_step", limit=limit)
-    plot_curve_avg(axs[1], local_path,
-                   ['curl_auto_temp_traj_metaworld_ml1_push',
-                    'curl_auto_temp_traj_metaworld_ml1_push_1',
-                    'curl_auto_temp_traj_metaworld_ml1_push_2'],
-                   '-', legend="curl_auto_temp", limit=limit)
+    # Observation with goal state
+    # plot_curve_avg(axs[1], local_path, ['curl_traj_emphasized_metaworld_ml1_push_2'],
+    #            '-', legend="curl_traj_2_step", limit=limit)
+    # plot_curve_avg(axs[1], local_path,
+    #                ['curl_auto_temp_traj_metaworld_ml1_push',
+    #                 'curl_auto_temp_traj_metaworld_ml1_push_1',
+    #                 'curl_auto_temp_traj_metaworld_ml1_push_2'],
+    #                '-', legend="curl_auto_temp", limit=limit)
 
-    plot_curve_avg(axs[1], local_path,
-                   ['curl_origin_auto_temp_traj_metaworld_ml1_push'],
-                   '-', legend="curl_origin_auto_temp", limit=limit)
-
-    plot_curve_avg(axs[1], local_path,
-                   ['curl_origin_shaped_metaworld_ml1_push'],
-                   '-', legend="curl_origin_traj_5_step_auto_temp", limit=limit)
+    # Only the Observation, but not goal state
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(local_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(namazu_path)],
+                   '-', legend="curl_origin_traj_2_auto_temp", limit=limit)
+    # ,
+    #                     '{}/curl_origin_shaped_metaworld_ml1_push_1'.format(leviathan_path),
+    #                     '{}/curl_origin_shaped_metaworld_ml1_push_2'.format(leviathan_path)
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
+                   '-', legend="curl_origin_rich_traj_5_step_auto_temp", limit=limit)
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
+                   '-', legend="curl_origin_rich_traj_2_step_auto_temp",limit=limit)
 
 
     axs[2].set_title('ML1 Comparison Avg Return')
     axs[2].set_xlabel('Total Env Steps')
     axs[2].set_ylabel('Avg Test Return')
+
+    # Observation with goal state
     # plot_curve(axs[2], local_path,
     #            'pearl_auto_temp_metaworld_ml1_push', '-',
     #            legend="pearl_auto_temp", limit=limit)
     #
     # plot_curve(axs[2], local_path, 'curl_auto_temp_traj_metaworld_ml1_push',
     #            '-', legend="curl_traj_2_step_auto_temp", limit=limit)
-    plot_curve_avg(axs[2], local_path, ['pearl_auto_temp_metaworld_ml1_push',
-                                        'pearl_auto_temp_metaworld_ml1_push_1',
-                                        'pearl_auto_temp_metaworld_ml1_push_2'],
-                   '-', legend="pearl_auto_temp", limit=limit)
+    # plot_curve_avg(axs[2], local_path, ['pearl_auto_temp_metaworld_ml1_push',
+    #                                     'pearl_auto_temp_metaworld_ml1_push_1',
+    #                                     'pearl_auto_temp_metaworld_ml1_push_2'],
+    #                '-', legend="pearl_auto_temp", limit=limit)
+    # plot_curve_avg(axs[2], local_path, ['curl_auto_temp_traj_metaworld_ml1_push',
+    #                                     'curl_auto_temp_traj_metaworld_ml1_push_1',
+    #                                     'curl_auto_temp_traj_metaworld_ml1_push_2'],
+    #                '-', legend="curl_auto_temp", limit=limit)
 
+    # Only the Observation, but not goal state
 
-    plot_curve_avg(axs[2], local_path, ['curl_auto_temp_traj_metaworld_ml1_push',
-                                        'curl_auto_temp_traj_metaworld_ml1_push_1',
-                                        'curl_auto_temp_traj_metaworld_ml1_push_2'],
-                   '-', legend="curl_auto_temp", limit=limit)
+    plot_curve_avg(axs[2], [
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(local_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(namazu_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push_1'.format(namazu_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push_2'.format(namazu_path)],
+                   '-', legend="pearl_origin_auto_temp", limit=limit)
+
+    plot_curve_avg(axs[2],
+                   ['{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(local_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(namazu_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push_1'.format(namazu_path)],
+                   '-', legend="multitask_oracle_origin_auto_temp",limit=limit)
+
+    plot_curve_avg(axs[2],
+                   ['{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(local_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(namazu_path)],
+                   '-', legend="curl_origin_traj_2_step_auto_temp", limit=limit)
+    # ,
+    #                     '{}/curl_origin_shaped_metaworld_ml1_push_1'.format(
+    #                         leviathan_path),
+    #                     '{}/curl_origin_shaped_metaworld_ml1_push_2'.format(
+    #                         leviathan_path)
+    plot_curve_avg(axs[2],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
+                   '-', legend="curl_origin_rich_traj_5_step_auto_temp",limit=limit)
     plt.show()
 
 if __name__ == '__main__':
