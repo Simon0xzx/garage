@@ -158,7 +158,9 @@ class SetTaskSampler(TaskSampler):
             for task in self._env.sample_tasks(n_tasks)
         ]
 
-    def sample_with_goals(self, n_tasks):
+    def sample_with_goals(self, n_tasks, require_oracle=False):
+        if not require_oracle:
+            return self.sample(n_tasks)
         env_goals = self._env.env.env.active_env.discrete_goals
         sampled_env = []
         for task in self._env.sample_tasks(n_tasks):
