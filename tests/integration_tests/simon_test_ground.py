@@ -541,9 +541,10 @@ def sim_policy2():
     import metaworld.benchmarks as mwb
     from garage.experiment import Snapshotter
     from garage.torch import set_gpu_mode
+    from garage.envs.mujoco import HalfCheetahDirEnv
 
     exp_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-    base_agent_path = '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(exp_path)
+    base_agent_path = '{}/curl_origin_auto_temp_traj_cheetah_dir_1'.format(exp_path)
     snapshotter = Snapshotter()
     snapshot = snapshotter.load(base_agent_path)
     curl = snapshot['algo']
@@ -552,11 +553,11 @@ def sim_policy2():
     curl.to()
 
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+        normalize(HalfCheetahDirEnv())))
     envs = env_sampler.sample(10)
     sim_env = envs[1]()
-    rander_env = sim_env._env.env.active_env
-    rander_env._task = {'partially_observable': None}
+    rander_env = sim_env.env.env
+    rander_env._task['partially_observable'] = None
     rander_env.reset_model()
     rander_env.frame_skip = 300
     viewer = rander_env._get_viewer('human')
@@ -949,6 +950,57 @@ def ml1_push_exp_plot():
     plot_curve_avg(axs[2],
                    ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
                    '-', legend="curl_origin_rich_traj_5_step_auto_temp",limit=limit)
+
+    plot_curve_avg(axs[2],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(
+                       local_path)],
+                   '-', legend="curl_origin_rich_traj_2_step_auto_temp",
+                   limit=limit)
+    plt.show()
+
+
+def mujoco_exp_plot():
+    leviathan_path = '/home/simon0xzx/research/berkely_research/garage/data/leviathan/experiment'
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/experiment'
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    fig, axs = plt.subplots(1, 3)
+
+    limit = 500
+
+    axs[0].set_title('Cheetah Vel Avg Return')
+    axs[0].set_xlabel('Total Env Steps')
+    axs[0].set_ylabel('Avg Test Return')
+
+    # Only the Observation, but not goal state
+    plot_curve_avg(axs[0], ['{}/curl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
+                   '-', legend="curl", limit=limit)
+
+    plot_curve_avg(axs[0],
+                   ['{}/pearl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
+                   '-', legend="pearl", limit=limit)
+
+
+
+    axs[1].set_title('Humanoid Dir Avg Return')
+    axs[1].set_xlabel('Total Env Steps')
+    axs[1].set_ylabel('Avg Test Return')
+
+    # Only the Observation, but not goal state
+    # plot_curve_avg(axs[1], [
+    #     '{}/curl_origin_auto_temp_traj_cheetah_dir'.format(local_path),
+    #     '{}/curl_origin_auto_temp_traj_cheetah_dir'.format(namazu_path),
+    #     '{}/curl_origin_auto_temp_traj_cheetah_dir_1'.format(namazu_path),
+    #     '{}/curl_origin_auto_temp_traj_cheetah_dir_2'.format(namazu_path)],
+    #                '-', legend="curl", limit=limit)
+
+    plot_curve_avg(axs[1],
+                   ['{}/pearl_origin_auto_temp_traj_humanoid_dir_2'.format(
+                       local_path)],
+                   '-', legend="pearl", limit=limit)
+
+
+
+
     plt.show()
 
 if __name__ == '__main__':
@@ -960,6 +1012,6 @@ if __name__ == '__main__':
     # mlsp_adapt_plot()
     # sim_policy()
     # sim_policy2()
-    ml1_push_exp_plot()
-
+    # ml1_push_exp_plot()
+    mujoco_exp_plot()
     # load_pearl_mlsp_policy()

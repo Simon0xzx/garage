@@ -55,21 +55,32 @@ class AntDirEnv(AntEnvMetaBase):
                         -1.0 for backwards.
 
         """
-        xposbefore = self.sim.data.qpos[0]
+        torso_xyz_before = np.array(self.get_body_com("torso"))
+
+        direct = (np.cos(self._task['direction']), np.sin(self._task['direction']))
+
         self.do_simulation(action, self.frame_skip)
-        xposafter = self.sim.data.qpos[0]
+        torso_xyz_after = np.array(self.get_body_com("torso"))
+        torso_velocity = torso_xyz_after - torso_xyz_before
+        forward_reward = np.dot((torso_velocity[:2] / self.dt), direct)
 
-        forward_vel = (xposafter - xposbefore) / self.dt
-        forward_reward = self._task['direction'] * forward_vel
-        ctrl_cost = 0.5 * 1e-1 * np.sum(np.square(action))
-
-        observation = self._get_obs()
-        reward = forward_reward - ctrl_cost
+        ctrl_cost = .5 * np.square(action).sum()
+        contact_cost = 0.5 * 1e-3 * np.sum(
+            np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
+        survive_reward = 1.0
+        reward = forward_reward - ctrl_cost - contact_cost + survive_reward
+        ob = self._get_obs()
+        state = self.state_vector()
+        termination = not (np.isfinite(state).all() and state[2] >= 0.2 and state[2] <= 1.0)
         done = False
-        infos = dict(reward_forward=forward_reward,
-                     reward_ctrl=-ctrl_cost,
-                     task_dir=self._task['direction'])
-        return observation, reward, done, infos
+        info = dict(reward_forward=forward_reward,
+                    reward_ctrl=-ctrl_cost,
+                    reward_contact=-contact_cost,
+                    reward_survive=survive_reward,
+                    torso_velocity=torso_velocity,
+                    task_dir=self._task['direction'],
+                    termination = termination)
+        return ob, reward, done, info
 
     def sample_tasks(self, num_tasks):
         """Sample a list of `num_tasks` tasks.
@@ -83,9 +94,8 @@ class AntDirEnv(AntEnvMetaBase):
                 or 1.
 
         """
-        directions = (
-            2 * self.np_random.binomial(1, p=0.5, size=(num_tasks, )) - 1)
-        tasks = [{'direction': direction} for direction in directions]
+        directions = np.random.uniform(0., 2.0 * np.pi, size=(num_tasks,))
+        tasks = [{'direction': d} for d in directions]
         return tasks
 
     def set_task(self, task):

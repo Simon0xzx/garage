@@ -55,21 +55,26 @@ class HumanoidDirEnv(HumanoidEnvMetaBase):
                         -1.0 for backwards.
 
         """
-        xposbefore = self.sim.data.qpos[0]
+        pos_before = np.copy(self.mass_center(self.model, self.sim)[:2])
         self.do_simulation(action, self.frame_skip)
-        xposafter = self.sim.data.qpos[0]
+        pos_after = self.mass_center(self.model, self.sim)[:2]
 
-        forward_vel = (xposafter - xposbefore) / self.dt
-        forward_reward = self._task['direction'] * forward_vel
-        ctrl_cost = 0.5 * 1e-1 * np.sum(np.square(action))
+        alive_bonus = 5.0
+        data = self.sim.data
+        goal_direction = (np.cos(self._task['direction']), np.sin(self._task['direction']))
+        lin_vel_cost = 0.25 * np.sum(goal_direction * (
+                pos_after - pos_before)) / self.model.opt.timestep
+        quad_ctrl_cost = 0.1 * np.square(data.ctrl).sum()
+        quad_impact_cost = .5e-6 * np.square(data.cfrc_ext).sum()
+        quad_impact_cost = min(quad_impact_cost, 10)
+        reward = lin_vel_cost - quad_ctrl_cost - quad_impact_cost + alive_bonus
+        qpos = self.sim.data.qpos
+        done = bool((qpos[2] < 1.0) or (qpos[2] > 2.0))
 
-        observation = self._get_obs()
-        reward = forward_reward - ctrl_cost
-        done = False
-        infos = dict(reward_forward=forward_reward,
-                     reward_ctrl=-ctrl_cost,
-                     task_dir=self._task['direction'])
-        return observation, reward, done, infos
+        return self._get_obs(), reward, done, dict(reward_linvel=lin_vel_cost,
+                                                   reward_quadctrl=-quad_ctrl_cost,
+                                                   reward_alive=alive_bonus,
+                                                   reward_impact=-quad_impact_cost)
 
     def sample_tasks(self, num_tasks):
         """Sample a list of `num_tasks` tasks.
@@ -83,9 +88,8 @@ class HumanoidDirEnv(HumanoidEnvMetaBase):
                 or 1.
 
         """
-        directions = (
-            2 * self.np_random.binomial(1, p=0.5, size=(num_tasks, )) - 1)
-        tasks = [{'direction': direction} for direction in directions]
+        directions = np.random.uniform(0., 2.0 * np.pi, size=(num_tasks,))
+        tasks = [{'direction': d} for d in directions]
         return tasks
 
     def set_task(self, task):
@@ -97,3 +101,8 @@ class HumanoidDirEnv(HumanoidEnvMetaBase):
 
         """
         self._task = task
+
+    def mass_center(self, model, sim):
+        mass = np.expand_dims(model.body_mass, 1)
+        xpos = sim.data.xipos
+        return (np.sum(mass * xpos, 0) / np.sum(mass))

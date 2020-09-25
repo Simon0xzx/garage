@@ -1,8 +1,7 @@
 """Variant of the HalfCheetahEnv with different target velocity."""
 import numpy as np
 
-from garage.envs.mujoco.half_cheetah_env_meta_base import (
-    HalfCheetahEnvMetaBase)  # noqa: E501
+from garage.envs.mujoco.half_cheetah_env_meta_base import HalfCheetahEnvMetaBase
 
 
 class HalfCheetahVelEnv(HalfCheetahEnvMetaBase):
@@ -84,7 +83,7 @@ class HalfCheetahVelEnv(HalfCheetahEnvMetaBase):
                 value between 0 and 2.
 
         """
-        velocities = self.np_random.uniform(0.0, 2.0, size=(num_tasks, ))
+        velocities = self.np_random.uniform(0.0, 3.0, size=(num_tasks, ))
         tasks = [{'velocity': velocity} for velocity in velocities]
         return tasks
 

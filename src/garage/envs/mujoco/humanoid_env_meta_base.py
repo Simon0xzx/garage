@@ -29,11 +29,13 @@ class HumanoidEnvMetaBase(HumanoidEnv_):
                 velocity quaternion, and cartesian position.
 
         """
-        return np.concatenate([
-            self.sim.data.qpos.flat[1:],
-            self.sim.data.qvel.flat,
-            self.get_body_com('torso').flat,
-        ]).astype(np.float32).flatten()
+        data = self.sim.data
+        return np.concatenate([data.qpos.flat[2:],
+                               data.qvel.flat,
+                               data.cinert.flat,
+                               data.cvel.flat,
+                               data.qfrc_actuator.flat,
+                               data.cfrc_ext.flat])
 
     def viewer_setup(self):
         """Start the viewer."""

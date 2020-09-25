@@ -431,10 +431,11 @@ class CURL(MetaRLAlgorithm):
 
     def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['observations'].shape[0]
-        if batch_size > path_len:
-            raise Exception('Embedding_batch size cannot be longer than path length')
         augmented_path = {}
         if in_sequence:
+            if batch_size > path_len:
+                raise Exception(
+                    'Embedding_batch size cannot be longer than path length')
             seq_begin = np.random.randint(0, path_len - batch_size)
             augmented_path['observations'] = path['observations'][
                                              seq_begin:seq_begin + batch_size]
@@ -461,11 +462,8 @@ class CURL(MetaRLAlgorithm):
         loss = torch.nn.CrossEntropyLoss(logits, labels)
         return loss
 
-    def _optimize_curl_encoder(self, indices):
+    def _compute_contrastive_loss(self, indices):
         # Optimize CURL encoder
-        context_encoder = self._context_encoder.networks[0]
-        query_net = self._context_encoder.networks[1]
-        key_net = self._context_encoder.networks[2]
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
         aug1 = torch.as_tensor(context_augs[0], device=global_device())
         aug2 = torch.as_tensor(context_augs[1], device=global_device())
@@ -484,20 +482,7 @@ class CURL(MetaRLAlgorithm):
                 loss = loss_fun(logits, labels)
             else:
                 loss += loss_fun(logits, labels)
-
-
-        self.query_optimizer.zero_grad()
-        self.context_optimizer.zero_grad()
-
-        loss.backward()
-        self.query_optimizer.step()
-        self.context_optimizer.step()
-        with torch.no_grad():
-            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
-            self._contrastive_weight.grad.zero_()
-            # update key net with 0.05 of query net
-            for target_param, param in zip(key_net.parameters(), query_net.parameters()):
-                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
+        return loss
 
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
@@ -507,7 +492,7 @@ class CURL(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-        self._optimize_curl_encoder(indices)
+        contrastive_loss = self._compute_contrastive_loss(indices)
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
@@ -546,6 +531,7 @@ class CURL(MetaRLAlgorithm):
 
         # KL constraint on z if probabilistic
         self.context_optimizer.zero_grad()
+        self.query_optimizer.zero_grad()
         if self._use_information_bottleneck:
             kl_div = self._policy.compute_kl_div()
             kl_loss = self._kl_lambda * kl_div
@@ -557,7 +543,19 @@ class CURL(MetaRLAlgorithm):
         qf_loss.backward()
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
+
+        contrastive_loss.backward()
+        self.query_optimizer.step()
         self.context_optimizer.step()
+
+        query_net = self._context_encoder.networks[1]
+        key_net = self._context_encoder.networks[2]
+        with torch.no_grad():
+            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
+            self._contrastive_weight.grad.zero_()
+            # update key net with 0.05 of query net
+            for target_param, param in zip(key_net.parameters(), query_net.parameters()):
+                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
 
         # ===== Actor Objective =====
         policy_outputs, task_z = self._policy(obs, context)
