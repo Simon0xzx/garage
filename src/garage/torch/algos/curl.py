@@ -133,6 +133,9 @@ class CURL(MetaRLAlgorithm):
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
+                 embedding_batch_in_sequence=False,
+                 num_pos_contrastive = 2,
+                 num_neg_contrastive = 0,
                  update_post_train=1):
 
         self._env = env
@@ -141,6 +144,11 @@ class CURL(MetaRLAlgorithm):
         # use 2 target q networks
         self._target_qf1 = copy.deepcopy(self._qf1)
         self._target_qf2 = copy.deepcopy(self._qf2)
+
+        # Contrastive Encoder setting
+        self._embedding_batch_in_sequence = embedding_batch_in_sequence
+        self._num_pos_contrastive = num_pos_contrastive # TODO
+        self._num_neg_contrastive = num_neg_contrastive # TODO
 
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
@@ -314,10 +322,6 @@ class CURL(MetaRLAlgorithm):
             self._qf2.parameters(),
             lr=3E-4,
         )
-        self.vf_optimizer = torch.optim.Adam(
-            self._vf.parameters(),
-            lr=3E-4,
-        )
         self.context_optimizer = torch.optim.Adam(
             self._context_encoder.networks[0].parameters(),
             lr=3E-4,
@@ -437,14 +441,10 @@ class CURL(MetaRLAlgorithm):
                 raise Exception(
                     'Embedding_batch size cannot be longer than path length')
             seq_begin = np.random.randint(0, path_len - batch_size)
-            augmented_path['observations'] = path['observations'][
-                                             seq_begin:seq_begin + batch_size]
-            augmented_path['actions'] = path['actions'][
-                                             seq_begin:seq_begin + batch_size]
-            augmented_path['rewards'] = path['rewards'][
-                                             seq_begin:seq_begin + batch_size]
-            augmented_path['next_observations'] = path['next_observations'][
-                                             seq_begin:seq_begin + batch_size]
+            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + batch_size]
+            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + batch_size]
+            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + batch_size]
+            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + batch_size]
         else:
             seq_idx = np.random.choice(path_len, batch_size)
             augmented_path['observations'] = path['observations'][seq_idx]
@@ -454,19 +454,12 @@ class CURL(MetaRLAlgorithm):
 
         return augmented_path
 
-    def calc_contrastive_loss(self, query, key):
-        left_product = torch.matmul(query, self._contrastive_weight)
-        logits = torch.matmul(left_product, key)
-        logits = logits - torch.max(logits, axis=1)
-        labels = torch.arange(logits.shape[0])
-        loss = torch.nn.CrossEntropyLoss(logits, labels)
-        return loss
-
     def _compute_contrastive_loss(self, indices):
         # Optimize CURL encoder
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
         aug1 = torch.as_tensor(context_augs[0], device=global_device())
         aug2 = torch.as_tensor(context_augs[1], device=global_device())
+        # path_batches = self.sample_path_batch(indices)
 
         # similar_contrastive
         query = self._context_encoder(aug1, query=True)
@@ -493,6 +486,7 @@ class CURL(MetaRLAlgorithm):
         """
         num_tasks = len(indices)
         contrastive_loss = self._compute_contrastive_loss(indices)
+
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
@@ -530,12 +524,12 @@ class CURL(MetaRLAlgorithm):
         qf_loss = qf1_loss + qf2_loss
 
         # KL constraint on z if probabilistic
+        # if self._use_information_bottleneck:
+        #     kl_div = self._policy.compute_kl_div()
+        #     kl_loss = self._kl_lambda * kl_div
+        #     kl_loss.backward(retain_graph=True)
         self.context_optimizer.zero_grad()
         self.query_optimizer.zero_grad()
-        if self._use_information_bottleneck:
-            kl_div = self._policy.compute_kl_div()
-            kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward(retain_graph=True)
 
         # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
@@ -555,7 +549,8 @@ class CURL(MetaRLAlgorithm):
             self._contrastive_weight.grad.zero_()
             # update key net with 0.05 of query net
             for target_param, param in zip(key_net.parameters(), query_net.parameters()):
-                target_param.data.copy_(0.05 * param.data + target_param.data * 0.95)
+                target_param.data.copy_(self._soft_target_tau * param.data +
+                                        target_param.data * (1 - self._soft_target_tau))
 
         # ===== Actor Objective =====
         policy_outputs, task_z = self._policy(obs, context)
@@ -693,7 +688,7 @@ class CURL(MetaRLAlgorithm):
             initialized = False
             for idx in indices:
                 path = self._context_replay_buffers[idx].sample_path()
-                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                batch_aug = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence) # conduct random path augmentations
                 o = batch_aug['observations']
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
@@ -716,6 +711,15 @@ class CURL(MetaRLAlgorithm):
 
         return path_augs
 
+    def sample_path_batch(self, indices):
+        # make method work given a single task index
+        if not hasattr(indices, '__iter__'):
+            indices = [indices]
+
+        path_batch = {}
+        for idx in indices:
+            path_batch[idx] = self._context_replay_buffers[idx].sample_path()
+        return path_batch
 
     def _sample_context(self, indices):
         """Sample batch of context from a list of tasks.
@@ -738,7 +742,7 @@ class CURL(MetaRLAlgorithm):
         initialized = False
         for idx in indices:
             path = self._context_replay_buffers[idx].sample_path()
-            batch = self.augment_path(path, self._embedding_batch_size)
+            batch = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']

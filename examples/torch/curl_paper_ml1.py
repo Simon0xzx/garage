@@ -16,45 +16,47 @@ from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
-from garage.envs.mujoco import HalfCheetahVelEnv
+
 
 @click.command()
 @click.option('--num_epochs', default=500)
 @click.option('--seed', default=1)
-@click.option('--num_train_tasks', default=100)
-@click.option('--num_test_tasks', default=30)
+@click.option('--num_train_tasks', default=50)
+@click.option('--num_test_tasks', default=10)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=2000)
-@click.option('--num_initial_steps', default=2000)
-@click.option('--num_steps_prior', default=400)
-@click.option('--num_extra_rl_steps_posterior', default=600)
+@click.option('--num_steps_per_epoch', default=4000)
+@click.option('--num_initial_steps', default=4000)
+@click.option('--num_steps_prior', default=750)
+@click.option('--num_extra_rl_steps_posterior', default=750)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=100)
-@click.option('--embedding_mini_batch_size', default=100)
+@click.option('--embedding_batch_size', default=64)
+@click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
+@click.option('--name', default='curl-push-v1')
 @wrap_experiment
-def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
+def curl_paper_ml1(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
                              num_test_tasks=10,
-                             latent_size=5,
+                             latent_size=7,
                              encoder_hidden_size=200,
                              net_size=300,
                              meta_batch_size=16,
-                             num_steps_per_epoch=2000,
-                             num_initial_steps=2000,
-                             num_tasks_sample=5,
-                             num_steps_prior=400,
-                             num_extra_rl_steps_posterior=600,
+                             num_steps_per_epoch=4000,
+                             num_initial_steps=4000,
+                             num_tasks_sample=15,
+                             num_steps_prior=750,
+                             num_extra_rl_steps_posterior=750,
                              batch_size=256,
-                             embedding_batch_size=100,
-                             embedding_mini_batch_size=100,
-                             max_path_length=200,
-                             reward_scale=5.,
+                             embedding_batch_size=64,
+                             embedding_mini_batch_size=64,
+                             max_path_length=150,
+                             reward_scale=10.,
                              gpu_id = 0,
+                             name='',
                              use_gpu=True):
     """Train PEARL with ML1 environments.
 
@@ -95,14 +97,15 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
-
+    exp_name = name.split('curl-')[-1]
+    print("Running experiences on {}".format(exp_name))
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
+        normalize(mwb.ML1.get_train_tasks(exp_name))))
     env = env_sampler.sample(num_train_tasks)
-    test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
 
+    test_env_sampler = SetTaskSampler(lambda: GarageEnv(
+        normalize(mwb.ML1.get_test_tasks(exp_name))))
     runner = LocalRunner(ctxt)
 
     # instantiate networks
@@ -141,7 +144,8 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
-        use_next_obs_in_context=False
+        use_next_obs_in_context=True,
+        embedding_batch_in_sequence=True
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
@@ -156,5 +160,6 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
                  worker_class=CURLWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
+
 if __name__ == '__main__':
-    curl_origin_auto_temp_traj_cheetah_vel()
+    curl_paper_ml1()

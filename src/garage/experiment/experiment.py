@@ -293,6 +293,8 @@ class ExperimentTemplate:
         name = options['name']
         if name is None:
             name = options['function'].__name__
+            if 'name' in kwargs:
+                name = kwargs['name']
         name = cls._augment_name(options, name, kwargs)
         log_dir = options['log_dir']
         if log_dir is None:

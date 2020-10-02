@@ -890,16 +890,61 @@ def ml1_push_exp_plot():
                     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(namazu_path),
                     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(namazu_path)],
                    '-', legend="curl_origin_traj_2_auto_temp", limit=limit)
-    # ,
-    #                     '{}/curl_origin_shaped_metaworld_ml1_push_1'.format(leviathan_path),
-    #                     '{}/curl_origin_shaped_metaworld_ml1_push_2'.format(leviathan_path)
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
-                   '-', legend="curl_origin_rich_traj_5_step_auto_temp", limit=limit)
+
+    # plot_curve_avg(axs[1],
+    #                ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
+    #                '-', legend="curl_origin_rich_traj_5_step_auto_temp", limit=limit)
     plot_curve_avg(axs[1],
                    ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
                    '-', legend="curl_origin_rich_traj_2_step_auto_temp",limit=limit)
 
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(local_path)],
+                   '-', legend="curl_origin_traj_2_step_auto_temp_fix", limit=limit)
+
+    # plot_curve_avg(axs[1],
+    #                [
+    #                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(
+    #                        local_path)],
+    #                '-', legend="curl_origin_traj_1_step_auto_temp_fix",
+    #                limit=limit)
+    #
+    # plot_curve_avg(axs[1],['{}/curl_origin_shaped_metaworld_ml1_push_1'.format(local_path)],
+    #                '-', legend="curl_origin_rich_traj_1_step_auto_temp_fix", limit=limit)
+
+    # plot_curve_avg(axs[1], [
+    #     '{}/curl2_origin_auto_temp_traj_metaworld_ml1_push_2'.format(
+    #         local_path)],
+    #                '-',
+    #                legend="curl_origin_rich_traj_1_step_auto_temp_vf_net",
+    #                limit=limit)
+
+
+    plot_curve_avg(axs[1], [
+        '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_3'.format(local_path)],
+                   '-', legend="curl_origin_rich_traj_1_step_auto_temp_no_q_gradient",
+                   limit=limit)
+
+    plot_curve_avg(axs[1], [
+        '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_4'.format(
+            local_path)],
+                   '-',
+                   legend="curl_origin_rich_traj_1_step_auto_temp_random_sample",
+                   limit=limit)
+
+    plot_curve_avg(axs[1], [
+        '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_5'.format(
+            local_path)],
+                   '-',
+                   legend="curl_origin_rich_traj_1_step_auto_temp_no_kl",
+                   limit=limit)
+
+    plot_curve_avg(axs[1], [
+        '{}/curl_paper_ml1_push'.format(
+            local_path)],
+                   '-',
+                   legend="curl_no_kl_in_sequence",
+                   limit=limit)
 
     axs[2].set_title('ML1 Comparison Avg Return')
     axs[2].set_xlabel('Total Env Steps')
@@ -956,6 +1001,7 @@ def ml1_push_exp_plot():
                        local_path)],
                    '-', legend="curl_origin_rich_traj_2_step_auto_temp",
                    limit=limit)
+
     plt.show()
 
 
@@ -973,11 +1019,59 @@ def mujoco_exp_plot():
 
     # Only the Observation, but not goal state
     plot_curve_avg(axs[0], ['{}/curl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
-                   '-', legend="curl", limit=limit)
+                   '-', legend="curl_fix", limit=limit)
 
     plot_curve_avg(axs[0],
                    ['{}/pearl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
                    '-', legend="pearl", limit=limit)
+
+    plot_curve_avg(axs[0],
+                   [
+                       '{}/curl_origin_auto_temp_traj_cheetah_vel_4'.format(
+                           local_path)],
+                   '-', legend="curl_vf",
+                   limit=limit)
+
+    plot_curve_avg(axs[0],
+                   [
+                       '{}/curl_origin_auto_temp_traj_cheetah_vel_5'.format(
+                           local_path)],
+                   '-', legend="curl_no_q",
+                   limit=limit)
+
+    plot_curve_avg(axs[0], [
+        '{}/curl_origin_auto_temp_traj_cheetah_vel_6'.format(
+            local_path)],
+                   '-',
+                   legend="curl_sample_transition",
+                   limit=limit)
+
+    plot_curve_avg(axs[0],
+                   ['{}/curl_origin_auto_temp_traj_cheetah_vel_8'.format(
+                       local_path)],
+                   '-', legend="curl_2_positive_no_kl", limit=limit)
+
+    # plot_curve_avg(axs[1], [
+    #     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_3'.format(
+    #         local_path)],
+    #                '-',
+    #                legend="curl_origin_rich_traj_1_step_auto_temp_no_q_gradient",
+    #                limit=limit)
+    #
+    # plot_curve_avg(axs[1], [
+    #     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_4'.format(
+    #         local_path)],
+    #                '-',
+    #                legend="curl_origin_rich_traj_1_step_auto_temp_random_sample",
+    #                limit=limit)
+    #
+    # plot_curve_avg(axs[1], [
+    #     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_5'.format(
+    #         local_path)],
+    #                '-',
+    #                legend="curl_origin_rich_traj_1_step_auto_temp_no_kl",
+    #                limit=limit)
+    #
 
 
 
@@ -998,6 +1092,29 @@ def mujoco_exp_plot():
                        local_path)],
                    '-', legend="pearl", limit=limit)
 
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_1'.format(
+                       local_path)],
+                   '-', legend="curl", limit=limit)
+
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_4'.format(
+                       local_path)],
+                   '-', legend="curl_vf", limit=limit)
+
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_5'.format(
+                       local_path)],
+                   '-', legend="curl_no_q", limit=limit)
+
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_6'.format(
+                       local_path)],
+                   '-', legend="curl_sample_transition", limit=limit)
+    plot_curve_avg(axs[1],
+                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_7'.format(
+                       local_path)],
+                   '-', legend="curl_2_positive_no_kl", limit=limit)
 
 
 
@@ -1012,6 +1129,6 @@ if __name__ == '__main__':
     # mlsp_adapt_plot()
     # sim_policy()
     # sim_policy2()
-    # ml1_push_exp_plot()
-    mujoco_exp_plot()
+    ml1_push_exp_plot()
+    # mujoco_exp_plot()
     # load_pearl_mlsp_policy()

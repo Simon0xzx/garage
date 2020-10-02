@@ -10,13 +10,13 @@ from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import CURL
+from garage.torch.algos import CURL2
 from garage.torch.algos.curl import CURLWorker
 from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
-from garage.envs.mujoco import HalfCheetahVelEnv
+from garage.envs.mujoco import HalfCheetahDirEnv
 
 @click.command()
 @click.option('--num_epochs', default=500)
@@ -25,17 +25,17 @@ from garage.envs.mujoco import HalfCheetahVelEnv
 @click.option('--num_test_tasks', default=30)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=2000)
+@click.option('--num_steps_per_epoch', default=4000)
 @click.option('--num_initial_steps', default=2000)
 @click.option('--num_steps_prior', default=400)
-@click.option('--num_extra_rl_steps_posterior', default=600)
+@click.option('--num_extra_rl_steps_posterior', default=400)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=100)
-@click.option('--embedding_mini_batch_size', default=100)
+@click.option('--embedding_batch_size', default=256)
+@click.option('--embedding_mini_batch_size', default=256)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
+def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
@@ -43,15 +43,15 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
                              latent_size=5,
                              encoder_hidden_size=200,
                              net_size=300,
-                             meta_batch_size=16,
-                             num_steps_per_epoch=2000,
+                             meta_batch_size=10,
+                             num_steps_per_epoch=4000,
                              num_initial_steps=2000,
                              num_tasks_sample=5,
                              num_steps_prior=400,
-                             num_extra_rl_steps_posterior=600,
+                             num_extra_rl_steps_posterior=400,
                              batch_size=256,
-                             embedding_batch_size=100,
-                             embedding_mini_batch_size=100,
+                             embedding_batch_size=256,
+                             embedding_mini_batch_size=256,
                              max_path_length=200,
                              reward_scale=5.,
                              gpu_id = 0,
@@ -98,32 +98,31 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
 
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
+        normalize(HalfCheetahDirEnv())))
     env = env_sampler.sample(num_train_tasks)
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
+        normalize(HalfCheetahDirEnv())))
 
     runner = LocalRunner(ctxt)
 
     # instantiate networks
-    augmented_env = CURL.augment_env_spec(env[0](), latent_size)
-    qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
-                                  hidden_sizes=[net_size, net_size, net_size])
-
-    qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
-                                  hidden_sizes=[net_size, net_size, net_size])
-
+    augmented_env = CURL2.augment_env_spec(env[0](), latent_size)
+    qf = ContinuousMLPQFunction(env_spec=augmented_env,
+                                hidden_sizes=[net_size, net_size, net_size])
+    vf_env = CURL2.get_env_spec(env[0](), latent_size, 'vf')
+    vf = ContinuousMLPQFunction(env_spec=vf_env,
+                                hidden_sizes=[net_size, net_size, net_size])
     inner_policy = TanhGaussianContextEmphasizedPolicy(
         env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
         latent_sizes=latent_size)
 
-    curl = CURL(
+    curl = CURL2(
         env=env,
         policy_class=CurlPolicy,
         encoder_class=ContrastiveEncoder,
         inner_policy=inner_policy,
-        qf1=qf_1,
-        qf2=qf_2,
+        qf=qf,
+        vf=vf,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
@@ -156,5 +155,5 @@ def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
                  worker_class=CURLWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
-if __name__ == '__main__':
-    curl_origin_auto_temp_traj_cheetah_vel()
+
+curl_origin_auto_temp_traj_humanoid_dir()

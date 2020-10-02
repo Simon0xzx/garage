@@ -10,50 +10,50 @@ from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import CURL
+from garage.torch.algos import CURL2
 from garage.torch.algos.curl import CURLWorker
 from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
-
+from garage.envs.mujoco import HalfCheetahVelEnv
 
 @click.command()
 @click.option('--num_epochs', default=500)
 @click.option('--seed', default=1)
-@click.option('--num_train_tasks', default=50)
-@click.option('--num_test_tasks', default=10)
+@click.option('--num_train_tasks', default=100)
+@click.option('--num_test_tasks', default=30)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=4000)
-@click.option('--num_initial_steps', default=4000)
-@click.option('--num_steps_prior', default=750)
-@click.option('--num_extra_rl_steps_posterior', default=750)
+@click.option('--num_steps_per_epoch', default=2000)
+@click.option('--num_initial_steps', default=2000)
+@click.option('--num_steps_prior', default=400)
+@click.option('--num_extra_rl_steps_posterior', default=600)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=64)
-@click.option('--embedding_mini_batch_size', default=64)
+@click.option('--embedding_batch_size', default=100)
+@click.option('--embedding_mini_batch_size', default=100)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
+def curl_origin_auto_temp_traj_cheetah_vel(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
                              num_test_tasks=10,
-                             latent_size=7,
+                             latent_size=5,
                              encoder_hidden_size=200,
                              net_size=300,
                              meta_batch_size=16,
-                             num_steps_per_epoch=4000,
-                             num_initial_steps=4000,
-                             num_tasks_sample=15,
-                             num_steps_prior=750,
-                             num_extra_rl_steps_posterior=750,
+                             num_steps_per_epoch=2000,
+                             num_initial_steps=2000,
+                             num_tasks_sample=5,
+                             num_steps_prior=400,
+                             num_extra_rl_steps_posterior=600,
                              batch_size=256,
-                             embedding_batch_size=64,
-                             embedding_mini_batch_size=64,
-                             max_path_length=150,
-                             reward_scale=10.,
+                             embedding_batch_size=100,
+                             embedding_mini_batch_size=100,
+                             max_path_length=200,
+                             reward_scale=5.,
                              gpu_id = 0,
                              use_gpu=True):
     """Train PEARL with ML1 environments.
@@ -95,34 +95,34 @@ def curl_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
+
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+        normalize(HalfCheetahVelEnv())))
     env = env_sampler.sample(num_train_tasks)
-
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks('push-v1'))))
+        normalize(HalfCheetahVelEnv())))
+
     runner = LocalRunner(ctxt)
 
     # instantiate networks
-    augmented_env = CURL.augment_env_spec(env[0](), latent_size)
-    qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
-                                  hidden_sizes=[net_size, net_size, net_size])
-
-    qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
-                                  hidden_sizes=[net_size, net_size, net_size])
-
+    augmented_env = CURL2.augment_env_spec(env[0](), latent_size)
+    qf = ContinuousMLPQFunction(env_spec=augmented_env,
+                                hidden_sizes=[net_size, net_size, net_size])
+    vf_env = CURL2.get_env_spec(env[0](), latent_size, 'vf')
+    vf = ContinuousMLPQFunction(env_spec=vf_env,
+                                hidden_sizes=[net_size, net_size, net_size])
     inner_policy = TanhGaussianContextEmphasizedPolicy(
         env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
         latent_sizes=latent_size)
 
-    curl = CURL(
+    curl = CURL2(
         env=env,
         policy_class=CurlPolicy,
         encoder_class=ContrastiveEncoder,
         inner_policy=inner_policy,
-        qf1=qf_1,
-        qf2=qf_2,
+        qf=qf,
+        vf=vf,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
@@ -140,7 +140,7 @@ def curl_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
-        use_next_obs_in_context=True
+        use_next_obs_in_context=False
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
@@ -155,5 +155,5 @@ def curl_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
                  worker_class=CURLWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
-
-curl_origin_auto_temp_traj_metaworld_ml1_push()
+if __name__ == '__main__':
+    curl_origin_auto_temp_traj_cheetah_vel()

@@ -33,7 +33,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=200)
-@click.option('--context_step_len', default=5)
+@click.option('--context_step_len', default=2)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
 def curl_origin_shaped_metaworld_ml1_push(ctxt=None,
