@@ -97,7 +97,7 @@ def pearl_paper_ml1(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
-    exp_name = name.split('curl-')[-1]
+    exp_name = name.split('pearl-')[-1]
     print("Running experiences on {}".format(exp_name))
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
