@@ -1,0 +1,67 @@
+1, faucet-open-v1           [running on namazu]
+2, sweep-v1
+3,
+4,
+5, faucet-close-v1          [running on namazu]
+6, push-back-v1
+7, lever-pull-v1            [running on leviathan killed]
+8, dial-turn-v1
+9, stick-push-v1            [running on leviathan killed]
+10, coffee-button-v1
+11, handle-pull-side-v1     [running on leviathan killed]
+12, basketball-v1
+13, stick-pull-v1           [running on leviathan killed]
+14, sweep-into-v1
+15, dissassemble-v1         [running on namazu]
+16, shelf-place-v1
+17, coffee-push-v1          [running on namazu]
+18, handle-press-side-v1
+19, hammer-v1               [running on namazu]
+20, plate-slide-v1
+21, plate-slide-side-v1     [running on namazu]
+22, button-press-wall-v1
+23, handle-press-v1         [running on namazu]
+24, handle-pull-v1
+25, soccer-v1               [running on namazu]
+26, plate-slide-back-side-v1
+27, plate-slide-back-v1     [running on namazu]
+28, drawer-close-v1
+29, button-press-topdown-v1 [running on namazu]
+30, reach-v1
+31, button-press-topdown-wall-v1
+32, reach-wall-v1
+33, peg-insert-side-v1
+34, push-v1
+35, push-wall-v1
+36, pick-place-wall-v1
+37, button-press-v1
+38, pick-place-v1
+39, coffee-pull-v1
+40, peg-unplug-side-v1
+41, window-close-v1
+42, window-open-v1
+43, door-open-v1
+44, door-close-v1
+45, drawer-open-v1
+46,
+47, box-close-v1
+48, door-lock-v1
+49, door-unlock-v1
+50, bin-picking-v1
+
+
+
+[command]
+conda activate pearl
+python examples/torch/curl_paper_ml1.py --name curl-button-press-topdown-v1 --gpu_id 7 --seed 0
+
+
+
+[backup]
+pick-out-of-hole-v1
+assembly-v1
+
+test:
+hand-insert-v1
+
+

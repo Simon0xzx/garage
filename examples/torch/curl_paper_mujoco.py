@@ -16,6 +16,7 @@ from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
+from garage.envs.mujoco import HalfCheetahVelEnv, HumanoidDirEnv, HalfCheetahDirEnv
 
 
 @click.command()
@@ -34,7 +35,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_mini_batch_size', default=128)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
-@click.option('--name', default='curl-push-v1')
+@click.option('--name', default='curl-cheetah-vel')
 @wrap_experiment
 def curl_paper_ml1(ctxt=None,
                              seed=1,
@@ -99,12 +100,15 @@ def curl_paper_ml1(ctxt=None,
                             encoder_hidden_size)
     exp_name = name.split('curl-')[-1]
     print("Running experiences on {}".format(exp_name))
+    cls = HalfCheetahVelEnv
+    if exp_name == 'humanoid':
+        cls = HumanoidDirEnv
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks(exp_name))))
+        normalize(cls())))
     env = env_sampler.sample(num_train_tasks)
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks(exp_name))))
+        normalize(cls())))
     runner = LocalRunner(ctxt)
 
     # instantiate networks
@@ -146,7 +150,7 @@ def curl_paper_ml1(ctxt=None,
         use_next_obs_in_context=True,
         embedding_batch_in_sequence=True
     )
-    print("random snapshot")
+
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
         curl.to()
@@ -160,4 +164,5 @@ def curl_paper_ml1(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-curl_paper_ml1()
+if __name__ == '__main__':
+    curl_paper_ml1()
