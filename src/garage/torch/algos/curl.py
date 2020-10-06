@@ -187,8 +187,7 @@ class CURL(MetaRLAlgorithm):
                                         max_path_length=max_path_length,
                                         worker_class=CURLWorker,
                                         worker_args=worker_args,
-                                        n_test_tasks=num_test_tasks,
-                                        n_test_rollouts=5)
+                                        n_test_tasks=num_test_tasks)
 
         env_spec = env[0]()
         encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck)
@@ -429,17 +428,24 @@ class CURL(MetaRLAlgorithm):
 
     def _train_once(self):
         """Perform one iteration of training."""
-        returns = []
+        policy_loss_list = []
+        qf_loss_list = []
+        contrastive_loss_list = []
+        alpha_loss_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            self._optimize_policy(indices)
+            policy_loss, qf_loss, contrastive_loss, alpha_loss = self._optimize_policy(indices)
+            policy_loss_list.append(policy_loss)
+            qf_loss_list.append(qf_loss)
+            contrastive_loss_list.append(contrastive_loss)
+            alpha_loss_list.append(alpha_loss)
 
         with tabular.prefix('MetaTrain/Average/'):
-            tabular.record('AverageReturn', np.nan)
-            tabular.record('StdReturn', np.nan)
-            tabular.record('MaxReturn', np.nan)
-            tabular.record('MinReturn', np.nan)
+            tabular.record('PolicyLoss', np.nan)
+            tabular.record('QfLoss', np.nan)
+            tabular.record('ContrastiveLoss', np.nan)
+            tabular.record('AlphaLoss', np.nan)
 
     def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['observations'].shape[0]
