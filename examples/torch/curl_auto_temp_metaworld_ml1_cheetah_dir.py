@@ -141,7 +141,7 @@ def curl_origin_auto_temp_traj_cheetah_dir(ctxt=None,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
-        use_next_obs_in_context=True
+        use_next_obs_in_context=False
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)

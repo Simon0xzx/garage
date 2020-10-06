@@ -10,6 +10,7 @@ from dowel import logger
 import numpy as np
 import torch
 import torch.nn.functional as F
+from dowel import tabular
 
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
@@ -428,10 +429,17 @@ class CURL(MetaRLAlgorithm):
 
     def _train_once(self):
         """Perform one iteration of training."""
+        returns = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
             self._optimize_policy(indices)
+
+        with tabular.prefix('MetaTrain/Average/'):
+            tabular.record('AverageReturn', np.nan)
+            tabular.record('StdReturn', np.nan)
+            tabular.record('MaxReturn', np.nan)
+            tabular.record('MinReturn', np.nan)
 
     def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['observations'].shape[0]
@@ -585,6 +593,8 @@ class CURL(MetaRLAlgorithm):
         for target_qf, qf in zip(target_qfs, qfs):
             for t_param, param in zip(target_qf.parameters(), qf.parameters()):
                 t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
+
+        return policy_loss.cpu(), qf_loss.cpu(), contrastive_loss.cpu(), alpha_loss.cpu()
 
 
     def _obtain_samples(self,

@@ -47,6 +47,8 @@ def plot_curve(matplot, path, exp_name, format='-',
 
 def plot_curve_avg(matplot, exps, format='-',
                    title = 'MetaTest/Average/AverageReturn',  legend = None, limit = -1):
+    if exps == None or len(exps) == 0:
+        return
     result_paths = [os.path.join(name, 'progress.csv') for name in exps]
     data_dicts = [read_progress_file(result_path) for result_path in result_paths]
 
@@ -842,9 +844,9 @@ def ml1_push_exp_plot():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
     fig, axs = plt.subplots(1, 3)
 
-    limit = 500
+    limit = 200
 
-    axs[0].set_title('Pearl/Oracle ML1 Push Avg Return')
+    axs[0].set_title('Avg Return Pearl/Oracle ML1 Push ')
     axs[0].set_xlabel('Total Env Steps')
     axs[0].set_ylabel('Avg Test Return')
     # Observation with goal state
@@ -870,7 +872,7 @@ def ml1_push_exp_plot():
 
 
 
-    axs[1].set_title('CURL ML1 multi step Push Avg Return')
+    axs[1].set_title('Avg Return CURL ML1 Push Traj vs Rich Traj')
     axs[1].set_xlabel('Total Env Steps')
     axs[1].set_ylabel('Avg Test Return')
 
@@ -948,6 +950,13 @@ def ml1_push_exp_plot():
             local_path)],
                    '-',
                    legend="curl_no_kl_not_in_sequence",
+                   limit=limit)
+
+    plot_curve_avg(axs[1], [
+        '{}/curl-push-v1_2'.format(
+            local_path)],
+                   '-',
+                   legend="curl_no_kl_in_sequence_single_step",
                    limit=limit)
 
     axs[2].set_title('ML1 Comparison Avg Return')
@@ -1050,10 +1059,10 @@ def mujoco_exp_plot():
     #                legend="curl_sample_transition",
     #                limit=limit)
 
-    plot_curve_avg(axs[0],
-                   ['{}/curl_origin_auto_temp_traj_cheetah_vel_8'.format(
-                       local_path)],
-                   '-', legend="curl_2_positive_no_kl", limit=limit)
+    # plot_curve_avg(axs[0],
+    #                ['{}/curl_origin_auto_temp_traj_cheetah_vel_8'.format(
+    #                    local_path)],
+    #                '-', legend="curl_2_positive_no_kl", limit=limit)
 
     # plot_curve_avg(axs[1], [
     #     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_3'.format(
@@ -1077,8 +1086,8 @@ def mujoco_exp_plot():
     #                limit=limit)
     #
 
-    plot_curve_avg(axs[0], ['{}/curl-cheetah-vel'.format( local_path)],
-                   '-', legend="curl_no_kl_in_sequence", limit=limit)
+    # plot_curve_avg(axs[0], ['{}/curl-cheetah-vel'.format( local_path)],
+    #                '-', legend="curl_no_kl_in_sequence", limit=limit)
 
 
     axs[1].set_title('Humanoid Dir Avg Return')
@@ -1097,34 +1106,167 @@ def mujoco_exp_plot():
                    ['{}/pearl_origin_auto_temp_traj_humanoid_dir_2'.format(
                        local_path)],
                    '-', legend="pearl", limit=limit)
+    #
+    # plot_curve_avg(axs[1],
+    #                ['{}/curl_origin_auto_temp_traj_humanoid_dir_1'.format(
+    #                    local_path)],
+    #                '-', legend="curl", limit=limit)
+    #
+    # plot_curve_avg(axs[1],
+    #                ['{}/curl_origin_auto_temp_traj_humanoid_dir_4'.format(
+    #                    local_path)],
+    #                '-', legend="curl_vf", limit=limit)
+    #
+    # plot_curve_avg(axs[1],
+    #                ['{}/curl_origin_auto_temp_traj_humanoid_dir_5'.format(
+    #                    local_path)],
+    #                '-', legend="curl_no_q", limit=limit)
+    #
+    # plot_curve_avg(axs[1],
+    #                ['{}/curl_origin_auto_temp_traj_humanoid_dir_6'.format(
+    #                    local_path)],
+    #                '-', legend="curl_sample_transition", limit=limit)
+    # plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_7'.format(
+    #                    local_path)], '-', legend="curl_2_positive_no_kl", limit=limit)
 
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_1'.format(
-                       local_path)],
-                   '-', legend="curl", limit=limit)
+    plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_8'.format(
+                       local_path)], '-', legend="curl_no_kl_single_step", limit=limit)
 
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_4'.format(
-                       local_path)],
-                   '-', legend="curl_vf", limit=limit)
-
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_5'.format(
-                       local_path)],
-                   '-', legend="curl_no_q", limit=limit)
-
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_6'.format(
-                       local_path)],
-                   '-', legend="curl_sample_transition", limit=limit)
-    plot_curve_avg(axs[1],
-                   ['{}/curl_origin_auto_temp_traj_humanoid_dir_7'.format(
-                       local_path)],
-                   '-', legend="curl_2_positive_no_kl", limit=limit)
+    # plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_11'.format(
+    #                    local_path)], '-', legend="curl_no_kl_single_step_128_in_sequence", limit=limit)
 
 
 
     plt.show()
+
+def grab_task_list(root_dir, task_name, prefix, exp_set, max_count = 5):
+    pearl_exp_names = []
+    for i in range(max_count):
+        exp_name = '{}-{}'.format(prefix, task_name)
+        if i >= 1:
+            exp_name += '_{}'.format(i)
+        if exp_name in exp_set:
+            pearl_exp_names.append(os.path.join(root_dir, exp_name))
+        else:
+            break
+    return pearl_exp_names
+
+def ml1_tasks_comparison():
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    fig, axs = plt.subplots(3, 5)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.25, hspace=0.30)
+    limit = 300
+    task_list = ['button-press-topdown-v1', 'coffee-push-v1', 'dissassemble-v1',
+                 'faucet-close-v1', 'faucet-open-v1',
+                 'hammer-v1', 'handle-press-v1', 'handle-pull-side-v1',
+                 'lever-pull-v1', 'plate-slide-back-v1', 'plate-slide-side-v1',
+                 'soccer-v1', 'stick-pull-v1', 'stick-push-v1', 'button-press-topdown-wall-v1']
+
+    exp_set = set(os.listdir(namazu_path))
+
+    for i in range(len(task_list)):
+        task_name = task_list[i]
+        print('preparing exp: {}'.format(task_name))
+        plt_x = int(i / 5)
+        plt_y = int(i % 5 if i % 5 >= 0 else i % 5 + 5)
+        plt_axs = axs[plt_x][plt_y]
+        plt_axs.set_title('Avg Return ML1 {}'.format(task_name))
+        plt_axs.set_xlabel('Total Env Steps')
+        plt_axs.set_ylabel('Avg Test Return')
+
+        pearl_exp_names = grab_task_list(namazu_path, task_name, 'pearl', exp_set, max_count=5)
+        plot_curve_avg(plt_axs, pearl_exp_names, '-', legend="pearl", limit=limit)
+
+        curl_exp_names = grab_task_list(namazu_path, task_name, 'curl', exp_set, max_count=5)
+        plot_curve_avg(plt_axs, curl_exp_names, '-', legend="curl", limit=limit)
+
+
+
+    plt.show()
+
+
+def ml1_push_display():
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/experiment'
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
+    fig, axs = plt.subplots(2, 4)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95,
+                        wspace=0.25, hspace=0.30)
+    limit = 200
+
+    axs[0][0].set_title('ML1 Push Pearl vs Oracle')
+    axs[0][0].set_xlabel('Total Env Steps')
+    axs[0][0].set_ylabel('Avg Test Return')
+    # Only the Observation, but not goal state
+    plot_curve_avg(axs[0][0], [
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(local_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push'.format(namazu_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push_1'.format(namazu_path),
+        '{}/pearl_origin_auto_temp_metaworld_ml1_push_2'.format(namazu_path)],
+                   '-', legend="pearl", limit=limit)
+    plot_curve_avg(axs[0][0],
+                   ['{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(local_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(namazu_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push_1'.format(namazu_path)],
+                   '-', legend="multitask_oracle", limit=limit)
+    # ==========================================================================
+    axs[0][1].set_title('ML1 Push CURL Traj vs Rich Traj')
+    axs[0][1].set_xlabel('Total Env Steps')
+    axs[0][1].set_ylabel('Avg Test Return')
+    plot_curve_avg(axs[0][1],
+                   ['{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(local_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(namazu_path),
+                    '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(namazu_path)],
+                   '-', legend="curl_traj_2_step", limit=limit)
+    plot_curve_avg(axs[0][1],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
+                   '-', legend="curl_rich_traj_2_step", limit=limit)
+    # ==========================================================================
+    axs[0][2].set_title('ML1 Push CURL Rich Traj 2 step vs 5 step')
+    axs[0][2].set_xlabel('Total Env Steps')
+    axs[0][2].set_ylabel('Avg Test Return')
+    plot_curve_avg(axs[0][2],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
+                   '-', legend="curl_rich_traj_5_step", limit=limit)
+    plot_curve_avg(axs[0][2],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
+                   '-', legend="curl_rich_traj_2_step", limit=limit)
+    # ==========================================================================
+    axs[0][3].set_title('ML1 Push CURL In Sequence Batch vs Random Batch')
+    axs[0][3].set_xlabel('Total Env Steps')
+    axs[0][3].set_ylabel('Avg Test Return')
+    plot_curve_avg(axs[0][3], ['{}/curl_paper_ml1_push'.format(local_path),
+                               '{}/curl-push-v1'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence_traj_2_step", limit=limit)
+
+    plot_curve_avg(axs[0][3], ['{}/curl-push-v1_2'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence__traj_1_step", limit=limit)
+    #==========================================================================
+    axs[1][0].set_title('ML1 Push CURL KL vs no KL')
+    axs[1][0].set_xlabel('Total Env Steps')
+    axs[1][0].set_ylabel('Avg Test Return')
+    plot_curve_avg(axs[1][0],
+                   ['{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(local_path)],
+                   '-', legend="curl_kl", limit=limit)
+
+    plot_curve_avg(axs[1][0], ['{}/curl_paper_ml1_push'.format(local_path),
+                               '{}/curl-push-v1'.format(local_path)],
+                   '-', legend="curl_no_kl", limit=limit)
+    # ==========================================================================
+    axs[1][1].set_title('ML1 Push CURL In Sequence Batch vs Random Batch')
+    axs[1][1].set_xlabel('Total Env Steps')
+    axs[1][1].set_ylabel('Avg Test Return')
+
+    plot_curve_avg(axs[1][1], ['{}/curl_paper_ml1_push'.format(local_path),
+                            '{}/curl-push-v1'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence", limit=limit)
+
+    plot_curve_avg(axs[1][1], ['{}/curl-push-v1_1'.format(local_path)],
+                   '-', legend="curl_no_kl_not_in_sequence", limit=limit)
+
+    plt.show()
+
 
 if __name__ == '__main__':
     # ml1_exp_plot()
@@ -1136,5 +1278,6 @@ if __name__ == '__main__':
     # sim_policy()
     # sim_policy2()
     # ml1_push_exp_plot()
-    mujoco_exp_plot()
-    # load_pearl_mlsp_policy()
+    ml1_push_display()
+    # mujoco_exp_plot()
+    ml1_tasks_comparison()

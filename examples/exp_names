@@ -1,34 +1,34 @@
-1, faucet-open-v1           [running on namazu]
+1, faucet-open-v1           [running curl on namazu][short] [pearl on namazu]
 2, sweep-v1
 3,
 4,
-5, faucet-close-v1          [running on namazu]
+5, faucet-close-v1          [running curl on namazu][short] [pearl on namazu]
 6, push-back-v1
-7, lever-pull-v1            [running on leviathan killed]
+7, lever-pull-v1            [curl on namazu][running pearl on namazu]
 8, dial-turn-v1
-9, stick-push-v1            [running on leviathan killed]
+9, stick-push-v1            [curl on namazu][running pearl on namazu]
 10, coffee-button-v1
-11, handle-pull-side-v1     [running on leviathan killed]
+11, handle-pull-side-v1     [curl on namazu][running pearl on namazu]
 12, basketball-v1
-13, stick-pull-v1           [running on leviathan killed]
+13, stick-pull-v1           [curl on namazu][running pearl on namazu]
 14, sweep-into-v1
-15, dissassemble-v1         [running on namazu]
+15, dissassemble-v1         [running curl on namazu][short][pearl on namazu]
 16, shelf-place-v1
-17, coffee-push-v1          [running on namazu]
+17, coffee-push-v1          [curl on namazu] [pearl on namazu][DONE]
 18, handle-press-side-v1
-19, hammer-v1               [running on namazu]
+19, hammer-v1               [curl on namazu] [pearl on namazu][DONE]
 20, plate-slide-v1
-21, plate-slide-side-v1     [running on namazu]
+21, plate-slide-side-v1     [curl on namazu] [pearl on namazu][DONE]
 22, button-press-wall-v1
-23, handle-press-v1         [running on namazu]
+23, handle-press-v1         [curl on namazu] [pearl on namazu][DONE]
 24, handle-pull-v1
-25, soccer-v1               [running on namazu]
+25, soccer-v1               [curl on namazu] [pearl on namazu][DONE]
 26, plate-slide-back-side-v1
-27, plate-slide-back-v1     [running on namazu]
+27, plate-slide-back-v1     [curl on namazu] [pearl on namazu][DONE]
 28, drawer-close-v1
-29, button-press-topdown-v1 [running on namazu]
+29, button-press-topdown-v1 [curl on namazu] [pearl on namazu][DONE]
 30, reach-v1
-31, button-press-topdown-wall-v1
+31, button-press-topdown-wall-v1 [running curl on namazu][short][running pearl on namazu]
 32, reach-wall-v1
 33, peg-insert-side-v1
 34, push-v1
@@ -53,7 +53,7 @@
 
 [command]
 conda activate pearl
-python examples/torch/curl_paper_ml1.py --name curl-button-press-topdown-v1 --gpu_id 7 --seed 0
+python examples/torch/curl_paper_ml1.py --name curl-button-press-topdown-wall-v1 --gpu_id 5 --seed 0
 
 
 

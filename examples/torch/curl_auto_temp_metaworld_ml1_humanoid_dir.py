@@ -29,9 +29,9 @@ from garage.envs.mujoco import HalfCheetahDirEnv
 @click.option('--num_initial_steps', default=2000)
 @click.option('--num_steps_prior', default=400)
 @click.option('--num_extra_rl_steps_posterior', default=400)
-@click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=256)
-@click.option('--embedding_mini_batch_size', default=256)
+@click.option('--batch_size', default=128)
+@click.option('--embedding_batch_size', default=128)
+@click.option('--embedding_mini_batch_size', default=128)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
@@ -49,9 +49,9 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
                              num_tasks_sample=5,
                              num_steps_prior=400,
                              num_extra_rl_steps_posterior=400,
-                             batch_size=256,
-                             embedding_batch_size=256,
-                             embedding_mini_batch_size=256,
+                             batch_size=128,
+                             embedding_batch_size=128,
+                             embedding_mini_batch_size=128,
                              max_path_length=200,
                              reward_scale=5.,
                              gpu_id = 0,
@@ -141,7 +141,8 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
-        use_next_obs_in_context=True
+        use_next_obs_in_context=False,
+        embedding_batch_in_sequence=True
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)

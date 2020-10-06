@@ -139,7 +139,8 @@ def curl2_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
-        use_next_obs_in_context=False
+        use_next_obs_in_context=False,
+        embedding_batch_in_sequence=True
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)

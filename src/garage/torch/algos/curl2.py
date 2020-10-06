@@ -96,8 +96,8 @@ class CURL2(MetaRLAlgorithm):
     def __init__(self,
                  env,
                  inner_policy,
-                 qf,
-                 vf,
+                 qf1,
+                 qf2,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
@@ -107,7 +107,6 @@ class CURL2(MetaRLAlgorithm):
                  encoder_class=MLPEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
-                 vf_lr=3E-4,
                  context_lr=3E-4,
                  policy_mean_reg_coeff=1E-3,
                  policy_std_reg_coeff=1E-3,
@@ -134,15 +133,22 @@ class CURL2(MetaRLAlgorithm):
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
+                 embedding_batch_in_sequence=False,
+                 num_pos_contrastive = 2,
+                 num_neg_contrastive = 0,
                  update_post_train=1):
 
         self._env = env
-        self._qf1 = qf
-        self._qf2 = copy.deepcopy(qf)
+        self._qf1 = qf1
+        self._qf2 = qf2
+        # use 2 target q networks
+        self._target_qf1 = copy.deepcopy(self._qf1)
+        self._target_qf2 = copy.deepcopy(self._qf2)
 
-        self._vf = vf
-        self.target_vf = copy.deepcopy(self._vf)
-        self.vf_criterion = torch.nn.MSELoss()
+        # Contrastive Encoder setting
+        self._embedding_batch_in_sequence = embedding_batch_in_sequence
+        self._num_pos_contrastive = num_pos_contrastive # TODO
+        self._num_neg_contrastive = num_neg_contrastive # TODO
 
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
@@ -205,11 +211,13 @@ class CURL2(MetaRLAlgorithm):
             else:
                 self._target_entropy = -np.prod(
                     env_spec.action_space.shape).item()
-            self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._log_alpha = torch.Tensor([
+                                               self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
             self._alpha_optimizer = optimizer_class([self._log_alpha],
                                                     lr=policy_lr)
         else:
-            self._log_alpha = torch.Tensor([self._fixed_alpha] * self._num_train_tasks).log()
+            self._log_alpha = torch.Tensor(
+                [self._fixed_alpha] * self._num_train_tasks).log()
 
         self._context_lr = context_lr
         self._policy = policy_class(
@@ -241,10 +249,6 @@ class CURL2(MetaRLAlgorithm):
         self.qf2_optimizer = optimizer_class(
             self._qf2.parameters(),
             lr=qf_lr,
-        )
-        self.vf_optimizer = optimizer_class(
-            self._vf.parameters(),
-            lr=vf_lr,
         )
         self.context_optimizer = optimizer_class(
             self._context_encoder.networks[0].parameters(),
@@ -316,10 +320,6 @@ class CURL2(MetaRLAlgorithm):
         )
         self.qf2_optimizer = torch.optim.Adam(
             self._qf2.parameters(),
-            lr=3E-4,
-        )
-        self.vf_optimizer = torch.optim.Adam(
-            self._vf.parameters(),
             lr=3E-4,
         )
         self.context_optimizer = torch.optim.Adam(
@@ -459,6 +459,7 @@ class CURL2(MetaRLAlgorithm):
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
         aug1 = torch.as_tensor(context_augs[0], device=global_device())
         aug2 = torch.as_tensor(context_augs[1], device=global_device())
+        # path_batches = self.sample_path_batch(indices)
 
         # similar_contrastive
         query = self._context_encoder(aug1, query=True)
@@ -485,6 +486,7 @@ class CURL2(MetaRLAlgorithm):
         """
         num_tasks = len(indices)
         contrastive_loss = self._compute_contrastive_loss(indices)
+
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
@@ -493,58 +495,53 @@ class CURL2(MetaRLAlgorithm):
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
 
-        # run inference in networks
-        policy_outputs, task_z = self._policy(obs, context)
-        new_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
-
         # flatten out the task dimension
         t, b, _ = obs.size()
         batch_obs = obs.view(t * b, -1)
         batch_action = actions.view(t * b, -1)
         batch_next_obs = next_obs.view(t * b, -1)
 
-        # ===== Critic Objective =====
-        # Q and V networks
-        # Encoder will only get gradients from Q nets
-        q1_pred = self._qf1(torch.cat([batch_obs, batch_action], dim=1), task_z)
-        q2_pred = self._qf2(torch.cat([batch_obs, batch_action], dim=1), task_z)
-        v_pred = self._vf(batch_obs, task_z.detach())
+        policy_outputs, task_z = self._policy(next_obs, context)
+        new_next_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
 
-        # get targets for use in V and Q updates
+        # ===== Critic Objective =====
         with torch.no_grad():
             alpha = self._get_log_alpha(indices).exp()
-            target_v_values = self.target_vf(batch_next_obs, task_z)
+        q1_pred = self._qf1(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        q2_pred = self._qf2(torch.cat([batch_obs, batch_action], dim=1), task_z)
+        target_q_values = torch.min(self._target_qf1(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z),
+            self._target_qf2(torch.cat([batch_next_obs, new_next_actions], dim=1), task_z)).flatten() - (alpha * log_pi.flatten())
 
-        # KL constraint on z if probabilistic
-        self.context_optimizer.zero_grad()
-        self.query_optimizer.zero_grad()
-        if self._use_information_bottleneck:
-            kl_div = self._policy.compute_kl_div()
-            kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward(retain_graph=True)
-        contrastive_loss.backward()
+        rewards_flat = rewards.view(self._batch_size * num_tasks, -1).flatten()
+        rewards_flat = rewards_flat * self._reward_scale
+        terms_flat = terms.view(self._batch_size * num_tasks, -1).flatten()
 
-        # qf and encoder update (note encoder does not get grads from policy or vf)
-        self.qf1_optimizer.zero_grad()
-        self.qf2_optimizer.zero_grad()
-        # scale rewards for Bellman update
-        rewards_flat = rewards.view(self._batch_size * num_tasks, -1) * self._reward_scale
-        terms_flat = terms.view(self._batch_size * num_tasks, -1)
-        q_target = rewards_flat + (1. - terms_flat) * self._discount * target_v_values
+        with torch.no_grad():
+            q_target = rewards_flat + ((1. - terms_flat) * self._discount) * target_q_values
+
         qf1_loss = F.mse_loss(q1_pred.flatten(), q_target)
         qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
         qf_loss = qf1_loss + qf2_loss
-        qf_loss.backward()
 
-        # Update q network
+        # KL constraint on z if probabilistic
+        # if self._use_information_bottleneck:
+        #     kl_div = self._policy.compute_kl_div()
+        #     kl_loss = self._kl_lambda * kl_div
+        #     kl_loss.backward(retain_graph=True)
+        self.context_optimizer.zero_grad()
+        self.query_optimizer.zero_grad()
+
+        # Optimize Q network and context encoder
+        self.qf1_optimizer.zero_grad()
+        self.qf2_optimizer.zero_grad()
+        qf_loss.backward()
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
 
-        # Update Encoder and Query network
+        contrastive_loss.backward()
         self.query_optimizer.step()
         self.context_optimizer.step()
 
-        # Update Key Network
         query_net = self._context_encoder.networks[1]
         key_net = self._context_encoder.networks[2]
         with torch.no_grad():
@@ -552,28 +549,24 @@ class CURL2(MetaRLAlgorithm):
             self._contrastive_weight.grad.zero_()
             # update key net with 0.05 of query net
             for target_param, param in zip(key_net.parameters(), query_net.parameters()):
-                target_param.data.copy_(self._soft_target_tau * param.data + target_param.data * (1 - self._soft_target_tau))
+                target_param.data.copy_(self._soft_target_tau * param.data +
+                                        target_param.data * (1 - self._soft_target_tau))
 
+        # ===== Actor Objective =====
+        policy_outputs, task_z = self._policy(obs, context)
+        new_actions, policy_mean, policy_log_std, log_pi, pre_tanh = policy_outputs
         # compute min Q on the new actions
         q1 = self._qf1(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
         q2 = self._qf2(torch.cat([batch_obs, new_actions], dim=1), task_z.detach())
         min_q = torch.min(q1, q2)
-
-        v_target = min_q - log_pi
-        vf_loss = self.vf_criterion(v_pred, v_target.detach())
-        self.vf_optimizer.zero_grad()
-        vf_loss.backward()
-        self.vf_optimizer.step()
-        for target_param, param in zip(self.target_vf.parameters(), self._vf.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
-
-        # ===== Actor Objective =====
         # optimize policy
+        policy_loss = ((alpha * log_pi) - min_q.flatten()).mean()
         mean_reg_loss = self._policy_mean_reg_coeff * (policy_mean**2).mean()
         std_reg_loss = self._policy_std_reg_coeff * (policy_log_std**2).mean()
-        pre_activation_reg_loss = self._policy_pre_activation_coeff * ((pre_tanh**2).sum(dim=1).mean())
+        pre_tanh_value = policy_outputs[-1]
+        pre_activation_reg_loss = self._policy_pre_activation_coeff * ((pre_tanh_value**2).sum(dim=1).mean())
         policy_reg_loss = (mean_reg_loss + std_reg_loss + pre_activation_reg_loss)
-        policy_loss = ((alpha * log_pi) - min_q.flatten()).mean() + policy_reg_loss
+        policy_loss += policy_reg_loss
 
         self._policy_optimizer.zero_grad()
         policy_loss.backward()
@@ -585,6 +578,13 @@ class CURL2(MetaRLAlgorithm):
             self._alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self._alpha_optimizer.step()
+
+        # ===== Update Target Network =====
+        target_qfs = [self._target_qf1, self._target_qf2]
+        qfs = [self._qf1, self._qf2]
+        for target_qf, qf in zip(target_qfs, qfs):
+            for t_param, param in zip(target_qf.parameters(), qf.parameters()):
+                t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
 
 
     def _obtain_samples(self,
@@ -688,7 +688,7 @@ class CURL2(MetaRLAlgorithm):
             initialized = False
             for idx in indices:
                 path = self._context_replay_buffers[idx].sample_path()
-                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                batch_aug = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence) # conduct random path augmentations
                 o = batch_aug['observations']
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
@@ -711,6 +711,15 @@ class CURL2(MetaRLAlgorithm):
 
         return path_augs
 
+    def sample_path_batch(self, indices):
+        # make method work given a single task index
+        if not hasattr(indices, '__iter__'):
+            indices = [indices]
+
+        path_batch = {}
+        for idx in indices:
+            path_batch[idx] = self._context_replay_buffers[idx].sample_path()
+        return path_batch
 
     def _sample_context(self, indices):
         """Sample batch of context from a list of tasks.
@@ -732,9 +741,8 @@ class CURL2(MetaRLAlgorithm):
 
         initialized = False
         for idx in indices:
-            # path = self._context_replay_buffers[idx].sample_path()
-            # batch = self.augment_path(path, self._embedding_batch_size)
-            batch = self._replay_buffers[idx].sample_transitions(self._batch_size)
+            path = self._context_replay_buffers[idx].sample_path()
+            batch = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']
@@ -764,8 +772,11 @@ class CURL2(MetaRLAlgorithm):
 
     def _update_target_network(self):
         """Update parameters in the target vf network."""
-        for target_param, param in zip(self.target_vf.parameters(), self._vf.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
+        for target_param, param in zip(self.target_vf.parameters(),
+                                       self._vf.parameters()):
+            target_param.data.copy_(target_param.data *
+                                    (1.0 - self._soft_target_tau) +
+                                    param.data * self._soft_target_tau)
 
     @property
     def policy(self):
@@ -786,7 +797,7 @@ class CURL2(MetaRLAlgorithm):
 
         """
         return self._policy.networks + [self._policy, self._qf1, self._qf2,
-                                        self._vf, self.target_vf, self._contrastive_weight]
+                                        self._target_qf1, self._target_qf2, self._contrastive_weight]
 
     def get_exploration_policy(self):
         """Return a policy used before adaptation to a specific task.
