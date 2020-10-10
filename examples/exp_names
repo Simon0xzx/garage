@@ -1,46 +1,46 @@
-1, faucet-open-v1           [running curl on namazu][short] [pearl on namazu]
+1, faucet-open-v1                   [curl on namazu] [pearl on namazu][DONE]
 2, sweep-v1
 3,
 4,
-5, faucet-close-v1          [running curl on namazu][short] [pearl on namazu]
+5, faucet-close-v1                  [curl on namazu] [pearl on namazu][DONE]
 6, push-back-v1
-7, lever-pull-v1            [curl on namazu][running pearl on namazu]
+7, lever-pull-v1                    [curl on namazu] [pearl on namazu][DONE]
 8, dial-turn-v1
-9, stick-push-v1            [curl on namazu][running pearl on namazu]
+9, stick-push-v1                    [curl on namazu] [pearl on namazu][DONE]
 10, coffee-button-v1
-11, handle-pull-side-v1     [curl on namazu][running pearl on namazu]
+11, handle-pull-side-v1             [curl on namazu] [pearl on namazu][DONE]
 12, basketball-v1
-13, stick-pull-v1           [curl on namazu][running pearl on namazu]
+13, stick-pull-v1                   [curl on namazu] [pearl on namazu][DONE]
 14, sweep-into-v1
-15, dissassemble-v1         [running curl on namazu][short][pearl on namazu]
+15, dissassemble-v1                 [curl on namazu] [pearl on namazu][DONE]
 16, shelf-place-v1
-17, coffee-push-v1          [curl on namazu] [pearl on namazu][DONE]
+17, coffee-push-v1                  [curl on namazu] [pearl on namazu][DONE]
 18, handle-press-side-v1
-19, hammer-v1               [curl on namazu] [pearl on namazu][DONE]
+19, hammer-v1                       [curl on namazu] [pearl on namazu][DONE]
 20, plate-slide-v1
-21, plate-slide-side-v1     [curl on namazu] [pearl on namazu][DONE]
+21, plate-slide-side-v1             [curl on namazu] [pearl on namazu][DONE]
 22, button-press-wall-v1
-23, handle-press-v1         [curl on namazu] [pearl on namazu][DONE]
+23, handle-press-v1                 [curl on namazu] [pearl on namazu][DONE]
 24, handle-pull-v1
-25, soccer-v1               [curl on namazu] [pearl on namazu][DONE]
+25, soccer-v1                       [curl on namazu] [pearl on namazu][DONE]
 26, plate-slide-back-side-v1
-27, plate-slide-back-v1     [curl on namazu] [pearl on namazu][DONE]
+27, plate-slide-back-v1             [curl on namazu] [pearl on namazu][DONE]
 28, drawer-close-v1
-29, button-press-topdown-v1 [curl on namazu] [pearl on namazu][DONE]
+29, button-press-topdown-v1         [curl on namazu] [pearl on namazu][DONE]
 30, reach-v1
-31, button-press-topdown-wall-v1 [running curl on namazu][short][running pearl on namazu]
+31, button-press-topdown-wall-v1    [curl on namazu] [pearl on namazu][DONE]
 32, reach-wall-v1
-33, peg-insert-side-v1
+33, peg-insert-side-v1              [curl on namazu] [pearl on namazu][running]              7
 34, push-v1
-35, push-wall-v1
+35, push-wall-v1                    [curl on namazu] [pearl on namazu][running]              6
 36, pick-place-wall-v1
-37, button-press-v1
+37, button-press-v1                 [curl on namazu] [pearl on namazu][running]              5
 38, pick-place-v1
-39, coffee-pull-v1
+39, coffee-pull-v1                  [curl on namazu] [pearl on namazu][running]              4
 40, peg-unplug-side-v1
-41, window-close-v1
+41, window-close-v1                 [curl on namazu] [pearl on namazu][running]              3
 42, window-open-v1
-43, door-open-v1
+43, door-open-v1                    [curl on namazu] [pearl on namazu][running]              2
 44, door-close-v1
 45, drawer-open-v1
 46,
@@ -53,9 +53,9 @@
 
 [command]
 conda activate pearl
-python examples/torch/curl_paper_ml1.py --name curl-button-press-topdown-wall-v1 --gpu_id 5 --seed 0
+python examples/torch/curl_paper_ml1.py --name curl-door-open-v1 --gpu_id 2 --seed 0
 
-
+python examples/torch/pearl_paper_ml1.py --name pearl-peg-insert-side-v1 --gpu_id 7 --seed 0
 
 [backup]
 pick-out-of-hole-v1
@@ -64,4 +64,16 @@ assembly-v1
 test:
 hand-insert-v1
 
+
+hyper-parameter-fine-tuning-envs
+soccer-v1
+faucet-close-v1
+handle-press-v1
+plate-slide-side-v1
+
+[command]
+python examples/torch/curl_hyper_exp.py --name soccer-v1 --gpu_id 0 --seed 0
+python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --gpu_id 0 --seed 0
+python examples/torch/curl_hyper_exp.py --name handle-press-v1 --gpu_id 1 --seed 0
+python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --gpu_id 1 --seed 0
 

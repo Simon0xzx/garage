@@ -16,7 +16,7 @@ from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
 from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
-from garage.envs.mujoco import HalfCheetahDirEnv
+from garage.envs.mujoco import HumanoidDirEnv
 
 @click.command()
 @click.option('--num_epochs', default=500)
@@ -35,7 +35,7 @@ from garage.envs.mujoco import HalfCheetahDirEnv
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @wrap_experiment
-def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
+def curl_humanoid_dir(ctxt=None,
                              seed=1,
                              num_epochs=1000,
                              num_train_tasks=50,
@@ -98,10 +98,10 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
 
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahDirEnv())))
+        normalize(HumanoidDirEnv())))
     env = env_sampler.sample(num_train_tasks)
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahDirEnv())))
+        normalize(HumanoidDirEnv())))
 
     runner = LocalRunner(ctxt)
 
@@ -142,7 +142,7 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
         reward_scale=reward_scale,
         replay_buffer_size=100000,
         use_next_obs_in_context=False,
-        embedding_batch_in_sequence=True
+        embedding_batch_in_sequence=False
     )
 
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
@@ -158,4 +158,4 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-curl_origin_auto_temp_traj_humanoid_dir()
+curl_humanoid_dir()

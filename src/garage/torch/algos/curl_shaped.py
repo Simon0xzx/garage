@@ -120,6 +120,7 @@ class CURLShaped(MetaRLAlgorithm):
                  initial_log_entropy=0.,
                  optimizer_class=torch.optim.Adam,
                  use_information_bottleneck=True,
+                 embedding_batch_in_sequence=False,
                  context_step_len=1,
                  meta_batch_size=64,
                  num_steps_per_epoch=1000,
@@ -156,6 +157,7 @@ class CURLShaped(MetaRLAlgorithm):
         self._kl_lambda = kl_lambda
         self._use_information_bottleneck = use_information_bottleneck
         self._context_step_len = context_step_len
+        self._embedding_batch_in_sequence = embedding_batch_in_sequence
 
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
@@ -502,12 +504,13 @@ class CURLShaped(MetaRLAlgorithm):
         qf_loss = qf1_loss + qf2_loss
 
         # KL constraint on z if probabilistic
+
+        # if self._use_information_bottleneck:
+        #     kl_div = self._policy.compute_kl_div()
+        #     kl_loss = self._kl_lambda * kl_div
+        #     kl_loss.backward(retain_graph=True)
         self.context_optimizer.zero_grad()
         self.query_optimizer.zero_grad()
-        if self._use_information_bottleneck:
-            kl_div = self._policy.compute_kl_div()
-            kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward(retain_graph=True)
 
         # Optimize Q network
         self.qf1_optimizer.zero_grad()
@@ -664,7 +667,7 @@ class CURLShaped(MetaRLAlgorithm):
             initialized = False
             for idx in indices:
                 path = self._context_replay_buffers[idx].sample_path()
-                batch_aug = self.augment_path(path, self._embedding_batch_size) # conduct random path augmentations
+                batch_aug = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence) # conduct random path augmentations
                 o = batch_aug['observations']
                 a = batch_aug['actions']
                 r = batch_aug['rewards']
@@ -707,7 +710,7 @@ class CURLShaped(MetaRLAlgorithm):
         initialized = False
         for idx in indices:
             path = self._context_replay_buffers[idx].sample_path()
-            batch = self.augment_path(path, self._embedding_batch_size)
+            batch = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']

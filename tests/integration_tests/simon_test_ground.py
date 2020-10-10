@@ -51,7 +51,6 @@ def plot_curve_avg(matplot, exps, format='-',
         return
     result_paths = [os.path.join(name, 'progress.csv') for name in exps]
     data_dicts = [read_progress_file(result_path) for result_path in result_paths]
-
     min_step_length = min([len(data_dict['TotalEnvSteps']) for data_dict in data_dicts])
     if limit != -1:
         min_step_length = min(min_step_length, limit)
@@ -70,7 +69,6 @@ def plot_curve_avg(matplot, exps, format='-',
 
     matplot.plot(x, y_ave, format, lw=2,label=label)
     matplot.fill_between(x, y_min, y_max, alpha=0.2)
-
     matplot.legend()
 
 def generate_report(exp_path_root, exps_matrix, success_rate=False, limit=500):
@@ -1030,13 +1028,14 @@ def mujoco_exp_plot():
     axs[0].set_xlabel('Total Env Steps')
     axs[0].set_ylabel('Avg Test Return')
 
-    # Only the Observation, but not goal state
-    plot_curve_avg(axs[0], ['{}/curl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
-                   '-', legend="curl_fix", limit=limit)
-
     plot_curve_avg(axs[0],
                    ['{}/pearl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
                    '-', legend="pearl", limit=limit)
+
+
+    # Only the Observation, but not goal state
+    plot_curve_avg(axs[0], ['{}/curl_origin_auto_temp_traj_cheetah_vel_1'.format(local_path)],
+                   '-', legend="curl_kl_random_aug_traj_2_step", limit=limit)
 
     # plot_curve_avg(axs[0],
     #                [
@@ -1086,8 +1085,8 @@ def mujoco_exp_plot():
     #                limit=limit)
     #
 
-    # plot_curve_avg(axs[0], ['{}/curl-cheetah-vel'.format( local_path)],
-    #                '-', legend="curl_no_kl_in_sequence", limit=limit)
+    plot_curve_avg(axs[0], ['{}/curl_origin_auto_temp_traj_cheetah_vel_14'.format( local_path)],
+                   '-', legend="curl_no_kl_in_sequence_aug_single_step", limit=limit)
 
 
     axs[1].set_title('Humanoid Dir Avg Return')
@@ -1130,10 +1129,10 @@ def mujoco_exp_plot():
     #                    local_path)], '-', legend="curl_2_positive_no_kl", limit=limit)
 
     plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_8'.format(
-                       local_path)], '-', legend="curl_no_kl_single_step", limit=limit)
+                       local_path)], '-', legend="curl_no_kl_single_step_256_batch_random_aug", limit=limit)
 
-    # plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_11'.format(
-    #                    local_path)], '-', legend="curl_no_kl_single_step_128_in_sequence", limit=limit)
+    plot_curve_avg(axs[1], ['{}/curl_origin_auto_temp_traj_humanoid_dir_15'.format(
+                       local_path)], '-', legend="curl_no_kl_single_step_128_batch_in_sequence_aug", limit=limit)
 
 
 
@@ -1156,7 +1155,7 @@ def ml1_tasks_comparison():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
     fig, axs = plt.subplots(3, 5)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.25, hspace=0.30)
-    limit = 300
+    limit = 250
     task_list = ['button-press-topdown-v1', 'coffee-push-v1', 'dissassemble-v1',
                  'faucet-close-v1', 'faucet-open-v1',
                  'hammer-v1', 'handle-press-v1', 'handle-pull-side-v1',
@@ -1218,22 +1217,22 @@ def ml1_push_display():
                     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push'.format(namazu_path),
                     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_1'.format(namazu_path),
                     '{}/curl_origin_auto_temp_traj_metaworld_ml1_push_2'.format(namazu_path)],
-                   '-', legend="curl_traj_2_step", limit=limit)
+                   '-', legend="curl_traj_2_step_no_q_no_kl", limit=limit)
     plot_curve_avg(axs[0][1],
                    ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
-                   '-', legend="curl_rich_traj_2_step", limit=limit)
+                   '-', legend="curl_rich_traj_2_step_no_q_no_kl", limit=limit)
     # ==========================================================================
     axs[0][2].set_title('ML1 Push CURL Rich Traj 2 step vs 5 step')
     axs[0][2].set_xlabel('Total Env Steps')
     axs[0][2].set_ylabel('Avg Test Return')
     plot_curve_avg(axs[0][2],
                    ['{}/curl_origin_shaped_metaworld_ml1_push'.format(local_path)],
-                   '-', legend="curl_rich_traj_5_step", limit=limit)
+                   '-', legend="curl_rich_traj_5_step_no_q_no_kl", limit=limit)
     plot_curve_avg(axs[0][2],
                    ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
-                   '-', legend="curl_rich_traj_2_step", limit=limit)
+                   '-', legend="curl_rich_traj_2_step_no_q_no_kl", limit=limit)
     # ==========================================================================
-    axs[0][3].set_title('ML1 Push CURL In Sequence Batch vs Random Batch')
+    axs[0][3].set_title('ML1 Push CURL traj 2 step vs traj 1 step')
     axs[0][3].set_xlabel('Total Env Steps')
     axs[0][3].set_ylabel('Avg Test Return')
     plot_curve_avg(axs[0][3], ['{}/curl_paper_ml1_push'.format(local_path),
@@ -1241,7 +1240,7 @@ def ml1_push_display():
                    '-', legend="curl_no_kl_in_sequence_traj_2_step", limit=limit)
 
     plot_curve_avg(axs[0][3], ['{}/curl-push-v1_2'.format(local_path)],
-                   '-', legend="curl_no_kl_in_sequence__traj_1_step", limit=limit)
+                   '-', legend="curl_no_kl_in_sequence_traj_1_step", limit=limit)
     #==========================================================================
     axs[1][0].set_title('ML1 Push CURL KL vs no KL')
     axs[1][0].set_xlabel('Total Env Steps')
@@ -1254,7 +1253,7 @@ def ml1_push_display():
                                '{}/curl-push-v1'.format(local_path)],
                    '-', legend="curl_no_kl", limit=limit)
     # ==========================================================================
-    axs[1][1].set_title('ML1 Push CURL In Sequence Batch vs Random Batch')
+    axs[1][1].set_title('ML1 Push CURL In Sequence Aug vs Random Aug')
     axs[1][1].set_xlabel('Total Env Steps')
     axs[1][1].set_ylabel('Avg Test Return')
 
@@ -1265,6 +1264,40 @@ def ml1_push_display():
     plot_curve_avg(axs[1][1], ['{}/curl-push-v1_1'.format(local_path)],
                    '-', legend="curl_no_kl_not_in_sequence", limit=limit)
 
+    # ==========================================================================
+    axs[1][2].set_title('ML1 Push CURL rich traj Q vs no Q')
+    axs[1][2].set_xlabel('Total Env Steps')
+    axs[1][2].set_ylabel('Avg Test Return')
+
+    plot_curve_avg(axs[1][2], ['{}/curl-push-v1_2'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence_traj_1_step", limit=limit)
+    plot_curve_avg(axs[1][2], ['{}/curl_origin_shaped_metaworld_ml1_push_4'.format(local_path)],
+                   '-', legend="curl_no_kl_no_q_in_sequence_rich_traj_1_step", limit=limit)
+    # ==========================================================================
+    axs[1][3].set_title('ML1 Push CURL comparison')
+    axs[1][3].set_xlabel('Total Env Steps')
+    axs[1][3].set_ylabel('Avg Test Return')
+
+    plot_curve_avg(axs[1][3],
+                   ['{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(local_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push'.format(namazu_path),
+                    '{}/multitask_oracle_auto_temp_metaworld_ml1_push_1'.format(namazu_path)],
+                   '-', legend="multitask_oracle", limit=limit)
+
+    plot_curve_avg(axs[1][3],
+                   ['{}/curl_origin_shaped_metaworld_ml1_push_2'.format(local_path)],
+                   '-', legend="curl_rich_traj_2_step_no_q_no_kl", limit=limit)
+
+    plot_curve_avg(axs[1][3], ['{}/curl-push-v1_2'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence_traj_1_step",
+                   limit=limit)
+    plot_curve_avg(axs[1][3], ['{}/curl_paper_ml1_push'.format(local_path),
+                               '{}/curl-push-v1'.format(local_path)],
+                   '-', legend="curl_no_kl", limit=limit)
+
+    plot_curve_avg(axs[1][3], ['{}/curl_paper_ml1_push'.format(local_path),
+                               '{}/curl-push-v1'.format(local_path)],
+                   '-', legend="curl_no_kl_in_sequence", limit=limit)
     plt.show()
 
 
@@ -1278,6 +1311,6 @@ if __name__ == '__main__':
     # sim_policy()
     # sim_policy2()
     # ml1_push_exp_plot()
-    ml1_push_display()
+    # ml1_push_display()
     # mujoco_exp_plot()
     ml1_tasks_comparison()
