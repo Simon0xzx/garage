@@ -558,7 +558,7 @@ class CURL(MetaRLAlgorithm):
             # KL constraint on z if probabilistic
             kl_div = self._policy.compute_kl_div()
             kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward(retain_graph=True)
+            kl_loss.backward()
 
         contrastive_loss.backward()
         self.query_optimizer.step()

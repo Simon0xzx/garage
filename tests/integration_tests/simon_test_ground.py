@@ -1300,6 +1300,37 @@ def ml1_push_display():
                    '-', legend="curl_no_kl_in_sequence", limit=limit)
     plt.show()
 
+def ml1_hype_param_plot():
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_fine_tune'
+    fig, axs = plt.subplots(1, 4)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95,
+                        wspace=0.25, hspace=0.30)
+    limit = 200
+    task_list = ['faucet-close-v1','handle-press-v1', 'plate-slide-side-v1', 'soccer-v1']
+
+    exp_set = set(os.listdir(local_path))
+    plot_curve_avg(axs[0], ['{}/faucet-close-v1'.format(local_path)],
+                   '-', legend="curl", limit=limit)
+    plot_curve_avg(axs[0], ['{}/faucet-close-v1_1'.format(local_path)],
+                   '-', legend="curl_emphasized", limit=limit)
+
+    plot_curve_avg(axs[1], ['{}/handle-press-v1'.format(local_path)],
+                   '-', legend="curl", limit=limit)
+    plot_curve_avg(axs[1], ['{}/handle-press-v1_1'.format(local_path)],
+                   '-', legend="curl_emphasized", limit=limit)
+
+    plot_curve_avg(axs[2], ['{}/plate-slide-side-v1'.format(local_path)],
+                   '-', legend="curl", limit=limit)
+    plot_curve_avg(axs[2], ['{}/plate-slide-side-v1_1'.format(local_path)],
+                   '-', legend="curl_emphasized", limit=limit)
+
+    plot_curve_avg(axs[3], ['{}/soccer-v1'.format(local_path)],
+                   '-', legend="curl", limit=limit)
+    # plot_curve_avg(axs[3], ['{}/soccer-v1_1'.format(local_path)],
+    #                '-', legend="curl_emphasized", limit=limit)
+
+    plt.show()
 
 if __name__ == '__main__':
     # ml1_exp_plot()
@@ -1313,4 +1344,5 @@ if __name__ == '__main__':
     # ml1_push_exp_plot()
     # ml1_push_display()
     # mujoco_exp_plot()
-    ml1_tasks_comparison()
+    ml1_hype_param_plot()
+    # ml1_tasks_comparison()
