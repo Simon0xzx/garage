@@ -39,3 +39,11 @@ class MetaRLAlgorithm(RLAlgorithm, abc.ABC):
                 exploration_trajectories.
 
         """
+
+    @abc.abstractmethod
+    def get_encoder_info(self):
+        """
+        Returns encoder info for meta evaluator to collect
+        Returns:
+
+        """

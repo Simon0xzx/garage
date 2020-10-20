@@ -23,7 +23,7 @@ class ContrastiveEncoder(nn.Module, Encoder):
                  input_dim,
                  output_dim,
                  hidden_sizes,
-                 query_sizes,
+                 common_network = True,
                  hidden_nonlinearity=F.relu,
                  hidden_w_init=nn.init.xavier_normal_,
                  hidden_b_init=nn.init.zeros_,
@@ -36,31 +36,33 @@ class ContrastiveEncoder(nn.Module, Encoder):
 
         self._output_dim = output_dim
         self._input_dim = input_dim
-
-        # Initialize common hidden layer
-        self._hidden_layers = nn.ModuleList()
+        self._common_network = common_network
         prev_size = self._input_dim
-        for size in hidden_sizes:
-            hidden_layer = nn.Sequential()
-            if layer_normalization:
-                hidden_layer.add_module('layer_normalization',
-                                         nn.LayerNorm(prev_size))
-            linear_layer = nn.Linear(prev_size, size)
-            hidden_w_init(linear_layer.weight)
-            hidden_b_init(linear_layer.bias)
-            hidden_layer.add_module('linear', linear_layer)
 
-            if hidden_nonlinearity:
-                hidden_layer.add_module('non_linearity',
-                                         _NonLinearity(hidden_nonlinearity))
+        if self._common_network:
+            # Initialize common hidden layer
+            self._hidden_layers = nn.ModuleList()
+            for size in hidden_sizes:
+                hidden_layer = nn.Sequential()
+                if layer_normalization:
+                    hidden_layer.add_module('layer_normalization',
+                                             nn.LayerNorm(prev_size))
+                linear_layer = nn.Linear(prev_size, size)
+                hidden_w_init(linear_layer.weight)
+                hidden_b_init(linear_layer.bias)
+                hidden_layer.add_module('linear', linear_layer)
 
-            self._hidden_layers.append(hidden_layer)
-            prev_size = size
-        hidden_output_size = prev_size
+                if hidden_nonlinearity:
+                    hidden_layer.add_module('non_linearity',
+                                             _NonLinearity(hidden_nonlinearity))
 
+                self._hidden_layers.append(hidden_layer)
+                prev_size = size
+        else:
+            hidden_sizes = hidden_sizes * 2
         # Initialize query and key network layers
-        self._query_layers = QueryKeyModule(hidden_output_size, self._output_dim,
-                                            query_sizes, hidden_nonlinearity,
+        self._query_layers = QueryKeyModule(prev_size, self._output_dim,
+                                            hidden_sizes, hidden_nonlinearity,
                                             hidden_w_init, hidden_b_init,
                                             output_nonlinearity, output_w_init,
                                             output_b_init, layer_normalization)
@@ -70,18 +72,28 @@ class ContrastiveEncoder(nn.Module, Encoder):
 
 
     def forward(self, input, query=True):
-        hidden_output = input
-        for layer in self._hidden_layers:
-            hidden_output = layer(hidden_output)
+        if self._common_network:
+            for layer in self._hidden_layers:
+                input = layer(input)
+
         if query:
-            output = self._query_layers(hidden_output)
+            output = self._query_layers(input)
         else:
-            output = self._key_layers(hidden_output)
+            output = self._key_layers(input)
         return output
+
+    def get_query_net(self):
+        return self._query_layers
+
+    def get_key_net(self):
+        return self._key_layers
 
     @property
     def networks(self):
-        return [self._hidden_layers, self._query_layers, self._key_layers]
+        if self._common_network:
+            return [self._hidden_layers, self._query_layers, self._key_layers]
+        else:
+            return [self._query_layers, self._key_layers]
 
 
     @property

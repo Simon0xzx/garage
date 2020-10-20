@@ -1,6 +1,7 @@
 """Evaluator which tests Meta-RL algorithms on test environments."""
 
 from dowel import logger, tabular
+import numpy as np
 
 from garage import log_multitask_performance, TrajectoryBatch, MultiStepTrajectoryBatch
 from garage.experiment.deterministic import get_seed
@@ -93,6 +94,8 @@ class MetaEvaluator:
                               worker_args=self._worker_args),
                 agents=algo.get_exploration_policy(),
                 envs=self._test_task_sampler.sample_with_goals(1))
+        encoder_means = []
+        encoder_vars = []
         for env_up in self._test_task_sampler.sample_with_goals(self._n_test_tasks):
             policy = algo.get_exploration_policy()
             traj = traj_class.concatenate(*[
@@ -101,6 +104,9 @@ class MetaEvaluator:
                 for _ in range(self._n_exploration_traj)
             ])
             adapted_policy = algo.adapt_policy(policy, traj)
+            encoder_mean, encoder_var = algo.get_encoder_info()
+            encoder_means.append(encoder_mean)
+            encoder_vars.append(encoder_var)
             adapted_traj = self._test_sampler.obtain_samples(
                 self._eval_itr, test_rollouts_per_task * self._max_path_length,
                 adapted_policy, is_multi_step=self._is_multi_step)
@@ -113,6 +119,8 @@ class MetaEvaluator:
             name_map = None
 
         with tabular.prefix(self._prefix + '/' if self._prefix else ''):
+            tabular.record("Average/Z_Mean_Norm", np.average(np.array(encoder_means)))
+            tabular.record("Average/Z_var_Norm", np.average(np.array(encoder_vars)))
             log_multitask_performance(
                 self._eval_itr,
                 traj_class.concatenate(*adapted_trajectories),

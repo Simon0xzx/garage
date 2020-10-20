@@ -30,32 +30,32 @@
 30, reach-v1
 31, button-press-topdown-wall-v1    [curl on namazu] [pearl on namazu][DONE]
 32, reach-wall-v1
-33, peg-insert-side-v1              [curl on namazu] [pearl on namazu][running]              7
+33, peg-insert-side-v1              [curl on namazu] [pearl on namazu][DONE]              7
 34, push-v1
-35, push-wall-v1                    [curl on namazu] [pearl on namazu][running]              6
+35, push-wall-v1                    [curl on namazu] [pearl on namazu][DONE]              6
 36, pick-place-wall-v1
-37, button-press-v1                 [curl on namazu] [pearl on namazu][running]              5
+37, button-press-v1                 [curl on namazu] [pearl on namazu][DONE]              5
 38, pick-place-v1
-39, coffee-pull-v1                  [curl on namazu] [pearl on namazu][running]              4
+39, coffee-pull-v1                  [curl on namazu] [pearl on namazu][DONE]              4
 40, peg-unplug-side-v1
-41, window-close-v1                 [curl on namazu] [pearl on namazu][running]              3
+41, window-close-v1                 [curl on namazu] [pearl on namazu][DONE]              3
 42, window-open-v1
-43, door-open-v1                    [curl on namazu] [pearl on namazu][running]              2
+43, door-open-v1                    [curl on namazu] [pearl on namazu][DONE]              2
 44, door-close-v1
-45, drawer-open-v1
+45, drawer-open-v1                  [curl on namazu] [pearl on namazu][DONE]
 46,
-47, box-close-v1
+47, box-close-v1                    [curl on namazu] [pearl on namazu][DONE]
 48, door-lock-v1
-49, door-unlock-v1
+49, door-unlock-v1                  [curl on namazu] [pearl on namazu][DONE]
 50, bin-picking-v1
 
 
 
 [command]
 conda activate pearl
-python examples/torch/curl_paper_ml1.py --name curl-door-open-v1 --gpu_id 2 --seed 0
+conda activate pearl; python examples/torch/curl_paper_ml1.py --name curl-door-unlock-v1 --gpu_id 5 --seed 0
 
-python examples/torch/pearl_paper_ml1.py --name pearl-peg-insert-side-v1 --gpu_id 7 --seed 0
+conda activate pearl; python examples/torch/pearl_paper_ml1.py --name pearl-door-unlock-v1 --gpu_id 5 --seed 0
 
 [backup]
 pick-out-of-hole-v1

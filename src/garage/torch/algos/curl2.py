@@ -10,6 +10,7 @@ from dowel import logger
 import numpy as np
 import torch
 import torch.nn.functional as F
+from dowel import tabular
 
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
@@ -119,6 +120,8 @@ class CURL2(MetaRLAlgorithm):
                  optimizer_class=torch.optim.Adam,
                  use_information_bottleneck=True,
                  use_next_obs_in_context=False,
+                 use_kl_loss=False,
+                 use_q_loss=True,
                  meta_batch_size=64,
                  num_steps_per_epoch=1000,
                  num_initial_steps=100,
@@ -161,6 +164,8 @@ class CURL2(MetaRLAlgorithm):
         self._kl_lambda = kl_lambda
         self._use_information_bottleneck = use_information_bottleneck
         self._use_next_obs_in_context = use_next_obs_in_context
+        self._use_kl_loss = use_kl_loss
+        self._use_q_loss = use_q_loss
 
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
@@ -186,8 +191,7 @@ class CURL2(MetaRLAlgorithm):
                                         max_path_length=max_path_length,
                                         worker_class=CURLWorker,
                                         worker_args=worker_args,
-                                        n_test_tasks=num_test_tasks,
-                                        n_test_rollouts=5)
+                                        n_test_tasks=num_test_tasks)
 
         env_spec = env[0]()
         encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck)
@@ -428,18 +432,32 @@ class CURL2(MetaRLAlgorithm):
 
     def _train_once(self):
         """Perform one iteration of training."""
+        policy_loss_list = []
+        qf_loss_list = []
+        contrastive_loss_list = []
+        alpha_loss_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            self._optimize_policy(indices)
+            policy_loss, qf_loss, contrastive_loss, alpha_loss = self._optimize_policy(indices)
+            policy_loss_list.append(policy_loss)
+            qf_loss_list.append(qf_loss)
+            contrastive_loss_list.append(contrastive_loss)
+            alpha_loss_list.append(alpha_loss)
+
+        with tabular.prefix('MetaTrain/Average/'):
+            tabular.record('PolicyLoss', np.average(np.array(policy_loss_list)))
+            tabular.record('QfLoss', np.average(np.array(qf_loss_list)))
+            tabular.record('ContrastiveLoss', np.average(np.array(contrastive_loss_list)))
+            tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
 
     def augment_path(self, path, batch_size, in_sequence = False):
-        path_len = path['observations'].shape[0]
+        path_len = path['actions'].shape[0]
         augmented_path = {}
         if in_sequence:
             if batch_size > path_len:
                 raise Exception(
-                    'Embedding_batch size cannot be longer than path length')
+                    'Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
             seq_begin = np.random.randint(0, path_len - batch_size)
             augmented_path['observations'] = path['observations'][seq_begin:seq_begin + batch_size]
             augmented_path['actions'] = path['actions'][seq_begin:seq_begin + batch_size]
@@ -486,7 +504,6 @@ class CURL2(MetaRLAlgorithm):
         """
         num_tasks = len(indices)
         contrastive_loss = self._compute_contrastive_loss(indices)
-
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
@@ -523,24 +540,30 @@ class CURL2(MetaRLAlgorithm):
         qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
         qf_loss = qf1_loss + qf2_loss
 
-        # KL constraint on z if probabilistic
-        # if self._use_information_bottleneck:
-        #     kl_div = self._policy.compute_kl_div()
-        #     kl_loss = self._kl_lambda * kl_div
-        #     kl_loss.backward(retain_graph=True)
+        # Optimize Q network and context encoder
         self.context_optimizer.zero_grad()
         self.query_optimizer.zero_grad()
 
-        # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
-        qf_loss.backward()
+        qf_loss.backward(retain_graph=True)
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
+
+        if not self._use_q_loss:
+            self.context_optimizer.zero_grad()
+            self.query_optimizer.zero_grad()
+
+        if self._use_kl_loss and self._use_information_bottleneck:
+            # KL constraint on z if probabilistic
+            kl_div = self._policy.compute_kl_div()
+            kl_loss = self._kl_lambda * kl_div
+            kl_loss.backward()
 
         contrastive_loss.backward()
         self.query_optimizer.step()
         self.context_optimizer.step()
+
 
         query_net = self._context_encoder.networks[1]
         key_net = self._context_encoder.networks[2]
@@ -573,11 +596,13 @@ class CURL2(MetaRLAlgorithm):
         self._policy_optimizer.step()
 
         # ===== Temperature Objective =====
+        alpha_loss_cpu = np.array([0])
         if self._use_automatic_entropy_tuning:
             alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
             self._alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self._alpha_optimizer.step()
+            alpha_loss_cpu = alpha_loss.detach().cpu().numpy()
 
         # ===== Update Target Network =====
         target_qfs = [self._target_qf1, self._target_qf2]
@@ -585,6 +610,11 @@ class CURL2(MetaRLAlgorithm):
         for target_qf, qf in zip(target_qfs, qfs):
             for t_param, param in zip(target_qf.parameters(), qf.parameters()):
                 t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
+
+        qf_loss_cpu = qf_loss.detach().cpu().numpy()
+        policy_loss_cpu = policy_loss.detach().cpu().numpy()
+        contrastive_loss_cpu = contrastive_loss.detach().cpu().numpy()
+        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu
 
 
     def _obtain_samples(self,

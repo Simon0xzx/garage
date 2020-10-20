@@ -139,6 +139,11 @@ class CURL(MetaRLAlgorithm):
                  embedding_batch_in_sequence=False,
                  num_pos_contrastive = 2,
                  num_neg_contrastive = 0,
+                 contrastive_mean_only = False,
+                 new_contrastive_formula = False,
+                 new_weight_update = False,
+                 encoder_common_net=True,
+                 single_alpha = False,
                  update_post_train=1):
 
         self._env = env
@@ -183,8 +188,14 @@ class CURL(MetaRLAlgorithm):
         self._reward_scale = reward_scale
         self._update_post_train = update_post_train
         self._task_idx = None
-
         self._is_resuming = False
+
+        # Architecture choice
+        self._contrastive_mean_only = contrastive_mean_only
+        self._new_contrastive_formula = new_contrastive_formula
+        self._new_weight_update = new_weight_update
+        self._encoder_common_net = encoder_common_net
+        self._single_alpha = single_alpha
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
@@ -201,8 +212,10 @@ class CURL(MetaRLAlgorithm):
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         self._context_encoder = encoder_class(input_dim=encoder_in_dim,
                                         output_dim=encoder_out_dim,
-                                        hidden_sizes=encoder_hidden_sizes,
-                                        query_sizes=encoder_hidden_sizes)
+                                        common_network= self._encoder_common_net,
+                                        hidden_sizes=encoder_hidden_sizes)
+        if self._contrastive_mean_only:
+            encoder_out_dim = self._latent_dim
         self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
 
         # Automatic entropy coefficient tuning
@@ -215,13 +228,16 @@ class CURL(MetaRLAlgorithm):
             else:
                 self._target_entropy = -np.prod(
                     env_spec.action_space.shape).item()
-            self._log_alpha = torch.Tensor([
-                                               self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
-            self._alpha_optimizer = optimizer_class([self._log_alpha],
-                                                    lr=policy_lr)
+            if self._single_alpha:
+                self._log_alpha = torch.Tensor([self._initial_log_entropy]).requires_grad_()
+            else:
+                self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = optimizer_class([self._log_alpha], lr=policy_lr)
         else:
-            self._log_alpha = torch.Tensor(
-                [self._fixed_alpha] * self._num_train_tasks).log()
+            if self._single_alpha:
+                self._log_alpha = torch.Tensor([self._fixed_alpha]).log()
+            else:
+                self._log_alpha = torch.Tensor([self._fixed_alpha] * self._num_train_tasks).log()
 
         self._context_lr = context_lr
         self._policy = policy_class(
@@ -254,10 +270,16 @@ class CURL(MetaRLAlgorithm):
             self._qf2.parameters(),
             lr=qf_lr,
         )
-        self.context_optimizer = optimizer_class(
-            self._context_encoder.networks[0].parameters(),
-            lr=context_lr,
-        )
+        if self._encoder_common_net:
+            self.context_optimizer = optimizer_class(
+                self._context_encoder.networks[0].parameters(),
+                lr=context_lr,
+            )
+        if self._new_weight_update:
+            self.contrastive_weight_optimizer = optimizer_class(
+                [self._contrastive_weight],
+                lr=context_lr,
+            )
         self.query_optimizer = optimizer_class(
             self._context_encoder.networks[1].parameters(),
             lr=context_lr,
@@ -326,15 +348,23 @@ class CURL(MetaRLAlgorithm):
             self._qf2.parameters(),
             lr=3E-4,
         )
-        self.context_optimizer = torch.optim.Adam(
-            self._context_encoder.networks[0].parameters(),
-            lr=3E-4,
-        )
+        if self._encoder_common_net:
+            self.context_optimizer = torch.optim.Adam(
+                self._context_encoder.networks[0].parameters(),
+                lr=3E-4,
+            )
         self.query_optimizer = torch.optim.Adam(
-            self._context_encoder.networks[1].parameters(),
+            self._context_encoder.get_query_net().parameters(),
             lr=3E-4,
         )
         print('Reset optimizer state')
+
+    def get_encoder_info(self):
+        mean = self._policy.z_means.detach().cpu().numpy()
+        mean_norm = np.linalg.norm(mean)
+        var = self._policy.z_vars.detach().cpu().numpy()
+        var_norm = np.linalg.norm(var)
+        return mean_norm, var_norm
 
     def fill_expert_traj(self, expert_traj_dir):
         print("Filling Expert trajectory to replay buffer")
@@ -436,10 +466,11 @@ class CURL(MetaRLAlgorithm):
         qf_loss_list = []
         contrastive_loss_list = []
         alpha_loss_list = []
+        alpha_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            policy_loss, qf_loss, contrastive_loss, alpha_loss = self._optimize_policy(indices)
+            policy_loss, qf_loss, contrastive_loss, alpha_loss, alpha = self._optimize_policy(indices)
             policy_loss_list.append(policy_loss)
             qf_loss_list.append(qf_loss)
             contrastive_loss_list.append(contrastive_loss)
@@ -450,6 +481,8 @@ class CURL(MetaRLAlgorithm):
             tabular.record('QfLoss', np.average(np.array(qf_loss_list)))
             tabular.record('ContrastiveLoss', np.average(np.array(contrastive_loss_list)))
             tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
+            tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
+            tabular.record('Alpha', np.average(np.array(alpha_list)))
 
     def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['actions'].shape[0]
@@ -472,6 +505,31 @@ class CURL(MetaRLAlgorithm):
 
         return augmented_path
 
+    def _compute_contrastive_loss_new(self, indices):
+        # Optimize CURL encoder
+        context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
+        aug1 = torch.as_tensor(context_augs[0], device=global_device())
+        aug2 = torch.as_tensor(context_augs[1], device=global_device())
+        # path_batches = self.sample_path_batch(indices)
+
+        # similar_contrastive
+        query = self._context_encoder(aug1, query=True)
+        key = self._context_encoder(aug2, query=False)
+        t,b,d = query.size()
+        query = query.view(t * b, d)
+        key = key.view(t * b, d)
+        if self._contrastive_mean_only:
+            assert self._contrastive_weight.size()[0] == self._latent_dim
+            query = query[:, :self._latent_dim]
+            key = key[:, :self._latent_dim]
+        loss_fun = torch.nn.CrossEntropyLoss()
+        left_product = torch.matmul(query, self._contrastive_weight.to(global_device()))
+        logits = torch.matmul(left_product, key.T)
+        logits = logits - torch.max(logits, axis=1)[0]
+        labels = torch.arange(logits.shape[0]).to(global_device())
+        loss = loss_fun(logits, labels)
+        return loss
+
     def _compute_contrastive_loss(self, indices):
         # Optimize CURL encoder
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
@@ -482,6 +540,10 @@ class CURL(MetaRLAlgorithm):
         # similar_contrastive
         query = self._context_encoder(aug1, query=True)
         key = self._context_encoder(aug2, query=False)
+        if self._contrastive_mean_only:
+            assert self._contrastive_weight.size()[0] == self._latent_dim
+            query = query[:, :self._latent_dim]
+            key = key[:, :self._latent_dim]
         loss_fun = torch.nn.CrossEntropyLoss()
         loss = None
         for i in range(len(indices)):
@@ -503,7 +565,10 @@ class CURL(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-        contrastive_loss = self._compute_contrastive_loss(indices)
+        if self._new_contrastive_formula:
+            contrastive_loss = self._compute_contrastive_loss_new(indices)
+        else:
+            contrastive_loss = self._compute_contrastive_loss(indices)
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
@@ -541,18 +606,24 @@ class CURL(MetaRLAlgorithm):
         qf_loss = qf1_loss + qf2_loss
 
         # Optimize Q network and context encoder
-        self.context_optimizer.zero_grad()
+        if self._encoder_common_net:
+            self.context_optimizer.zero_grad()
         self.query_optimizer.zero_grad()
+        if self._new_weight_update:
+            self.contrastive_weight_optimizer.zero_grad()
 
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
-        qf_loss.backward()
+        qf_loss.backward(retain_graph=True)
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
 
         if not self._use_q_loss:
-            self.context_optimizer.zero_grad()
+            if self._encoder_common_net:
+                self.context_optimizer.zero_grad()
             self.query_optimizer.zero_grad()
+            if self._new_weight_update:
+                self.contrastive_weight_optimizer.zero_grad()
 
         if self._use_kl_loss and self._use_information_bottleneck:
             # KL constraint on z if probabilistic
@@ -562,14 +633,18 @@ class CURL(MetaRLAlgorithm):
 
         contrastive_loss.backward()
         self.query_optimizer.step()
-        self.context_optimizer.step()
+        if self._encoder_common_net:
+            self.context_optimizer.step()
 
+        if self._new_weight_update:
+            self.contrastive_weight_optimizer.step()
 
-        query_net = self._context_encoder.networks[1]
-        key_net = self._context_encoder.networks[2]
+        query_net = self._context_encoder.get_query_net()
+        key_net = self._context_encoder.get_key_net()
         with torch.no_grad():
-            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
-            self._contrastive_weight.grad.zero_()
+            if not self._new_weight_update:
+                self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
+                self._contrastive_weight.grad.zero_()
             # update key net with 0.05 of query net
             for target_param, param in zip(key_net.parameters(), query_net.parameters()):
                 target_param.data.copy_(self._soft_target_tau * param.data +
@@ -598,10 +673,12 @@ class CURL(MetaRLAlgorithm):
         # ===== Temperature Objective =====
         alpha_loss_cpu = np.array([0])
         if self._use_automatic_entropy_tuning:
-            alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
+            alpha = (self._get_log_alpha(indices)).exp()
+            alpha_loss = (-alpha * (log_pi.detach() + self._target_entropy)).mean()
             self._alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self._alpha_optimizer.step()
+            alpha_avg_cpu = np.average(alpha.detach().cpu().numpy())
             alpha_loss_cpu = alpha_loss.detach().cpu().numpy()
 
         # ===== Update Target Network =====
@@ -614,7 +691,7 @@ class CURL(MetaRLAlgorithm):
         qf_loss_cpu = qf_loss.detach().cpu().numpy()
         policy_loss_cpu = policy_loss.detach().cpu().numpy()
         contrastive_loss_cpu = contrastive_loss.detach().cpu().numpy()
-        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu
+        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu, alpha_avg_cpu
 
 
     def _obtain_samples(self,
@@ -971,13 +1048,16 @@ class CURL(MetaRLAlgorithm):
             torch.Tensor: log_alpha. shape is (1, self.buffer_batch_size)
 
         """
-        log_alpha = self._log_alpha
-        one_hots = np.zeros((len(indices) * self._batch_size, self._num_train_tasks), dtype=np.float32)
-        for i in range(len(indices)):
-            one_hots[self._batch_size * i: self._batch_size * (i + 1), indices[i]] = 1
-        one_hots = torch.as_tensor(one_hots, device=global_device())
-        ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
-        return ret
+        if self._single_alpha:
+            return self._log_alpha[0] * torch.ones(len(indices) * self._batch_size, dtype=torch.float32, device=global_device())
+        else:
+            log_alpha = self._log_alpha
+            one_hots = np.zeros((len(indices) * self._batch_size, self._num_train_tasks), dtype=np.float32)
+            for i in range(len(indices)):
+                one_hots[self._batch_size * i: self._batch_size * (i + 1), indices[i]] = 1
+            one_hots = torch.as_tensor(one_hots, device=global_device())
+            ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
+            return ret
 
 class CURLWorker(DefaultWorker):
     """A worker class used in sampling for CURL.

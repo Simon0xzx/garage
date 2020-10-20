@@ -154,3 +154,4 @@ garage/config_personal.py
 sandbox/
 MUJOCO_LOG.TXT
 *.pkl
+/tests/integration_tests/exper_traj_1.pickle

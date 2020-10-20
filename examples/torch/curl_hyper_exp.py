@@ -19,36 +19,42 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=200)
+@click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
-@click.option('--num_train_tasks', default=50)
-@click.option('--num_test_tasks', default=10)
+@click.option('--num_train_tasks', default=2)
+@click.option('--num_test_tasks', default=2)
 @click.option('--latent_size', default=7)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=4000)
+@click.option('--num_steps_per_epoch', default=2) # 4000
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
 @click.option('--batch_size', default=256)
 @click.option('--embedding_batch_size', default=128)
 @click.option('--embedding_mini_batch_size', default=128)
-@click.option('--replay_buffer_size', default=1000000)
-@click.option('--use_next_obs', default=False)
-@click.option('--in_sequence_path_aug', default=True)
-@click.option('--emphasized_network', default=True)
-@click.option('--use_kl_loss', default=False)
-@click.option('--use_q_loss', default=True)
-@click.option('--max_path_length', default=200)
 @click.option('--meta_batch_size', default=16)
 @click.option('--num_tasks_sample', default=15)
 @click.option('--reward_scale', default=10)
+@click.option('--max_path_length', default=200)
+@click.option('--replay_buffer_size', default=1000000)
+@click.option('--use_next_obs', default=False)
+@click.option('--in_sequence_path_aug', default=True)
+@click.option('--emphasized_network', default=False)
+@click.option('--use_kl_loss', default=True)
+@click.option('--use_q_loss', default=True)
+
+@click.option('--contrastive_mean_only', default=False)
+@click.option('--new_contrastive_formula', default=False)
+@click.option('--new_weight_update', default=False)
+@click.option('--encoder_common_net', default=True)
+@click.option('--single_alpha', default=False)
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_fine_tune')
+@click.option('--prefix', default='curl_new_loss_test')
 @wrap_experiment
-def curl_paper_ml1(ctxt=None,
+def curl_hype_ml1(ctxt=None,
                              seed=1,
                              num_epochs=200,
                              num_train_tasks=50,
@@ -71,8 +77,13 @@ def curl_paper_ml1(ctxt=None,
                              use_next_obs=False,
                              in_sequence_path_aug=True,
                              emphasized_network=False,
-                             use_kl_loss=False,
+                             use_kl_loss=True,
                              use_q_loss=True,
+                             contrastive_mean_only=False,
+                             new_contrastive_formula=False,
+                             new_weight_update=False,
+                             encoder_common_net=True,
+                             single_alpha=False,
                              gpu_id = 0,
                              name='push-v1',
                              prefix='curl_fine_tune',
@@ -168,7 +179,12 @@ def curl_paper_ml1(ctxt=None,
         use_next_obs_in_context=use_next_obs,
         embedding_batch_in_sequence=in_sequence_path_aug,
         use_kl_loss=use_kl_loss,
-        use_q_loss=use_q_loss
+        use_q_loss=use_q_loss,
+        contrastive_mean_only=contrastive_mean_only,
+        new_contrastive_formula=new_contrastive_formula,
+        new_weight_update=new_weight_update,
+        encoder_common_net=encoder_common_net,
+        single_alpha=single_alpha
     )
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
@@ -183,4 +199,5 @@ def curl_paper_ml1(ctxt=None,
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-curl_paper_ml1()
+if __name__ == '__main__':
+    curl_hype_ml1()
