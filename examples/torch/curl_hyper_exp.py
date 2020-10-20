@@ -21,12 +21,12 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.command()
 @click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
-@click.option('--num_train_tasks', default=2)
-@click.option('--num_test_tasks', default=2)
+@click.option('--num_train_tasks', default=50)
+@click.option('--num_test_tasks', default=10)
 @click.option('--latent_size', default=7)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=2) # 4000
+@click.option('--num_steps_per_epoch', default=4000) # 4000
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
