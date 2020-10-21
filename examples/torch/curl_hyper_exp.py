@@ -44,11 +44,17 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--use_kl_loss', default=True, type=bool)
 @click.option('--use_q_loss', default=True, type=bool)
 
-@click.option('--contrastive_mean_only', default=False, type=bool)
-@click.option('--new_contrastive_formula', default=False, type=bool)
-@click.option('--new_weight_update', default=False, type=bool)
-@click.option('--encoder_common_net', default=True, type=bool)
-@click.option('--single_alpha', default=False, type=bool)
+# @click.option('--contrastive_mean_only', default=False, type=bool)
+# @click.option('--new_contrastive_formula', default=False, type=bool)
+# @click.option('--new_weight_update', default=False, type=bool)
+# @click.option('--encoder_common_net', default=True, type=bool)
+# @click.option('--single_alpha', default=False, type=bool)
+
+@click.option('--contrastive_mean_only', default=True, type=bool)
+@click.option('--new_contrastive_formula', default=True, type=bool)
+@click.option('--new_weight_update', default=True, type=bool)
+@click.option('--encoder_common_net', default=False, type=bool)
+@click.option('--single_alpha', default=True, type=bool)
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')

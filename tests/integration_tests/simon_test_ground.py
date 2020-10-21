@@ -1387,25 +1387,52 @@ def ml1_hype_param_plot():
     plt.show()
 
 def ml1_push_detail():
-    hype_tune_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_loss'
-    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/experiment'
-    fig, axs = plt.subplots(1, 1)
-    limit = 100
+    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_loss_test'
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_loss_test'
+    old_ml1_result = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
+    row, col = 3, 3
+    fig, axs = plt.subplots(row, col)
+    limit = 200
     title = 'MetaTest/Average/AverageReturn'
     x_title = 'MetaTest/Average/Iteration'
-    axs.set_title('ML1 Push CURL')
-    axs.set_xlabel('Total Env Steps')
-    axs.set_ylabel('Avg Test Return')
-    plot_curve_avg(axs, ['{}/curl-push-v1_2'.format(local_path)],
-                   '-', legend="old_curl", title = title, x_title= x_title, limit=limit)
 
-    plot_curve_avg(axs, ['{}/push-v1_4'.format(hype_tune_path)],
-                   '-', legend="curl_z_mean_loss", title=title,
-                   x_title=x_title, limit=limit)
+    task_lists = ['faucet-close-v1', 'peg-insert-side-v1', 'push-wall-v1',
+                         'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
+                         'soccer-v1', 'stick-push-v1', 'push-v1']
+    label_list = ['origin_curl', 'curl_new_contrastive_opt', 'curl_new_weight_update',
+                  'curl_no_common_net', 'curl_mean_only', 'curl_single_alpha']
+    namazu_task_list = set(os.listdir(namazu_path))
+    local_task_list = set(os.listdir(local_path))
+    for i, task in enumerate(task_lists):
+        row_cnt = int(i/row)
+        col_cnt = i % col if i % col >= 0 else (i % col) + col
+        subplot_axs = axs[row_cnt][col_cnt]
+        subplot_axs.set_title('CURL ML1 {}'.format(task))
+        subplot_axs.set_xlabel('Total Env Steps')
+        subplot_axs.set_ylabel('Avg Test Return')
+        if task != 'push-v1':
+            plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
+                           '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
+            plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
+                           '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
 
-    plot_curve_avg(axs, ['{}/push-v1_6'.format(hype_tune_path)],
-                   '-', legend="curl_z_mean_loss_adam_weight_no_network", title=title,
-                   x_title=x_title, limit=limit)
+
+        for j in range(6):
+            label = label_list[j]
+            task_name = '{}{}'.format(task, '_{}'.format(j) if j > 0 else '')
+            if task_name in namazu_task_list:
+                try:
+                    plot_curve_avg(subplot_axs, ['{}/{}'.format(namazu_path, task_name)],
+                               '-', legend=label, title=title, x_title=x_title, limit=limit)
+                except:
+                    pass
+            if task_name in local_task_list:
+                try:
+                    plot_curve_avg(subplot_axs, ['{}/{}'.format(local_path, task_name)],
+                               '-', legend=label, title=title, x_title=x_title, limit=limit)
+                except:
+                    pass
+
 
     plt.show()
 

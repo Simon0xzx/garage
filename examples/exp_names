@@ -72,14 +72,37 @@ handle-press-v1
 plate-slide-side-v1
 
 [command]
-
+2nd iter + new contrastive formula
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name push-wall-v1 --gpu_id 0 --seed 0 --new_contrastive_formula true
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-pull-v1 --gpu_id 0 --seed 0 --new_contrastive_formula true
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --gpu_id 1 --seed 0 --new_contrastive_formula true
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name peg-insert-side-v1 --gpu_id 1 --seed 0 --new_contrastive_formula true
+##conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --gpu_id 1 --seed 0 --new_contrastive_formula true
+##conda activate pearl; python examples/torch/curl_hyper_exp.py --name peg-insert-side-v1 --gpu_id 1 --seed 0 --new_contrastive_formula true
 
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --gpu_id 2 --seed 0 --new_contrastive_formula true
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --gpu_id 2 --seed 0 --new_contrastive_formula true
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name handle-press-v1 --gpu_id 3 --seed 0 --new_contrastive_formula true
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --gpu_id 3 --seed 0 --new_contrastive_formula true
+# [Local Offset -1] conda activate pearl; python examples/torch/curl_hyper_exp.py --name handle-press-v1 --gpu_id 3 --seed 0 --new_contrastive_formula true
+# [Local Offset -1] conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --gpu_id 3 --seed 0 --new_contrastive_formula true
+
+3rd iter + mean only
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name push-wall-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-pull-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name peg-insert-side-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 2
+
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 5
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name handle-press-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 4
+
+4th iter + new weight update & no common net
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name push-wall-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --new_weight_update true --encoder_common_net false --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-pull-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --new_weight_update true --encoder_common_net false --gpu_id 1
+[yet to run]
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --new_weight_update true --encoder_common_net false --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name peg-insert-side-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only --new_weight_update true --encoder_common_net false true --gpu_id 2
+
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 5
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name handle-press-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 0 --new_contrastive_formula true --contrastive_mean_only true --gpu_id 4
 

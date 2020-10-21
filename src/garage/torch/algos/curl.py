@@ -334,7 +334,7 @@ class CURL(MetaRLAlgorithm):
             for i in range(num_train_tasks)
         }
         self._task_idx = 0
-        print("Updated with new envipickleronment setup")
+        print("Updated with new environment setup")
 
         self._policy_optimizer = torch.optim.Adam(
             self._policy.networks[1].parameters(),
@@ -1049,7 +1049,7 @@ class CURL(MetaRLAlgorithm):
 
         """
         if self._single_alpha:
-            return self._log_alpha[0] * torch.ones(len(indices) * self._batch_size, dtype=torch.float32, device=global_device())
+            return self._log_alpha
         else:
             log_alpha = self._log_alpha
             one_hots = np.zeros((len(indices) * self._batch_size, self._num_train_tasks), dtype=np.float32)
