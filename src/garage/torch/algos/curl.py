@@ -133,6 +133,7 @@ class CURL(MetaRLAlgorithm):
                  embedding_batch_size=1024,
                  embedding_mini_batch_size=1024,
                  max_path_length=1000,
+                 encoder_path_sample_len=64,
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
@@ -171,6 +172,7 @@ class CURL(MetaRLAlgorithm):
         self._use_next_obs_in_context = use_next_obs_in_context
         self._use_kl_loss = use_kl_loss
         self._use_q_loss = use_q_loss
+        self._encoder_path_sample_len = encoder_path_sample_len
 
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
@@ -485,6 +487,27 @@ class CURL(MetaRLAlgorithm):
             tabular.record('Alpha', np.average(np.array(alpha_list)))
 
     def augment_path(self, path, batch_size, in_sequence = False):
+        path_len = path['actions'].shape[0]
+        augmented_path = {}
+        if in_sequence:
+            if self._encoder_path_sample_len > path_len:
+                raise Exception('Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
+            seq_begin = np.random.randint(0, path_len - self._encoder_path_sample_len, batch_size)
+            augmented_path['observations'] = np.vstack([path['observations'][i:i + self._encoder_path_sample_len] for i in seq_begin])
+            augmented_path['actions'] = np.vstack([path['actions'][i:i + self._encoder_path_sample_len] for i in seq_begin])
+            augmented_path['rewards'] = np.vstack([path['rewards'][i:i + self._encoder_path_sample_len] for i in seq_begin])
+            augmented_path['next_observations'] = np.vstack([path['next_observations'][i:i + self._encoder_path_sample_len] for i in seq_begin])
+        else:
+            seq_idx = np.random.choice(path_len, batch_size * self._encoder_path_sample_len)
+            augmented_path['observations'] = path['observations'][seq_idx]
+            augmented_path['actions'] = path['actions'][seq_idx]
+            augmented_path['rewards'] = path['rewards'][seq_idx]
+            augmented_path['next_observations'] = path['next_observations'][seq_idx]
+
+        return augmented_path
+
+
+    def augment_path_old(self, path, batch_size, in_sequence = False):
         path_len = path['actions'].shape[0]
         augmented_path = {}
         if in_sequence:

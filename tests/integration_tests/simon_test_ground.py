@@ -1390,48 +1390,55 @@ def ml1_push_detail():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_loss_test'
     namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_loss_test'
     old_ml1_result = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
-    row, col = 3, 3
+    row, col = 4, 2
     fig, axs = plt.subplots(row, col)
-    limit = 200
+    limit = 100
     title = 'MetaTest/Average/AverageReturn'
-    x_title = 'MetaTest/Average/Iteration'
+    # title='MetaTest/Average/Z_var_Norm'
+    # title='MetaTrain/Average/ContrastiveLoss'
+    x_title = 'TotalEnvSteps'
 
     task_lists = ['faucet-close-v1', 'peg-insert-side-v1', 'push-wall-v1',
-                         'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
-                         'soccer-v1', 'stick-push-v1', 'push-v1']
-    label_list = ['origin_curl', 'curl_new_contrastive_opt', 'curl_new_weight_update',
-                  'curl_no_common_net', 'curl_mean_only', 'curl_single_alpha']
+                  'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
+                  'soccer-v1', 'stick-push-v1']
+    label_list = ['origin_curl', 'curl_vectorized_encoder_loss', 'curl_common_net',
+                  'curl_no_common_net']
+    display_list = ['peg-insert-side-v1_3', 'faucet-close-v1', 'push-wall-v1_2', 'stick-pull-v1_2', 'handle-press-v1', 'plate-slide-side-v1_2', 'soccer-v1_3', 'stick-push-v1_2']
     namazu_task_list = set(os.listdir(namazu_path))
     local_task_list = set(os.listdir(local_path))
     for i, task in enumerate(task_lists):
-        row_cnt = int(i/row)
+        row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
         subplot_axs = axs[row_cnt][col_cnt]
         subplot_axs.set_title('CURL ML1 {}'.format(task))
         subplot_axs.set_xlabel('Total Env Steps')
-        subplot_axs.set_ylabel('Avg Test Return')
-        if task != 'push-v1':
-            plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
-                           '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
-            plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
-                           '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
+        subplot_axs.set_ylabel('Total Test Return')
+        # subplot_axs.set_ylabel('Z Variance Norm')
+        # subplot_axs.set_ylabel('ContrastiveLoss')
+
+        # plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
+        #                    '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
+        # plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
+        #                    '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
 
 
-        for j in range(6):
+        for j in range(len(label_list)):
+            if j == 3 or j == 2: continue
             label = label_list[j]
             task_name = '{}{}'.format(task, '_{}'.format(j) if j > 0 else '')
+            # if task_name not in display_list: continue
             if task_name in namazu_task_list:
                 try:
                     plot_curve_avg(subplot_axs, ['{}/{}'.format(namazu_path, task_name)],
                                '-', legend=label, title=title, x_title=x_title, limit=limit)
                 except:
                     pass
-            if task_name in local_task_list:
-                try:
-                    plot_curve_avg(subplot_axs, ['{}/{}'.format(local_path, task_name)],
-                               '-', legend=label, title=title, x_title=x_title, limit=limit)
-                except:
-                    pass
+            # if task_name in local_task_list:
+            #     try:
+            #         plot_curve_avg(subplot_axs, ['{}/{}'.format(local_path, task_name)],
+            #                    '-', legend=label, title=title, x_title=x_title, limit=limit)
+            #     except:
+            #         pass
 
 
     plt.show()

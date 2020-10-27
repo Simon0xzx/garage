@@ -31,9 +31,10 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=128)
+@click.option('--embedding_batch_size', default=64)
 @click.option('--embedding_mini_batch_size', default=128)
 @click.option('--meta_batch_size', default=16)
+@click.option('--encoder_path_sample_len', default=64)
 @click.option('--num_tasks_sample', default=15)
 @click.option('--reward_scale', default=10)
 @click.option('--max_path_length', default=200)
@@ -44,21 +45,15 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--use_kl_loss', default=True, type=bool)
 @click.option('--use_q_loss', default=True, type=bool)
 
-# @click.option('--contrastive_mean_only', default=False, type=bool)
-# @click.option('--new_contrastive_formula', default=False, type=bool)
-# @click.option('--new_weight_update', default=False, type=bool)
-# @click.option('--encoder_common_net', default=True, type=bool)
-# @click.option('--single_alpha', default=False, type=bool)
-
 @click.option('--contrastive_mean_only', default=True, type=bool)
 @click.option('--new_contrastive_formula', default=True, type=bool)
 @click.option('--new_weight_update', default=True, type=bool)
-@click.option('--encoder_common_net', default=False, type=bool)
+@click.option('--encoder_common_net', default=True, type=bool)
 @click.option('--single_alpha', default=True, type=bool)
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_new_loss_test')
+@click.option('--prefix', default='curl_test2')
 @wrap_experiment
 def curl_hype_ml1(ctxt=None,
                              seed=1,
@@ -77,6 +72,7 @@ def curl_hype_ml1(ctxt=None,
                              batch_size=256,
                              embedding_batch_size=64,
                              embedding_mini_batch_size=64,
+                             encoder_path_sample_len = 64,
                              max_path_length=200,
                              reward_scale=10.,
                              replay_buffer_size=1000000,
@@ -184,6 +180,7 @@ def curl_hype_ml1(ctxt=None,
         replay_buffer_size=replay_buffer_size,
         use_next_obs_in_context=use_next_obs,
         embedding_batch_in_sequence=in_sequence_path_aug,
+        encoder_path_sample_len=encoder_path_sample_len,
         use_kl_loss=use_kl_loss,
         use_q_loss=use_q_loss,
         contrastive_mean_only=contrastive_mean_only,
