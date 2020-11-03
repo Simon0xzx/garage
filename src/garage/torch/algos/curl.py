@@ -470,8 +470,7 @@ class CURL(MetaRLAlgorithm):
         alpha_loss_list = []
         alpha_list = []
         for _ in range(self._num_steps_per_epoch):
-            indices = np.random.choice(range(self._num_train_tasks),
-                                       self._meta_batch_size)
+            indices = np.random.choice(range(self._num_train_tasks), self._meta_batch_size)
             policy_loss, qf_loss, contrastive_loss, alpha_loss, alpha = self._optimize_policy(indices)
             policy_loss_list.append(policy_loss)
             qf_loss_list.append(qf_loss)
@@ -486,7 +485,7 @@ class CURL(MetaRLAlgorithm):
             tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
             tabular.record('Alpha', np.average(np.array(alpha_list)))
 
-    def augment_path(self, path, batch_size, in_sequence = False):
+    def augment_path_wrong(self, path, batch_size, in_sequence = False):
         path_len = path['actions'].shape[0]
         augmented_path = {}
         if in_sequence:
@@ -507,18 +506,18 @@ class CURL(MetaRLAlgorithm):
         return augmented_path
 
 
-    def augment_path_old(self, path, batch_size, in_sequence = False):
+    def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['actions'].shape[0]
         augmented_path = {}
         if in_sequence:
-            if batch_size > path_len:
+            if self._encoder_path_sample_len > path_len:
                 raise Exception(
-                    'Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
-            seq_begin = np.random.randint(0, path_len - batch_size)
-            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + batch_size]
-            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + batch_size]
-            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + batch_size]
-            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + batch_size]
+                    'Embedding_batch size cannot be longer than path length {} > {}'.format(self._encoder_path_sample_len, path_len))
+            seq_begin = np.random.randint(0, path_len - self._encoder_path_sample_len)
+            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + self._encoder_path_sample_len]
+            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + self._encoder_path_sample_len]
+            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + self._encoder_path_sample_len]
+            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + self._encoder_path_sample_len]
         else:
             seq_idx = np.random.choice(path_len, batch_size)
             augmented_path['observations'] = path['observations'][seq_idx]
@@ -549,7 +548,8 @@ class CURL(MetaRLAlgorithm):
         left_product = torch.matmul(query, self._contrastive_weight.to(global_device()))
         logits = torch.matmul(left_product, key.T)
         logits = logits - torch.max(logits, axis=1)[0]
-        labels = torch.arange(logits.shape[0]).to(global_device())
+        # labels = torch.arange(logits.shape[0]).to(global_device())
+        labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
         loss = loss_fun(logits, labels)
         return loss
 
@@ -563,6 +563,7 @@ class CURL(MetaRLAlgorithm):
         # similar_contrastive
         query = self._context_encoder(aug1, query=True)
         key = self._context_encoder(aug2, query=False)
+        t, b, d = query.size()
         if self._contrastive_mean_only:
             assert self._contrastive_weight.size()[0] == self._latent_dim
             query = query[:, :self._latent_dim]
@@ -573,7 +574,8 @@ class CURL(MetaRLAlgorithm):
             left_product = torch.matmul(query[i], self._contrastive_weight.to(global_device()))
             logits = torch.matmul(left_product, key[i].T)
             logits = logits - torch.max(logits, axis=1)[0]
-            labels = torch.arange(logits.shape[0]).to(global_device())
+            # labels = torch.arange(logits.shape[0]).to(global_device())
+            labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
             if not loss:
                 loss = loss_fun(logits, labels)
             else:

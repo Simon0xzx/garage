@@ -1308,6 +1308,10 @@ def ml1_push_display():
     plot_curve_avg(axs[1][3], ['{}/curl_paper_ml1_push'.format(local_path),
                                '{}/curl-push-v1'.format(local_path)],
                    '-', legend="curl_no_kl_in_sequence", limit=limit)
+
+    plot_curve_avg(axs[1][3], ['/home/simon0xzx/research/berkely_research/garage/data/local/curl_test2/push-v1_3'],
+                   '-', legend="curl_larger_batch_size", limit=limit)
+
     plt.show()
 
 def ml1_hype_param_plot():
@@ -1377,7 +1381,7 @@ def ml1_hype_param_plot():
     #                '-', legend="curl", limit=limit)
     plot_curve_avg(axs[1][1], ['{}/soccer-v1'.format(local_path)],
                    '-', legend="curl_origin", limit=limit)
-    plot_curve_avg(axs[1][1], ['{}/soccer-v1_1'.format(local_path)],
+    plot_curve_avg(axs[1][1], ['{}/soccer-v1'.format(local_path)],
                    '-', legend="curl_emphasized", limit=limit)
     # plot_curve_avg(axs[1][1], ['{}/soccer-v1_2'.format(local_path)],
     #                '-', legend="curl_kl", limit=limit)
@@ -1388,9 +1392,10 @@ def ml1_hype_param_plot():
 
 def ml1_push_detail():
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_loss_test'
-    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_loss_test'
+    # namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_loss_test'
+    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_test2'
     old_ml1_result = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
-    row, col = 4, 2
+    row, col = 2, 2
     fig, axs = plt.subplots(row, col)
     limit = 100
     title = 'MetaTest/Average/AverageReturn'
@@ -1398,11 +1403,17 @@ def ml1_push_detail():
     # title='MetaTrain/Average/ContrastiveLoss'
     x_title = 'TotalEnvSteps'
 
-    task_lists = ['faucet-close-v1', 'peg-insert-side-v1', 'push-wall-v1',
-                  'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
-                  'soccer-v1', 'stick-push-v1']
-    label_list = ['origin_curl', 'curl_vectorized_encoder_loss', 'curl_common_net',
-                  'curl_no_common_net']
+    # task_lists = ['faucet-close-v1', 'peg-insert-side-v1', 'push-wall-v1',
+    #               'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
+    #               'soccer-v1', 'stick-push-v1']
+    # label_list = ['origin_curl', 'curl_vectorized_encoder_loss',
+    #               'curl_common_net',
+    #               'curl_no_common_net']
+
+    task_lists = ['faucet-close-v1','soccer-v1', 'plate-slide-side-v1',
+                  'stick-push-v1']
+    label_list = ['curl_large_batch_size']
+
     display_list = ['peg-insert-side-v1_3', 'faucet-close-v1', 'push-wall-v1_2', 'stick-pull-v1_2', 'handle-press-v1', 'plate-slide-side-v1_2', 'soccer-v1_3', 'stick-push-v1_2']
     namazu_task_list = set(os.listdir(namazu_path))
     local_task_list = set(os.listdir(local_path))
@@ -1416,14 +1427,14 @@ def ml1_push_detail():
         # subplot_axs.set_ylabel('Z Variance Norm')
         # subplot_axs.set_ylabel('ContrastiveLoss')
 
-        # plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
-        #                    '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
-        # plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
-        #                    '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
+        plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
+                           '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
+        plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
+                           '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
 
 
         for j in range(len(label_list)):
-            if j == 3 or j == 2: continue
+            # if j == 3 or j == 2: continue
             label = label_list[j]
             task_name = '{}{}'.format(task, '_{}'.format(j) if j > 0 else '')
             # if task_name not in display_list: continue

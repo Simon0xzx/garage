@@ -105,3 +105,16 @@ conda activate pearl; python examples/torch/curl_hyper_exp.py --name peg-insert-
 [Local Offset -1]conda activate pearl; python examples/torch/curl_hyper_exp.py --name handle-press-v1 --seed 0 --gpu_id 1
 [Local Offset -1]conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 0 --gpu_id 1
 
+
+================================
+[Test2]
+envs
+faucet-close-v1
+soccer-v1
+stick-push-v1
+plate-slide-side-v1
+
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --seed 1 --embedding_batch_size 32 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 1 --embedding_batch_size 32 --gpu_id 0
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --seed 1 --embedding_batch_size 32 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 1 --embedding_batch_size 32 --gpu_id 2

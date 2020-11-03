@@ -26,15 +26,15 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--latent_size', default=7)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=4000) # 4000
+@click.option('--num_steps_per_epoch', default=4000)    # number of train per iter
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=64)
+@click.option('--embedding_batch_size', default=32)
 @click.option('--embedding_mini_batch_size', default=128)
-@click.option('--meta_batch_size', default=16)
-@click.option('--encoder_path_sample_len', default=64)
+@click.option('--meta_batch_size', default=16)          # index size
+@click.option('--encoder_path_sample_len', default=64)  # path size
 @click.option('--num_tasks_sample', default=15)
 @click.option('--reward_scale', default=10)
 @click.option('--max_path_length', default=200)
@@ -53,7 +53,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_test2')
+@click.option('--prefix', default='curl_new_label')
 @wrap_experiment
 def curl_hype_ml1(ctxt=None,
                              seed=1,
