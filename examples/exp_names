@@ -114,7 +114,7 @@ soccer-v1
 stick-push-v1
 plate-slide-side-v1
 
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --seed 1 --embedding_batch_size 32 --gpu_id 1
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 1 --embedding_batch_size 32 --gpu_id 0
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --seed 1 --embedding_batch_size 32 --gpu_id 4
-conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 1 --embedding_batch_size 32 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name faucet-close-v1 --seed 1 --meta_batch_size 32 --gpu_id 0
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 1 --meta_batch_size 32 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-v1 --seed 1 --meta_batch_size 32 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 1 --meta_batch_size 32 --gpu_id 6

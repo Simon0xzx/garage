@@ -71,6 +71,13 @@ def plot_curve_avg(matplot, exps, format='-',
     matplot.fill_between(x, y_min, y_max, alpha=0.2)
     matplot.legend()
 
+def print_hyper_tests(axs, dir_path, exp_name, labels,
+                      title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps', limit = -1):
+    for i, label in enumerate(labels):
+        task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
+        plot_curve_avg(axs, ['{}/{}'.format(dir_path, task_name)], '-',
+                       legend=label, title=title, x_title=x_title, limit=limit)
+
 def generate_report(exp_path_root, exps_matrix, success_rate=False, limit=500):
     rows, cols = len(exps_matrix), len(exps_matrix[0])
     fig, axs = plt.subplots(rows, cols)
@@ -1317,6 +1324,7 @@ def ml1_push_display():
 def ml1_hype_param_plot():
     namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
     local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_fine_tune'
+    new_label_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_label'
     fig, axs = plt.subplots(2, 2)
     plt.subplots_adjust(left=0.05, bottom=0.1, right=0.95, top=0.9,
                         wspace=0.25, hspace=0.30)
@@ -1339,6 +1347,8 @@ def ml1_hype_param_plot():
     #                '-', legend="curl_kl", limit=limit)
     # plot_curve_avg(axs[0][0], ['{}/faucet-close-v1_3'.format(local_path)],
     #                '-', legend="curl_random_path_aug", limit=limit)
+    plot_curve_avg(axs[0][0], ['{}/faucet-close-v1'.format(new_label_path)],
+                   '-', legend="curl_new_label_meta_batch_16", limit=limit)
 
     axs[0][1].set_title('ML1 handle-press')
     axs[0][1].set_xlabel('Total Env Steps')
@@ -1355,6 +1365,8 @@ def ml1_hype_param_plot():
     #                '-', legend="curl_kl", limit=limit)
     # plot_curve_avg(axs[0][1], ['{}/handle-press-v1_3'.format(local_path)],
     #                '-', legend="curl_random_path_aug", limit=limit)
+    plot_curve_avg(axs[0][0], ['{}/faucet-close-v1'.format(new_label_path)],
+                   '-', legend="curl_new_label_meta_batch_16", limit=limit)
 
     axs[1][0].set_title('ML1 plate-slide-side')
     axs[1][0].set_xlabel('Total Env Steps')
@@ -1390,33 +1402,24 @@ def ml1_hype_param_plot():
 
     plt.show()
 
-def ml1_push_detail():
-    local_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_loss_test'
-    # namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_loss_test'
-    namazu_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_test2'
+
+
+def ml1_hype_tune_detail():
+    task_lists = ['faucet-close-v1', 'soccer-v1', 'plate-slide-side-v1', 'stick-push-v1']
+
     old_ml1_result = '/home/simon0xzx/research/berkely_research/garage/data/namazu/ml1_results'
+    old_curl_ml1_labels, old_pearl_ml1_labels = ['old_curl_result'], ['old_pearl_result']
+    large_batch_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_test2'
+    large_batch_labels = ['curl_large_batch_size']
+    new_label_path = '/home/simon0xzx/research/berkely_research/garage/data/local/curl_new_label'
+    large_batch_new_labels = ['curl_new_label_batch_16', 'curl_new_label_batch_64']
+    namazu_new_label_path = '/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_label'
+    namazu_large_batch_new_labels = ['curl_new_label_batch_32']
     row, col = 2, 2
     fig, axs = plt.subplots(row, col)
-    limit = 100
     title = 'MetaTest/Average/AverageReturn'
-    # title='MetaTest/Average/Z_var_Norm'
-    # title='MetaTrain/Average/ContrastiveLoss'
     x_title = 'TotalEnvSteps'
-
-    # task_lists = ['faucet-close-v1', 'peg-insert-side-v1', 'push-wall-v1',
-    #               'stick-pull-v1', 'handle-press-v1', 'plate-slide-side-v1',
-    #               'soccer-v1', 'stick-push-v1']
-    # label_list = ['origin_curl', 'curl_vectorized_encoder_loss',
-    #               'curl_common_net',
-    #               'curl_no_common_net']
-
-    task_lists = ['faucet-close-v1','soccer-v1', 'plate-slide-side-v1',
-                  'stick-push-v1']
-    label_list = ['curl_large_batch_size']
-
-    display_list = ['peg-insert-side-v1_3', 'faucet-close-v1', 'push-wall-v1_2', 'stick-pull-v1_2', 'handle-press-v1', 'plate-slide-side-v1_2', 'soccer-v1_3', 'stick-push-v1_2']
-    namazu_task_list = set(os.listdir(namazu_path))
-    local_task_list = set(os.listdir(local_path))
+    limit=100
     for i, task in enumerate(task_lists):
         row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
@@ -1424,33 +1427,21 @@ def ml1_push_detail():
         subplot_axs.set_title('CURL ML1 {}'.format(task))
         subplot_axs.set_xlabel('Total Env Steps')
         subplot_axs.set_ylabel('Total Test Return')
-        # subplot_axs.set_ylabel('Z Variance Norm')
-        # subplot_axs.set_ylabel('ContrastiveLoss')
 
-        plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'pearl-' + task)],
-                           '-', legend='old_pearl', title=title, x_title=x_title, limit=limit)
-        plot_curve_avg(subplot_axs, ['{}/{}'.format(old_ml1_result, 'curl-' + task)],
-                           '-', legend='old_curl', title=title, x_title=x_title, limit=limit)
-
-
-        for j in range(len(label_list)):
-            # if j == 3 or j == 2: continue
-            label = label_list[j]
-            task_name = '{}{}'.format(task, '_{}'.format(j) if j > 0 else '')
-            # if task_name not in display_list: continue
-            if task_name in namazu_task_list:
-                try:
-                    plot_curve_avg(subplot_axs, ['{}/{}'.format(namazu_path, task_name)],
-                               '-', legend=label, title=title, x_title=x_title, limit=limit)
-                except:
-                    pass
-            # if task_name in local_task_list:
-            #     try:
-            #         plot_curve_avg(subplot_axs, ['{}/{}'.format(local_path, task_name)],
-            #                    '-', legend=label, title=title, x_title=x_title, limit=limit)
-            #     except:
-            #         pass
-
+        # Old ML1 Results
+        print_hyper_tests(subplot_axs, old_ml1_result, 'pearl-' + task,
+                          old_pearl_ml1_labels, title=title, x_title=x_title, limit=limit)
+        print_hyper_tests(subplot_axs, old_ml1_result, 'curl-' + task,
+                          old_curl_ml1_labels, title=title, x_title=x_title, limit=limit)
+        # Larger batch size
+        print_hyper_tests(subplot_axs, large_batch_path, task,
+                          large_batch_labels, title=title, x_title=x_title, limit=limit)
+        # batch on new labels
+        print_hyper_tests(subplot_axs, new_label_path, task,
+                          large_batch_new_labels, title=title, x_title=x_title, limit=-1)
+        # batch on new labels on namazu
+        print_hyper_tests(subplot_axs, namazu_new_label_path, task,
+                          namazu_large_batch_new_labels, title=title, x_title=x_title, limit=-1)
 
     plt.show()
 
@@ -1469,4 +1460,4 @@ if __name__ == '__main__':
     # mujoco_exp_plot()
     # ml1_hype_param_plot()
     # ml1_tasks_comparison()
-    ml1_push_detail()
+    ml1_hype_tune_detail()
