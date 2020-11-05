@@ -13,7 +13,7 @@ data_repo = {
 
 def ml1_hype_tune_detail():
     task_lists = ['faucet-close-v1', 'soccer-v1', 'plate-slide-side-v1', 'stick-push-v1']
-    row, col, limit = 2, 2, 100
+    row, col, limit = 4, 1, 100
     fig, axs = plt.subplots(row, col)
     title = 'MetaTest/Average/AverageReturn'
     x_title = 'TotalEnvSteps'
@@ -21,18 +21,18 @@ def ml1_hype_tune_detail():
     for i, task in enumerate(task_lists):
         row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
-        subplot_axs = axs[row_cnt][col_cnt]
+        subplot_axs = axs[row_cnt]
         subplot_axs.set_title('CURL ML1 {}'.format(task))
         subplot_axs.set_xlabel('Total Env Steps')
         subplot_axs.set_ylabel('Total Test Return')
 
         # Old ML1 Results
         pearl_old_ml1_repo = data_repo['pearl_old_ml1_result']
-        print_hyper_tests(subplot_axs, pearl_old_ml1_repo[0], 'pearl-' + task,
-                          pearl_old_ml1_repo[1], title=title, x_title=x_title, limit=limit)
-        curl_old_ml1_repo = data_repo['curl_old_ml1_result']
-        print_hyper_tests(subplot_axs, curl_old_ml1_repo[0], 'curl-' + task,
-                          curl_old_ml1_repo[1], title=title, x_title=x_title, limit=limit)
+        # print_hyper_tests(subplot_axs, pearl_old_ml1_repo[0], 'pearl-' + task,
+        #                   pearl_old_ml1_repo[1], title=title, x_title=x_title, limit=limit)
+        # curl_old_ml1_repo = data_repo['curl_old_ml1_result']
+        # print_hyper_tests(subplot_axs, curl_old_ml1_repo[0], 'curl-' + task,
+        #                   curl_old_ml1_repo[1], title=title, x_title=x_title, limit=limit)
         # Larger batch size
         large_batch_repo = data_repo['large_batch']
         print_hyper_tests(subplot_axs, large_batch_repo[0], task,

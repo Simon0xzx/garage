@@ -53,7 +53,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_new_label')
+@click.option('--prefix', default='curl_new_label_run_all')
 @wrap_experiment
 def curl_hype_ml1(ctxt=None,
                              seed=1,
