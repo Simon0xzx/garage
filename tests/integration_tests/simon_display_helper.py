@@ -26,7 +26,6 @@ def plot_curve_avg(matplot, exps, format='-',
     min_step_length = min([len(data_dict[x_title]) for data_dict in data_dicts])
     if limit != -1:
         min_step_length = min(min_step_length, limit)
-    print("{}: \nMinimum step length: {}".format(exps[0], min_step_length))
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
     y_ave = np.average([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
@@ -44,5 +43,8 @@ def print_hyper_tests(axs, dir_path, exp_name, labels,
                       title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps', limit = -1):
     for i, label in enumerate(labels):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
-        plot_curve_avg(axs, ['{}/{}'.format(dir_path, task_name)], '-',
-                       legend=label, title=title, x_title=x_title, limit=limit)
+        try:
+            plot_curve_avg(axs, ['{}/{}'.format(dir_path, task_name)], '-',
+                           legend=label, title=title, x_title=x_title, limit=limit)
+        except:
+            print("Failed to Locate {}".format(task_name))

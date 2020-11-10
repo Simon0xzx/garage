@@ -1459,5 +1459,5 @@ if __name__ == '__main__':
     # ml1_push_display()
     # mujoco_exp_plot()
     # ml1_hype_param_plot()
-    # ml1_tasks_comparison()
+    ml1_tasks_comparison()
     ml1_hype_tune_detail()

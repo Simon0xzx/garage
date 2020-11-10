@@ -119,3 +119,46 @@ conda activate pearl; python examples/torch/curl_hyper_exp.py --name stick-push-
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name soccer-v1 --seed 1 --meta_batch_size 128 --gpu_id 0
 
 conda activate pearl; python examples/torch/curl_hyper_exp.py --name plate-slide-side-v1 --seed 1 --meta_batch_size 128 --gpu_id 1
+
+================================
+[new label run all]
+{namazu}
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name dissassemble-v1 --gpu_id 7
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name faucet-close-v1 --gpu_id 7
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name lever-pull-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name handle-pull-side-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name plate-slide-back-v1 --gpu_id 0
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name coffee-pull-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name box-close-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name door-unlock-v1 --gpu_id 7
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name peg-insert-side-v1 --gpu_id 7
+--running--
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name push-wall-v1 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name plate-slide-side-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name window-close-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name door-open-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name drawer-open-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-topdown-v1 --gpu_id 4
+
+{leviathan}
+--running--
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name plate-slide-side-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name window-close-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name door-open-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name drawer-open-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-topdown-v1 --gpu_id 4
+
+{local}
+python examples/torch/curl_hyper_exp.py --seed 10 --name coffee-push-v1 --gpu_id 0
+python examples/torch/curl_hyper_exp.py --seed 10 --name faucet-open-v1 --gpu_id 0
+python examples/torch/curl_hyper_exp.py --seed 10 --name hammer-v1 --gpu_id 1
+python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-topdown-wall-v1 --gpu_id 1
+python examples/torch/curl_hyper_exp.py --seed 10 --name stick-pull-v1 --gpu_id 0
+python examples/torch/curl_hyper_exp.py --seed 10 --name handle-press-v1 --gpu_id 0
+python examples/torch/curl_hyper_exp.py --seed 10 --name stick-push-v1 --gpu_id 1
+python examples/torch/curl_hyper_exp.py --seed 10 --name soccer-v1 --gpu_id 1
+
+========================================================================================================================
+original_curl_run_all

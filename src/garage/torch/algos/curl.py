@@ -133,7 +133,6 @@ class CURL(MetaRLAlgorithm):
                  embedding_batch_size=1024,
                  embedding_mini_batch_size=1024,
                  max_path_length=1000,
-                 encoder_path_sample_len=64,
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
@@ -145,6 +144,7 @@ class CURL(MetaRLAlgorithm):
                  new_weight_update = False,
                  encoder_common_net=True,
                  single_alpha = False,
+                 use_task_index_label = False,
                  update_post_train=1):
 
         self._env = env
@@ -172,7 +172,6 @@ class CURL(MetaRLAlgorithm):
         self._use_next_obs_in_context = use_next_obs_in_context
         self._use_kl_loss = use_kl_loss
         self._use_q_loss = use_q_loss
-        self._encoder_path_sample_len = encoder_path_sample_len
 
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
@@ -198,6 +197,7 @@ class CURL(MetaRLAlgorithm):
         self._new_weight_update = new_weight_update
         self._encoder_common_net = encoder_common_net
         self._single_alpha = single_alpha
+        self._use_task_index_label = use_task_index_label
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
@@ -485,39 +485,18 @@ class CURL(MetaRLAlgorithm):
             tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
             tabular.record('Alpha', np.average(np.array(alpha_list)))
 
-    def augment_path_wrong(self, path, batch_size, in_sequence = False):
-        path_len = path['actions'].shape[0]
-        augmented_path = {}
-        if in_sequence:
-            if self._encoder_path_sample_len > path_len:
-                raise Exception('Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
-            seq_begin = np.random.randint(0, path_len - self._encoder_path_sample_len, batch_size)
-            augmented_path['observations'] = np.vstack([path['observations'][i:i + self._encoder_path_sample_len] for i in seq_begin])
-            augmented_path['actions'] = np.vstack([path['actions'][i:i + self._encoder_path_sample_len] for i in seq_begin])
-            augmented_path['rewards'] = np.vstack([path['rewards'][i:i + self._encoder_path_sample_len] for i in seq_begin])
-            augmented_path['next_observations'] = np.vstack([path['next_observations'][i:i + self._encoder_path_sample_len] for i in seq_begin])
-        else:
-            seq_idx = np.random.choice(path_len, batch_size * self._encoder_path_sample_len)
-            augmented_path['observations'] = path['observations'][seq_idx]
-            augmented_path['actions'] = path['actions'][seq_idx]
-            augmented_path['rewards'] = path['rewards'][seq_idx]
-            augmented_path['next_observations'] = path['next_observations'][seq_idx]
-
-        return augmented_path
-
-
     def augment_path(self, path, batch_size, in_sequence = False):
         path_len = path['actions'].shape[0]
         augmented_path = {}
         if in_sequence:
-            if self._encoder_path_sample_len > path_len:
+            if batch_size > path_len:
                 raise Exception(
-                    'Embedding_batch size cannot be longer than path length {} > {}'.format(self._encoder_path_sample_len, path_len))
-            seq_begin = np.random.randint(0, path_len - self._encoder_path_sample_len)
-            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + self._encoder_path_sample_len]
-            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + self._encoder_path_sample_len]
-            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + self._encoder_path_sample_len]
-            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + self._encoder_path_sample_len]
+                    'Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
+            seq_begin = np.random.randint(0, path_len - batch_size)
+            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + batch_size]
+            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + batch_size]
+            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + batch_size]
+            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + batch_size]
         else:
             seq_idx = np.random.choice(path_len, batch_size)
             augmented_path['observations'] = path['observations'][seq_idx]
@@ -548,8 +527,10 @@ class CURL(MetaRLAlgorithm):
         left_product = torch.matmul(query, self._contrastive_weight.to(global_device()))
         logits = torch.matmul(left_product, key.T)
         logits = logits - torch.max(logits, axis=1)[0]
-        # labels = torch.arange(logits.shape[0]).to(global_device())
-        labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
+        if self._use_task_index_label:
+            labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
+        else:
+            labels = torch.arange(logits.shape[0]).to(global_device())
         loss = loss_fun(logits, labels)
         return loss
 
