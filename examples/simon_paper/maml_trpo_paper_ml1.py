@@ -6,11 +6,6 @@ import torch
 
 from garage import wrap_experiment
 from garage.envs import GarageEnv, normalize
-from garage.experiment import LocalRunner
-from garage.experiment.deterministic import set_seed
-from garage.experiment.task_sampler import SetTaskSampler
-from garage import wrap_experiment
-from garage.envs import GarageEnv, normalize
 from garage.experiment import LocalRunner, MetaEvaluator
 from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
@@ -33,11 +28,11 @@ from garage.torch.value_functions import GaussianMLPValueFunction
 @wrap_experiment
 def maml_trpo_paper_ml1(ctxt=None,
                              seed=1,
-                             num_epochs=300,
-                             meta_batch_size=16,
+                             num_epochs=100,
+                             meta_batch_size=20,
                              rollouts_per_task=10,
-                             net_size=300,
-                             max_path_length=100,
+                             net_size=400,
+                             max_path_length=200,
                              gpu_id = 0,
                              name='push-v1',
                              prefix='maml_trpo_ml1',

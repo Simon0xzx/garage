@@ -524,10 +524,12 @@ class CURL(MetaRLAlgorithm):
         loss_fun = torch.nn.CrossEntropyLoss()
         if self._use_wasserstein_distance:
             query_mean = query[:, :self._latent_dim]
-            query_var = query[:, self._latent_dim:]
+            query_var = query[:, self._latent_dim:].abs().pow(0.5)
             key_mean = key[:, :self._latent_dim]
-            key_var = key[:, self._latent_dim:]
-            loss = torch.sum(torch.norm(query_mean - key_mean, dim=1).pow(2)  + torch.norm(query_var.abs().pow(0.5) - key_var.abs().pow(0.5), dim=1).pow(2))
+            key_var = key[:, self._latent_dim:].abs().pow(0.5)
+            mean_dist = torch.norm(query_mean - key_mean, dim=1).pow(2)
+            var_dist = torch.norm(query_var - key_var, dim=1).pow(2)
+            loss = torch.mean(mean_dist + var_dist)
         else:
             if self._contrastive_mean_only:
                 assert self._contrastive_weight.size()[0] == self._latent_dim

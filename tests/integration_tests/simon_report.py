@@ -1,5 +1,7 @@
 from tests.integration_tests.simon_display_helper import print_hyper_tests, read_csv_file
 import matplotlib.pyplot as plt
+import click
+from garage import wrap_experiment
 
 # Name -> (exp_root_path, labels)
 def get_data_repos():
@@ -33,7 +35,7 @@ def get_metaworld_task_list(task_portion='Odd'):
 
 
 def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, limit=100, title='MetaTest/Average/AverageReturn', x_title='TotalEnvSteps'):
-
+    data_repo = get_data_repos()
     for i, task in enumerate(task_lists):
         row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
@@ -76,8 +78,7 @@ def plot_full_suits():
     metaworld_ml1_graph(axs, sampled_task_lists, ['curl_labeled_b16', 'classifier_encoder'], row=2, col=2)
     plt.show()
 
-
-
 if __name__ == '__main__':
     # plot_full_suits()
     get_metaworld_task_list()
+
