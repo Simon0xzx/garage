@@ -8,13 +8,13 @@ import csv
 #########################################################
 """
 
-def read_progress_file(file_path):
+def read_csv_file(file_path, type=float):
     data_dict = defaultdict(lambda: [])
     with open(file_path, newline='\n') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             for k, v in row.items():
-                data_dict[k].append(float(v))
+                data_dict[k].append(type(v))
     return data_dict
 
 def plot_curve_avg(matplot, exps, format='-',
@@ -22,7 +22,7 @@ def plot_curve_avg(matplot, exps, format='-',
     if exps == None or len(exps) == 0:
         return
     result_paths = [os.path.join(name, 'progress.csv') for name in exps]
-    data_dicts = [read_progress_file(result_path) for result_path in result_paths]
+    data_dicts = [read_csv_file(result_path) for result_path in result_paths]
     min_step_length = min([len(data_dict[x_title]) for data_dict in data_dicts])
     if limit != -1:
         min_step_length = min(min_step_length, limit)

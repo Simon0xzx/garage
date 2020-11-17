@@ -284,8 +284,7 @@ class LocalRunner:
                             itr,
                             batch_size=None,
                             agent_update=None,
-                            env_update=None,
-                            is_multi_step=False):
+                            env_update=None):
         """Obtain one batch of trajectories.
 
         Args:
@@ -323,8 +322,7 @@ class LocalRunner:
         paths = self._sampler.obtain_samples(
             itr, (batch_size or self._train_args.batch_size),
             agent_update=agent_update,
-            env_update=env_update,
-            is_multi_step=is_multi_step)
+            env_update=env_update)
         self._stats.total_env_steps += sum(paths.lengths)
         return paths
 
@@ -332,8 +330,7 @@ class LocalRunner:
                        itr,
                        batch_size=None,
                        agent_update=None,
-                       env_update=None,
-                       is_multi_step=False):
+                       env_update=None):
         """Obtain one batch of samples.
 
         Args:
@@ -358,7 +355,7 @@ class LocalRunner:
 
         """
         trajs = self.obtain_trajectories(itr, batch_size, agent_update,
-                                         env_update, is_multi_step)
+                                         env_update)
         return trajs.to_trajectory_list()
 
     def save(self, epoch):

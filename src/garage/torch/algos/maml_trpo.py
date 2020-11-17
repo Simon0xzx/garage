@@ -6,7 +6,7 @@ from garage.torch.algos import VPG
 from garage.torch.algos.maml import MAML
 from garage.torch.optimizers import (ConjugateGradientOptimizer,
                                      OptimizerWrapper)
-
+from garage.torch import global_device
 
 class MAMLTRPO(MAML):
     """Model-Agnostic Meta-Learning (MAML) applied to TRPO.
@@ -103,3 +103,19 @@ class MAMLTRPO(MAML):
                          num_grad_updates=num_grad_updates,
                          meta_evaluator=meta_evaluator,
                          evaluate_every_n_epochs=evaluate_every_n_epochs)
+
+    def to(self, device=None):
+        """Put all the networks within the model on device.
+
+        Args:
+            device (str): ID of GPU or CPU.
+
+        """
+        device = device or global_device()
+        self.policy.to(device)
+        self._value_function.to(device)
+        self._inner_algo._value_function.to(device)
+        self._inner_algo.policy.to(device)
+
+    def get_encoder_info(self):
+        return 0,0

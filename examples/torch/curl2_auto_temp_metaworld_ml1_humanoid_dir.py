@@ -10,7 +10,7 @@ from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import CURL2
+from garage.torch.algos import CLASSIFY
 from garage.torch.algos.curl import CURLWorker
 from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
@@ -106,17 +106,17 @@ def curl_origin_auto_temp_traj_humanoid_dir(ctxt=None,
     runner = LocalRunner(ctxt)
 
     # instantiate networks
-    augmented_env = CURL2.augment_env_spec(env[0](), latent_size)
+    augmented_env = CLASSIFY.augment_env_spec(env[0](), latent_size)
     qf = ContinuousMLPQFunction(env_spec=augmented_env,
                                 hidden_sizes=[net_size, net_size, net_size])
-    vf_env = CURL2.get_env_spec(env[0](), latent_size, 'vf')
+    vf_env = CLASSIFY.get_env_spec(env[0](), latent_size, 'vf')
     vf = ContinuousMLPQFunction(env_spec=vf_env,
                                 hidden_sizes=[net_size, net_size, net_size])
     inner_policy = TanhGaussianContextEmphasizedPolicy(
         env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
         latent_sizes=latent_size)
 
-    curl = CURL2(
+    curl = CLASSIFY(
         env=env,
         policy_class=CurlPolicy,
         encoder_class=ContrastiveEncoder,

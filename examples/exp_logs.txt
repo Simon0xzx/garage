@@ -1,70 +1,3 @@
-1, faucet-open-v1                   [curl on namazu] [pearl on namazu][DONE]
-2, sweep-v1
-3,
-4,
-5, faucet-close-v1                  [curl on namazu] [pearl on namazu][DONE]
-6, push-back-v1
-7, lever-pull-v1                    [curl on namazu] [pearl on namazu][DONE]
-8, dial-turn-v1
-9, stick-push-v1                    [curl on namazu] [pearl on namazu][DONE]
-10, coffee-button-v1
-11, handle-pull-side-v1             [curl on namazu] [pearl on namazu][DONE]
-12, basketball-v1
-13, stick-pull-v1                   [curl on namazu] [pearl on namazu][DONE]
-14, sweep-into-v1
-15, dissassemble-v1                 [curl on namazu] [pearl on namazu][DONE]
-16, shelf-place-v1
-17, coffee-push-v1                  [curl on namazu] [pearl on namazu][DONE]
-18, handle-press-side-v1
-19, hammer-v1                       [curl on namazu] [pearl on namazu][DONE]
-20, plate-slide-v1
-21, plate-slide-side-v1             [curl on namazu] [pearl on namazu][DONE]
-22, button-press-wall-v1
-23, handle-press-v1                 [curl on namazu] [pearl on namazu][DONE]
-24, handle-pull-v1
-25, soccer-v1                       [curl on namazu] [pearl on namazu][DONE]
-26, plate-slide-back-side-v1
-27, plate-slide-back-v1             [curl on namazu] [pearl on namazu][DONE]
-28, drawer-close-v1
-29, button-press-topdown-v1         [curl on namazu] [pearl on namazu][DONE]
-30, reach-v1
-31, button-press-topdown-wall-v1    [curl on namazu] [pearl on namazu][DONE]
-32, reach-wall-v1
-33, peg-insert-side-v1              [curl on namazu] [pearl on namazu][DONE]              7
-34, push-v1
-35, push-wall-v1                    [curl on namazu] [pearl on namazu][DONE]              6
-36, pick-place-wall-v1
-37, button-press-v1                 [curl on namazu] [pearl on namazu][DONE]              5
-38, pick-place-v1
-39, coffee-pull-v1                  [curl on namazu] [pearl on namazu][DONE]              4
-40, peg-unplug-side-v1
-41, window-close-v1                 [curl on namazu] [pearl on namazu][DONE]              3
-42, window-open-v1
-43, door-open-v1                    [curl on namazu] [pearl on namazu][DONE]              2
-44, door-close-v1
-45, drawer-open-v1                  [curl on namazu] [pearl on namazu][DONE]
-46,
-47, box-close-v1                    [curl on namazu] [pearl on namazu][DONE]
-48, door-lock-v1
-49, door-unlock-v1                  [curl on namazu] [pearl on namazu][DONE]
-50, bin-picking-v1
-
-
-
-[command]
-conda activate pearl
-conda activate pearl; python examples/torch/curl_paper_ml1.py --name curl-door-unlock-v1 --gpu_id 5 --seed 0
-
-conda activate pearl; python examples/torch/pearl_paper_ml1.py --name pearl-door-unlock-v1 --gpu_id 5 --seed 0
-
-[backup]
-pick-out-of-hole-v1
-assembly-v1
-
-test:
-hand-insert-v1
-
-
 hyper-parameter-fine-tuning-envs
 soccer-v1
 faucet-close-v1
@@ -134,12 +67,6 @@ conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name d
 conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name peg-insert-side-v1 --gpu_id 7
 --running--
 conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name push-wall-v1 --gpu_id 1
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name plate-slide-side-v1 --gpu_id 2
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-v1 --gpu_id 2
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name window-close-v1 --gpu_id 3
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name door-open-v1 --gpu_id 3
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name drawer-open-v1 --gpu_id 4
-conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 10 --name button-press-topdown-v1 --gpu_id 4
 
 {leviathan}
 --running--
@@ -162,3 +89,46 @@ python examples/torch/curl_hyper_exp.py --seed 10 --name soccer-v1 --gpu_id 1
 
 ========================================================================================================================
 original_curl_run_all
+{local}
+python examples/torch/curl_hyper_exp.py --seed 10 --name coffee-push-v1 --gpu_id 0
+python examples/torch/curl_hyper_exp.py --seed 10 --name faucet-open-v1 --gpu_id 0
+
+{namazu}
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name stick-pull-v1 --gpu_id 0
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name stick-push-v1 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name peg-insert-side-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name push-wall-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name plate-slide-side-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name plate-slide-back-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name dissassemble-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name coffee-pull-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name faucet-close-v1 --gpu_id 5
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name hammer-v1 --gpu_id 5
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name handle-pull-side-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name lever-pull-v1 --gpu_id 6
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name box-close-v1 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name door-unlock-v1 --gpu_id 1
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name button-press-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name window-close-v1 --gpu_id 2
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name door-open-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name drawer-open-v1 --gpu_id 3
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name button-press-topdown-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name button-press-topdown-wall-v1 --gpu_id 4
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name handle-press-v1 --gpu_id 5
+conda activate pearl; python examples/torch/curl_hyper_exp.py --seed 11 --name soccer-v1 --gpu_id 5
+
+
+
+==================================
+classifier encoder
+python examples/torch/classifier_encoder_ml1_exp.py --seed 1 --name faucet-close-v1 --gpu_id 0
+python examples/torch/classifier_encoder_ml1_exp.py --seed 1 --name stick-push-v1 --gpu_id 0
+python examples/torch/classifier_encoder_ml1_exp.py --seed 1 --name soccer-v1 --gpu_id 1
+python examples/torch/classifier_encoder_ml1_exp.py --seed 1 --name plate-slide-side-v1 --gpu_id 1
+
+
+11/13
+maml_trpo_exp
+{local}
+python examples/simon_paper/maml_trpo_paper_ml1.py --name faucet-open-v1 --seed 0
+python examples/simon_paper/maml_trpo_paper_ml1.py --name faucet-close-v1 --seed 0

@@ -11,36 +11,42 @@ from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.algos import CLASSIFY
-from garage.torch.algos.curl import CURLWorker
-from garage.torch.embeddings import ContrastiveEncoder
-from garage.torch.policies import CurlPolicy
-from garage.torch.policies import TanhGaussianContextEmphasizedPolicy
+from garage.torch.algos.classify import CLASSIFYWorker
+from garage.torch.embeddings import MLPEncoder
+from garage.torch.policies import ContextConditionedPolicy
+from garage.torch.policies import TanhGaussianContextEmphasizedPolicy, TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=500)
+@click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)
 @click.option('--encoder_hidden_size', default=400)
 @click.option('--net_size', default=400)
-@click.option('--num_steps_per_epoch', default=4000)
+@click.option('--num_steps_per_epoch', default=4000)    # number of train per iter
 @click.option('--num_initial_steps', default=4000)
 @click.option('--num_steps_prior', default=750)
 @click.option('--num_extra_rl_steps_posterior', default=750)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=256)
-@click.option('--embedding_mini_batch_size', default=64)
+@click.option('--embedding_batch_size', default=128)
+@click.option('--embedding_mini_batch_size', default=128)
+@click.option('--meta_batch_size', default=16)          # index size
+@click.option('--num_tasks_sample', default=15)
+@click.option('--reward_scale', default=10)
 @click.option('--max_path_length', default=200)
+@click.option('--replay_buffer_size', default=1000000)
+
 @click.option('--gpu_id', default=0)
+@click.option('--name', default='push-v1')
+@click.option('--prefix', default='classifier_suit')
 @wrap_experiment
-def curl2_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
+def classifier_encoder_ml1_exp(ctxt=None,
                              seed=1,
-                             num_epochs=1000,
+                             num_epochs=200,
                              num_train_tasks=50,
                              num_test_tasks=10,
-                             latent_size=7,
                              encoder_hidden_size=200,
                              net_size=300,
                              meta_batch_size=16,
@@ -52,9 +58,13 @@ def curl2_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
                              batch_size=256,
                              embedding_batch_size=64,
                              embedding_mini_batch_size=64,
-                             max_path_length=150,
+                             max_path_length=200,
                              reward_scale=10.,
+                             replay_buffer_size=1000000,
+                             emphasized_network=False,
                              gpu_id = 0,
+                             name='push-v1',
+                             prefix='curl_fine_tune',
                              use_gpu=True):
     """Train PEARL with ML1 environments.
 
@@ -95,36 +105,40 @@ def curl2_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
+    print("Running experiences on {}/{}".format(prefix, name))
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks('push-v1'))))
+        normalize(mwb.ML1.get_train_tasks(name))))
     env = env_sampler.sample(num_train_tasks)
-
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks('push-v1'))))
+        normalize(mwb.ML1.get_test_tasks(name))))
     runner = LocalRunner(ctxt)
 
     # instantiate networks
-    augmented_env = CLASSIFY.augment_env_spec(env[0](), latent_size)
-    qf = ContinuousMLPQFunction(env_spec=augmented_env,
+    augmented_env = CLASSIFY.augment_env_spec(env[0](), 3)
+    qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
                                   hidden_sizes=[net_size, net_size, net_size])
-    vf_env = CLASSIFY.get_env_spec(env[0](), latent_size, 'vf')
-    vf = ContinuousMLPQFunction(env_spec=vf_env,
-                                hidden_sizes=[net_size, net_size, net_size])
-    inner_policy = TanhGaussianContextEmphasizedPolicy(
-        env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
-        latent_sizes=latent_size)
 
-    curl = CLASSIFY(
+    qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
+                                  hidden_sizes=[net_size, net_size, net_size])
+    if emphasized_network:
+        inner_policy = TanhGaussianContextEmphasizedPolicy(
+            env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
+            latent_sizes=3)
+    else:
+        inner_policy = TanhGaussianMLPPolicy(
+            env_spec=augmented_env,
+            hidden_sizes=[net_size, net_size, net_size])
+
+    classify = CLASSIFY(
         env=env,
-        policy_class=CurlPolicy,
-        encoder_class=ContrastiveEncoder,
+        policy_class=ContextConditionedPolicy,
+        encoder_class=MLPEncoder,
         inner_policy=inner_policy,
-        qf=qf,
-        vf=vf,
+        qf1=qf_1,
+        qf2=qf_2,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
-        latent_dim=latent_size,
         encoder_hidden_sizes=encoder_hidden_sizes,
         test_env_sampler=test_env_sampler,
         meta_batch_size=meta_batch_size,
@@ -138,22 +152,20 @@ def curl2_origin_auto_temp_traj_metaworld_ml1_push(ctxt=None,
         embedding_mini_batch_size=embedding_mini_batch_size,
         max_path_length=max_path_length,
         reward_scale=reward_scale,
-        replay_buffer_size=100000,
-        use_next_obs_in_context=False,
-        embedding_batch_in_sequence=True
+        replay_buffer_size=replay_buffer_size
     )
-
     set_gpu_mode(use_gpu, gpu_id=gpu_id)
     if use_gpu:
-        curl.to()
+        classify.to()
 
-    runner.setup(algo=curl,
+    runner.setup(algo=classify,
                  env=env[0](),
                  sampler_cls=LocalSampler,
                  sampler_args=dict(max_path_length=max_path_length),
                  n_workers=1,
-                 worker_class=CURLWorker)
+                 worker_class=CLASSIFYWorker)
 
     runner.train(n_epochs=num_epochs, batch_size=batch_size)
 
-curl2_origin_auto_temp_traj_metaworld_ml1_push()
+if __name__ == '__main__':
+    classifier_encoder_ml1_exp()

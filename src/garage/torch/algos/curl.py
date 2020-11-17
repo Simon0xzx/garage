@@ -145,6 +145,7 @@ class CURL(MetaRLAlgorithm):
                  encoder_common_net=True,
                  single_alpha = False,
                  use_task_index_label = False,
+                 use_wasserstein_distance=True,
                  update_post_train=1):
 
         self._env = env
@@ -198,6 +199,7 @@ class CURL(MetaRLAlgorithm):
         self._encoder_common_net = encoder_common_net
         self._single_alpha = single_alpha
         self._use_task_index_label = use_task_index_label
+        self._use_wasserstein_distance = use_wasserstein_distance
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
@@ -519,19 +521,27 @@ class CURL(MetaRLAlgorithm):
         t,b,d = query.size()
         query = query.view(t * b, d)
         key = key.view(t * b, d)
-        if self._contrastive_mean_only:
-            assert self._contrastive_weight.size()[0] == self._latent_dim
-            query = query[:, :self._latent_dim]
-            key = key[:, :self._latent_dim]
         loss_fun = torch.nn.CrossEntropyLoss()
-        left_product = torch.matmul(query, self._contrastive_weight.to(global_device()))
-        logits = torch.matmul(left_product, key.T)
-        logits = logits - torch.max(logits, axis=1)[0]
-        if self._use_task_index_label:
-            labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
+        if self._use_wasserstein_distance:
+            query_mean = query[:, :self._latent_dim]
+            query_var = query[:, self._latent_dim:]
+            key_mean = key[:, :self._latent_dim]
+            key_var = key[:, self._latent_dim:]
+            loss = torch.sum(torch.norm(query_mean - key_mean, dim=1).pow(2)  + torch.norm(query_var.abs().pow(0.5) - key_var.abs().pow(0.5), dim=1).pow(2))
         else:
-            labels = torch.arange(logits.shape[0]).to(global_device())
-        loss = loss_fun(logits, labels)
+            if self._contrastive_mean_only:
+                assert self._contrastive_weight.size()[0] == self._latent_dim
+                query = query[:, :self._latent_dim]
+                key = key[:, :self._latent_dim]
+            left_product = torch.matmul(query, self._contrastive_weight.to(global_device()))
+            logits = torch.matmul(left_product, key.T)
+            logits = logits - torch.max(logits, axis=1)[0]
+
+            if self._use_task_index_label:
+                labels = torch.as_tensor(indices, device=global_device()).view(t, 1).repeat(1, b).view(t * b)
+            else:
+                labels = torch.arange(logits.shape[0]).to(global_device())
+            loss = loss_fun(logits, labels)
         return loss
 
     def _compute_contrastive_loss(self, indices):

@@ -1,8 +1,3 @@
-"""CURL and CURLWorker in Pytorch.
-
-Code is adapted from https://github.com/katerakelly/oyster.
-"""
-
 import copy
 import pickle
 import akro
@@ -10,7 +5,6 @@ from dowel import logger
 import numpy as np
 import torch
 import torch.nn.functional as F
-from dowel import tabular
 
 from garage import InOutSpec, TimeStep
 from garage.envs import EnvSpec
@@ -20,11 +14,11 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import DefaultWorker
 from garage.torch import global_device
 from garage.torch.embeddings import MLPEncoder
-from garage.torch.policies import CurlPolicy
+from garage.torch.policies import ContextConditionedPolicy
 
 
-class CURL2(MetaRLAlgorithm):
-    """A PEARL model based on https://arxiv.org/abs/1903.08254.
+class CLASSIFY(MetaRLAlgorithm):
+    r"""A PEARL model based on https://arxiv.org/abs/1903.08254.
 
     PEARL, which stands for Probablistic Embeddings for Actor-Critic
     Reinforcement Learning, is an off-policy meta-RL algorithm. It is built
@@ -101,10 +95,9 @@ class CURL2(MetaRLAlgorithm):
                  qf2,
                  num_train_tasks,
                  num_test_tasks,
-                 latent_dim,
                  encoder_hidden_sizes,
                  test_env_sampler,
-                 policy_class=CurlPolicy,
+                 policy_class=ContextConditionedPolicy,
                  encoder_class=MLPEncoder,
                  policy_lr=3E-4,
                  qf_lr=3E-4,
@@ -118,10 +111,8 @@ class CURL2(MetaRLAlgorithm):
                  target_entropy=None,
                  initial_log_entropy=0.,
                  optimizer_class=torch.optim.Adam,
-                 use_information_bottleneck=True,
+                 use_information_bottleneck=False,
                  use_next_obs_in_context=False,
-                 use_kl_loss=False,
-                 use_q_loss=True,
                  meta_batch_size=64,
                  num_steps_per_epoch=1000,
                  num_initial_steps=100,
@@ -132,13 +123,10 @@ class CURL2(MetaRLAlgorithm):
                  batch_size=1024,
                  embedding_batch_size=1024,
                  embedding_mini_batch_size=1024,
-                 max_path_length=1000,
+                 max_path_length=500,
                  discount=0.99,
                  replay_buffer_size=1000000,
                  reward_scale=1,
-                 embedding_batch_in_sequence=False,
-                 num_pos_contrastive = 2,
-                 num_neg_contrastive = 0,
                  update_post_train=1):
 
         self._env = env
@@ -148,14 +136,9 @@ class CURL2(MetaRLAlgorithm):
         self._target_qf1 = copy.deepcopy(self._qf1)
         self._target_qf2 = copy.deepcopy(self._qf2)
 
-        # Contrastive Encoder setting
-        self._embedding_batch_in_sequence = embedding_batch_in_sequence
-        self._num_pos_contrastive = num_pos_contrastive # TODO
-        self._num_neg_contrastive = num_neg_contrastive # TODO
-
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
-        self._latent_dim = latent_dim
+        self._latent_dim = 3
 
         self._policy_mean_reg_coeff = policy_mean_reg_coeff
         self._policy_std_reg_coeff = policy_std_reg_coeff
@@ -164,9 +147,6 @@ class CURL2(MetaRLAlgorithm):
         self._kl_lambda = kl_lambda
         self._use_information_bottleneck = use_information_bottleneck
         self._use_next_obs_in_context = use_next_obs_in_context
-        self._use_kl_loss = use_kl_loss
-        self._use_q_loss = use_q_loss
-
         self._meta_batch_size = meta_batch_size
         self._num_steps_per_epoch = num_steps_per_epoch
         self._num_initial_steps = num_initial_steps
@@ -183,27 +163,24 @@ class CURL2(MetaRLAlgorithm):
         self._reward_scale = reward_scale
         self._update_post_train = update_post_train
         self._task_idx = None
-
         self._is_resuming = False
+        self._task_pos_label = []
+        for e in env:
+            self._task_pos_label.append(e._task['goal_pos'])
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
                                         max_path_length=max_path_length,
-                                        worker_class=CURLWorker,
+                                        worker_class=CLASSIFYWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks)
-
         env_spec = env[0]()
-        encoder_spec = self.get_env_spec(env_spec, latent_dim, 'encoder', use_information_bottleneck)
+        encoder_spec = self.get_env_spec(env_spec, self._latent_dim, 'encoder', use_information_bottleneck=use_information_bottleneck)
         encoder_in_dim = int(np.prod(encoder_spec.input_space.shape))
-        if self._use_next_obs_in_context:
-            encoder_in_dim += int(np.prod(env[0]().observation_space.shape))
         encoder_out_dim = int(np.prod(encoder_spec.output_space.shape))
         self._context_encoder = encoder_class(input_dim=encoder_in_dim,
                                         output_dim=encoder_out_dim,
-                                        hidden_sizes=encoder_hidden_sizes,
-                                        query_sizes=encoder_hidden_sizes)
-        self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
+                                        hidden_sizes=encoder_hidden_sizes)
 
         # Automatic entropy coefficient tuning
         self._use_automatic_entropy_tuning = fixed_alpha is None
@@ -213,19 +190,14 @@ class CURL2(MetaRLAlgorithm):
             if target_entropy:
                 self._target_entropy = target_entropy
             else:
-                self._target_entropy = -np.prod(
-                    env_spec.action_space.shape).item()
-            self._log_alpha = torch.Tensor([
-                                               self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
-            self._alpha_optimizer = optimizer_class([self._log_alpha],
-                                                    lr=policy_lr)
+                self._target_entropy = -np.prod(env_spec.action_space.shape).item()
+            self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = optimizer_class([self._log_alpha], lr=policy_lr)
         else:
-            self._log_alpha = torch.Tensor(
-                [self._fixed_alpha] * self._num_train_tasks).log()
+            self._log_alpha = torch.Tensor([self._fixed_alpha] * self._num_train_tasks).log()
 
-        self._context_lr = context_lr
         self._policy = policy_class(
-            latent_dim=latent_dim,
+            latent_dim=self._latent_dim,
             context_encoder=self._context_encoder,
             policy=inner_policy,
             use_information_bottleneck=use_information_bottleneck,
@@ -233,12 +205,11 @@ class CURL2(MetaRLAlgorithm):
 
         # buffer for training RL update
         self._replay_buffers = {
-            i: PathBuffer(replay_buffer_size)
+            i: PathBuffer(self._replay_buffer_size)
             for i in range(num_train_tasks)
         }
-
         self._context_replay_buffers = {
-            i: PathBuffer(replay_buffer_size)
+            i: PathBuffer(self._replay_buffer_size)
             for i in range(num_train_tasks)
         }
 
@@ -255,14 +226,14 @@ class CURL2(MetaRLAlgorithm):
             lr=qf_lr,
         )
         self.context_optimizer = optimizer_class(
-            self._context_encoder.networks[0].parameters(),
-            lr=context_lr,
-        )
-        self.query_optimizer = optimizer_class(
-            self._context_encoder.networks[1].parameters(),
+            self._policy.networks[0].parameters(),
             lr=context_lr,
         )
 
+    def get_encoder_info(self):
+        mean = self._policy.z_means.detach().cpu().numpy()
+        mean_norm = np.linalg.norm(mean)
+        return mean_norm, 0
 
     def __getstate__(self):
         """Object.__getstate__.
@@ -313,7 +284,6 @@ class CURL2(MetaRLAlgorithm):
         }
         self._task_idx = 0
         print("Updated with new envipickleronment setup")
-
         self._policy_optimizer = torch.optim.Adam(
             self._policy.networks[1].parameters(),
             lr=3E-4,
@@ -326,14 +296,15 @@ class CURL2(MetaRLAlgorithm):
             self._qf2.parameters(),
             lr=3E-4,
         )
+        self.vf_optimizer = torch.optim.Adam(
+            self._vf.parameters(),
+            lr=3E-4,
+        )
         self.context_optimizer = torch.optim.Adam(
-            self._context_encoder.networks[0].parameters(),
+            self._policy.networks[0].parameters(),
             lr=3E-4,
         )
-        self.query_optimizer = torch.optim.Adam(
-            self._context_encoder.networks[1].parameters(),
-            lr=3E-4,
-        )
+
         print('Reset optimizer state')
 
     def fill_expert_traj(self, expert_traj_dir):
@@ -432,68 +403,10 @@ class CURL2(MetaRLAlgorithm):
 
     def _train_once(self):
         """Perform one iteration of training."""
-        policy_loss_list = []
-        qf_loss_list = []
-        contrastive_loss_list = []
-        alpha_loss_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            policy_loss, qf_loss, contrastive_loss, alpha_loss = self._optimize_policy(indices)
-            policy_loss_list.append(policy_loss)
-            qf_loss_list.append(qf_loss)
-            contrastive_loss_list.append(contrastive_loss)
-            alpha_loss_list.append(alpha_loss)
-
-        with tabular.prefix('MetaTrain/Average/'):
-            tabular.record('PolicyLoss', np.average(np.array(policy_loss_list)))
-            tabular.record('QfLoss', np.average(np.array(qf_loss_list)))
-            tabular.record('ContrastiveLoss', np.average(np.array(contrastive_loss_list)))
-            tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
-
-    def augment_path(self, path, batch_size, in_sequence = False):
-        path_len = path['actions'].shape[0]
-        augmented_path = {}
-        if in_sequence:
-            if batch_size > path_len:
-                raise Exception(
-                    'Embedding_batch size cannot be longer than path length {} > {}'.format(batch_size, path_len))
-            seq_begin = np.random.randint(0, path_len - batch_size)
-            augmented_path['observations'] = path['observations'][seq_begin:seq_begin + batch_size]
-            augmented_path['actions'] = path['actions'][seq_begin:seq_begin + batch_size]
-            augmented_path['rewards'] = path['rewards'][seq_begin:seq_begin + batch_size]
-            augmented_path['next_observations'] = path['next_observations'][seq_begin:seq_begin + batch_size]
-        else:
-            seq_idx = np.random.choice(path_len, batch_size)
-            augmented_path['observations'] = path['observations'][seq_idx]
-            augmented_path['actions'] = path['actions'][seq_idx]
-            augmented_path['rewards'] = path['rewards'][seq_idx]
-            augmented_path['next_observations'] = path['next_observations'][seq_idx]
-
-        return augmented_path
-
-    def _compute_contrastive_loss(self, indices):
-        # Optimize CURL encoder
-        context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
-        aug1 = torch.as_tensor(context_augs[0], device=global_device())
-        aug2 = torch.as_tensor(context_augs[1], device=global_device())
-        # path_batches = self.sample_path_batch(indices)
-
-        # similar_contrastive
-        query = self._context_encoder(aug1, query=True)
-        key = self._context_encoder(aug2, query=False)
-        loss_fun = torch.nn.CrossEntropyLoss()
-        loss = None
-        for i in range(len(indices)):
-            left_product = torch.matmul(query[i], self._contrastive_weight.to(global_device()))
-            logits = torch.matmul(left_product, key[i].T)
-            logits = logits - torch.max(logits, axis=1)[0]
-            labels = torch.arange(logits.shape[0]).to(global_device())
-            if not loss:
-                loss = loss_fun(logits, labels)
-            else:
-                loss += loss_fun(logits, labels)
-        return loss
+            self._optimize_policy(indices)
 
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
@@ -503,12 +416,10 @@ class CURL2(MetaRLAlgorithm):
 
         """
         num_tasks = len(indices)
-        contrastive_loss = self._compute_contrastive_loss(indices)
         context = self._sample_context(indices)
 
         # clear context and reset belief of policy
         self._policy.reset_belief(num_tasks=num_tasks)
-
         # data shape is (task, batch, feat)
         obs, actions, rewards, next_obs, terms = self._sample_data(indices)
 
@@ -540,40 +451,29 @@ class CURL2(MetaRLAlgorithm):
         qf2_loss = F.mse_loss(q2_pred.flatten(), q_target)
         qf_loss = qf1_loss + qf2_loss
 
-        # Optimize Q network and context encoder
-        self.context_optimizer.zero_grad()
-        self.query_optimizer.zero_grad()
+        # # KL constraint on z if probabilistic
+        # self.context_optimizer.zero_grad()
+        # if self._use_information_bottleneck:
+        #     kl_div = self._policy.compute_kl_div()
+        #     kl_loss = self._kl_lambda * kl_div
+        #     kl_loss.backward(retain_graph=True)
 
+        # Optimize Q network and context encoder
         self.qf1_optimizer.zero_grad()
         self.qf2_optimizer.zero_grad()
-        qf_loss.backward(retain_graph=True)
+        qf_loss.backward()
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
 
-        if not self._use_q_loss:
-            self.context_optimizer.zero_grad()
-            self.query_optimizer.zero_grad()
-
-        if self._use_kl_loss and self._use_information_bottleneck:
-            # KL constraint on z if probabilistic
-            kl_div = self._policy.compute_kl_div()
-            kl_loss = self._kl_lambda * kl_div
-            kl_loss.backward()
-
-        contrastive_loss.backward()
-        self.query_optimizer.step()
+        self.context_optimizer.zero_grad()
+        # Context_Encoder MSE
+        predicted_z = self._context_encoder(context).view(t * self._embedding_batch_size, -1)
+        gt_z = torch.as_tensor(
+            [[self._task_pos_label[i]] * self._embedding_batch_size for i in indices],
+            dtype=torch.float32, device=global_device()).view(t * self._embedding_batch_size, -1)
+        encoder_loss = F.mse_loss(gt_z, predicted_z)
+        encoder_loss.backward()
         self.context_optimizer.step()
-
-
-        query_net = self._context_encoder.networks[1]
-        key_net = self._context_encoder.networks[2]
-        with torch.no_grad():
-            self._contrastive_weight -= self._context_lr * self._contrastive_weight.grad
-            self._contrastive_weight.grad.zero_()
-            # update key net with 0.05 of query net
-            for target_param, param in zip(key_net.parameters(), query_net.parameters()):
-                target_param.data.copy_(self._soft_target_tau * param.data +
-                                        target_param.data * (1 - self._soft_target_tau))
 
         # ===== Actor Objective =====
         policy_outputs, task_z = self._policy(obs, context)
@@ -596,13 +496,11 @@ class CURL2(MetaRLAlgorithm):
         self._policy_optimizer.step()
 
         # ===== Temperature Objective =====
-        alpha_loss_cpu = np.array([0])
         if self._use_automatic_entropy_tuning:
             alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
             self._alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self._alpha_optimizer.step()
-            alpha_loss_cpu = alpha_loss.detach().cpu().numpy()
 
         # ===== Update Target Network =====
         target_qfs = [self._target_qf1, self._target_qf2]
@@ -610,11 +508,6 @@ class CURL2(MetaRLAlgorithm):
         for target_qf, qf in zip(target_qfs, qfs):
             for t_param, param in zip(target_qf.parameters(), qf.parameters()):
                 t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
-
-        qf_loss_cpu = qf_loss.detach().cpu().numpy()
-        policy_loss_cpu = policy_loss.detach().cpu().numpy()
-        contrastive_loss_cpu = contrastive_loss.detach().cpu().numpy()
-        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu
 
 
     def _obtain_samples(self,
@@ -708,49 +601,6 @@ class CURL2(MetaRLAlgorithm):
 
         return o, a, r, no, d
 
-    def _sample_contrastive_pairs(self, indices, num_aug=2):
-        # make method work given a single task index
-        if not hasattr(indices, '__iter__'):
-            indices = [indices]
-
-        path_augs = []
-        for j in range(num_aug):
-            initialized = False
-            for idx in indices:
-                path = self._context_replay_buffers[idx].sample_path()
-                batch_aug = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence) # conduct random path augmentations
-                o = batch_aug['observations']
-                a = batch_aug['actions']
-                r = batch_aug['rewards']
-                context = np.hstack((np.hstack((o, a)), r))
-                if self._use_next_obs_in_context:
-                    context = np.hstack((context, batch_aug['next_observations']))
-
-                if not initialized:
-                    final_context = context[np.newaxis]
-                    initialized = True
-                else:
-                    final_context = np.vstack((final_context, context[np.newaxis]))
-
-            final_context = torch.as_tensor(final_context,
-                                            device=global_device()).float()
-            if len(indices) == 1:
-                final_context = final_context.unsqueeze(0)
-
-            path_augs.append(final_context)
-
-        return path_augs
-
-    def sample_path_batch(self, indices):
-        # make method work given a single task index
-        if not hasattr(indices, '__iter__'):
-            indices = [indices]
-
-        path_batch = {}
-        for idx in indices:
-            path_batch[idx] = self._context_replay_buffers[idx].sample_path()
-        return path_batch
-
     def _sample_context(self, indices):
         """Sample batch of context from a list of tasks.
 
@@ -771,8 +621,8 @@ class CURL2(MetaRLAlgorithm):
 
         initialized = False
         for idx in indices:
-            path = self._context_replay_buffers[idx].sample_path()
-            batch = self.augment_path(path, self._embedding_batch_size, in_sequence=self._embedding_batch_in_sequence)
+            batch = self._context_replay_buffers[idx].sample_transitions(
+                self._embedding_batch_size)
             o = batch['observations']
             a = batch['actions']
             r = batch['rewards']
@@ -784,14 +634,7 @@ class CURL2(MetaRLAlgorithm):
                 final_context = context[np.newaxis]
                 initialized = True
             else:
-                new_context = context[np.newaxis]
-                if final_context.shape[1] != new_context.shape[1]:
-                    min_length = min(final_context.shape[1],
-                                     new_context.shape[1])
-                    new_context = new_context[:, :min_length, :]
-                    final_context = np.vstack(
-                        (final_context[:, :min_length, :], new_context))
-                final_context = np.vstack((final_context, new_context))
+                final_context = np.vstack((final_context, context[np.newaxis]))
 
         final_context = torch.as_tensor(final_context,
                                         device=global_device()).float()
@@ -799,14 +642,6 @@ class CURL2(MetaRLAlgorithm):
             final_context = final_context.unsqueeze(0)
 
         return final_context
-
-    def _update_target_network(self):
-        """Update parameters in the target vf network."""
-        for target_param, param in zip(self.target_vf.parameters(),
-                                       self._vf.parameters()):
-            target_param.data.copy_(target_param.data *
-                                    (1.0 - self._soft_target_tau) +
-                                    param.data * self._soft_target_tau)
 
     @property
     def policy(self):
@@ -827,7 +662,7 @@ class CURL2(MetaRLAlgorithm):
 
         """
         return self._policy.networks + [self._policy, self._qf1, self._qf2,
-                                        self._target_qf1, self._target_qf2, self._contrastive_weight]
+                                        self._target_qf1, self._target_qf2]
 
     def get_exploration_policy(self):
         """Return a policy used before adaptation to a specific task.
@@ -864,11 +699,7 @@ class CURL2(MetaRLAlgorithm):
         o = exploration_trajectories.observations
         a = exploration_trajectories.actions
         r = exploration_trajectories.rewards.reshape(total_steps, 1)
-        no = exploration_trajectories.next_observations
-        ctxt = np.hstack((o, a, r))
-        if self._use_next_obs_in_context:
-            ctxt = np.hstack((ctxt, no))
-        ctxt = ctxt.reshape(1, total_steps, -1)
+        ctxt = np.hstack((o, a, r)).reshape(1, total_steps, -1)
         context = torch.as_tensor(ctxt, device=global_device()).float()
         self._policy.infer_posterior(context)
 
@@ -914,7 +745,7 @@ class CURL2(MetaRLAlgorithm):
         return EnvSpec(aug_obs, aug_act)
 
     @classmethod
-    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=False):
+    def get_env_spec(cls, env_spec, latent_dim, module, use_information_bottleneck=True):
         """Get environment specs of encoder with latent dimension.
 
         Args:
@@ -931,10 +762,10 @@ class CURL2(MetaRLAlgorithm):
         action_dim = int(np.prod(env_spec.action_space.shape))
         if module == 'encoder':
             in_dim = obs_dim + action_dim + 1
-            out_dim = latent_dim
             if use_information_bottleneck:
-                out_dim = out_dim * 2
-
+                out_dim = latent_dim * 2
+            else:
+                out_dim = latent_dim
         elif module == 'vf':
             in_dim = obs_dim
             out_dim = latent_dim
@@ -949,6 +780,7 @@ class CURL2(MetaRLAlgorithm):
             spec = EnvSpec(in_space, out_space)
 
         return spec
+
 
     def _get_log_alpha(self, indices):
         """Return the value of log_alpha.
@@ -979,8 +811,9 @@ class CURL2(MetaRLAlgorithm):
         ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
         return ret
 
-class CURLWorker(DefaultWorker):
-    """A worker class used in sampling for CURL.
+
+class CLASSIFYWorker(DefaultWorker):
+    """A worker class used in sampling for PEARL.
 
     It stores context and resample belief in the policy every step.
 
@@ -1042,6 +875,8 @@ class CURLWorker(DefaultWorker):
                 self._env_infos[k].append(v)
             self._path_length += 1
             self._terminals.append(d)
+            # done_signal = bool(env_info['success'])
+            done_signal = d
             if self._accum_context:
                 s = TimeStep(env_spec=self.env,
                              observation=self._prev_obs,
@@ -1052,7 +887,7 @@ class CURLWorker(DefaultWorker):
                              env_info=env_info,
                              agent_info=agent_info)
                 self.agent.update_context(s)
-            if not d:
+            if not done_signal:
                 self._prev_obs = next_o
                 return False
         self._lengths.append(self._path_length)

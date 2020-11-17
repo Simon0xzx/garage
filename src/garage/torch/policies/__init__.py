@@ -11,6 +11,7 @@ from garage.torch.policies.goal_conditioned_policy import GoalConditionedPolicy
 from garage.torch.policies.tanh_gaussian_context_emphasized_policy import TanhGaussianContextEmphasizedPolicy
 from garage.torch.policies.curl_policy import CurlPolicy
 from garage.torch.policies.curl_shaped_policy import CurlShapedPolicy
+from garage.torch.policies.classifier_conditioned_policy import ClassifierConditionedPolicy
 
 __all__ = [
     'DeterministicMLPPolicy',
@@ -21,5 +22,6 @@ __all__ = [
     'GoalConditionedPolicy',
     'TanhGaussianContextEmphasizedPolicy',
     'CurlPolicy',
-    'CurlShapedPolicy'
+    'CurlShapedPolicy',
+    'ClassifierConditionedPolicy'
 ]
