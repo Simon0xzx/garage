@@ -220,7 +220,9 @@ class CURL(MetaRLAlgorithm):
                                         hidden_sizes=encoder_hidden_sizes)
         if self._contrastive_mean_only:
             encoder_out_dim = self._latent_dim
-        self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
+
+        if not self._use_wasserstein_distance:
+            self._contrastive_weight = torch.rand(encoder_out_dim, encoder_out_dim, device=global_device(), requires_grad=True)
 
         # Automatic entropy coefficient tuning
         self._use_automatic_entropy_tuning = fixed_alpha is None
@@ -279,7 +281,7 @@ class CURL(MetaRLAlgorithm):
                 self._context_encoder.networks[0].parameters(),
                 lr=context_lr,
             )
-        if self._new_weight_update:
+        if self._new_weight_update and not self._use_wasserstein_distance:
             self.contrastive_weight_optimizer = optimizer_class(
                 [self._contrastive_weight],
                 lr=context_lr,
@@ -521,16 +523,17 @@ class CURL(MetaRLAlgorithm):
         t,b,d = query.size()
         query = query.view(t * b, d)
         key = key.view(t * b, d)
-        loss_fun = torch.nn.CrossEntropyLoss()
+
         if self._use_wasserstein_distance:
             query_mean = query[:, :self._latent_dim]
-            query_var = query[:, self._latent_dim:].abs().pow(0.5)
+            query_var = query[:, self._latent_dim:].abs()
             key_mean = key[:, :self._latent_dim]
-            key_var = key[:, self._latent_dim:].abs().pow(0.5)
+            key_var = key[:, self._latent_dim:].abs()
             mean_dist = torch.norm(query_mean - key_mean, dim=1).pow(2)
             var_dist = torch.norm(query_var - key_var, dim=1).pow(2)
             loss = torch.mean(mean_dist + var_dist)
         else:
+            loss_fun = torch.nn.CrossEntropyLoss()
             if self._contrastive_mean_only:
                 assert self._contrastive_weight.size()[0] == self._latent_dim
                 query = query[:, :self._latent_dim]
@@ -627,7 +630,7 @@ class CURL(MetaRLAlgorithm):
         if self._encoder_common_net:
             self.context_optimizer.zero_grad()
         self.query_optimizer.zero_grad()
-        if self._new_weight_update:
+        if self._new_weight_update and not self._use_wasserstein_distance:
             self.contrastive_weight_optimizer.zero_grad()
 
         self.qf1_optimizer.zero_grad()
@@ -640,7 +643,7 @@ class CURL(MetaRLAlgorithm):
             if self._encoder_common_net:
                 self.context_optimizer.zero_grad()
             self.query_optimizer.zero_grad()
-            if self._new_weight_update:
+            if self._new_weight_update and not self._use_wasserstein_distance:
                 self.contrastive_weight_optimizer.zero_grad()
 
         if self._use_kl_loss and self._use_information_bottleneck:
@@ -654,7 +657,7 @@ class CURL(MetaRLAlgorithm):
         if self._encoder_common_net:
             self.context_optimizer.step()
 
-        if self._new_weight_update:
+        if self._new_weight_update and not self._use_wasserstein_distance:
             self.contrastive_weight_optimizer.step()
 
         query_net = self._context_encoder.get_query_net()
@@ -922,7 +925,8 @@ class CURL(MetaRLAlgorithm):
 
         """
         return self._policy.networks + [self._policy, self._qf1, self._qf2,
-                                        self._target_qf1, self._target_qf2, self._contrastive_weight]
+                                        self._target_qf1, self._target_qf2] \
+               + ([self._contrastive_weight] if not self._use_wasserstein_distance else [])
 
     def get_exploration_policy(self):
         """Return a policy used before adaptation to a specific task.
@@ -1130,6 +1134,9 @@ class CURLWorker(DefaultWorker):
             a, agent_info = self.agent.get_action(self._prev_obs)
             if self._deterministic:
                 a = agent_info['mean']
+            if not np.all(np.isfinite(a)) or np.max(a) > 100:
+                print("Some problem met with action a during rollout, Action: {}".format(a))
+
             next_o, r, d, env_info = self.env.step(a)
             self._observations.append(self._prev_obs)
             self._rewards.append(r)
