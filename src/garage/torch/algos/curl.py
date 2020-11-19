@@ -515,7 +515,7 @@ class CURL(MetaRLAlgorithm):
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
         aug1 = torch.as_tensor(context_augs[0], device=global_device())
         aug2 = torch.as_tensor(context_augs[1], device=global_device())
-        # path_batches = self.sample_path_batch(indices)
+        loss_fun = torch.nn.CrossEntropyLoss()
 
         # similar_contrastive
         query = self._context_encoder(aug1, query=True)
@@ -523,17 +523,25 @@ class CURL(MetaRLAlgorithm):
         t,b,d = query.size()
         query = query.view(t * b, d)
         key = key.view(t * b, d)
-
         if self._use_wasserstein_distance:
             query_mean = query[:, :self._latent_dim]
-            query_var = query[:, self._latent_dim:].abs()
+            query_mean_norm = torch.sum((query_mean ** 2), dim=1).view(-1, 1)
             key_mean = key[:, :self._latent_dim]
-            key_var = key[:, self._latent_dim:].abs()
-            mean_dist = torch.norm(query_mean - key_mean, dim=1).pow(2)
-            var_dist = torch.norm(query_var - key_var, dim=1).pow(2)
-            loss = torch.mean(mean_dist + var_dist)
+            key_mean_norm = torch.sum((key_mean ** 2), dim=1).view(1, -1)
+            mean_dist = query_mean_norm + key_mean_norm - 2.0 * torch.mm(query_mean, key_mean.T)
+
+            query_var = query[:, self._latent_dim:]
+            query_var_norm = torch.sum((query_var ** 2), dim=1).view(-1, 1)
+            key_var = key[:, self._latent_dim:]
+            key_var_norm = torch.sum((key_var ** 2), dim=1).view(1, -1)
+            var_dist = query_var_norm + key_var_norm - 2.0 * torch.mm(query_var, key_var.T)
+
+            wasserstein_distance = mean_dist + var_dist
+            labels = torch.arange(wasserstein_distance.shape[0]).to(global_device())
+            # Using negative wasserstein distance for lower distance means more similar
+            loss = loss_fun(-wasserstein_distance, labels)
         else:
-            loss_fun = torch.nn.CrossEntropyLoss()
+
             if self._contrastive_mean_only:
                 assert self._contrastive_weight.size()[0] == self._latent_dim
                 query = query[:, :self._latent_dim]

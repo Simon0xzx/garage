@@ -16,7 +16,9 @@ def get_data_repos():
     'pearl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_ml1_result_suit', ['old_pearl']),
     'curl_labeled_b16': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_labeled_b16', ['curl_labeled_b16']),
     'updated_curl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_normal', ['updated_curl']),
-    'classifier_encoder':('/home/simon0xzx/research/berkely_research/garage/data/local/classifier_suit', ['classifier_encoder'])
+    'classifier_encoder':('/home/simon0xzx/research/berkely_research/garage/data/local/classifier_suit', ['classifier_encoder']),
+    'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit', ['maml_trpo']),
+    'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', ['curl_wasserstein'])
     }
     return data_repo
 
@@ -48,7 +50,7 @@ def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, limit=10
         subplot_axs.set_title('CURL ML1 {}'.format(task))
         subplot_axs.set_xlabel(x_title)
         subplot_axs.set_ylabel(title.split('/')[-1])
-
+        subplot_axs.ticklabel_format(useMathText=True)
         for repo in draw_repo_names:
             exp_repo = data_repo[repo]
             print_hyper_tests(subplot_axs, exp_repo[0], task,
@@ -58,27 +60,18 @@ def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, limit=10
 
 def plot_full_suits():
     sampled_task_lists = ['faucet-close-v1', 'soccer-v1', 'plate-slide-side-v1', 'stick-push-v1']
-    full_suit_task_lists = ['button-press-topdown-v1', 'coffee-push-v1',
-                  'dissassemble-v1', 'faucet-close-v1', 'faucet-open-v1',
-                  'hammer-v1', 'handle-press-v1', 'handle-pull-side-v1',
-                  'lever-pull-v1', 'plate-slide-back-v1', 'plate-slide-side-v1',
-                  'soccer-v1', 'stick-pull-v1', 'stick-push-v1',
-                  'button-press-topdown-wall-v1', 'peg-insert-side-v1',
-                  'push-wall-v1', 'button-press-v1', 'coffee-pull-v1',
-                  'window-close-v1', 'door-open-v1', 'box-close-v1',
-                  'door-unlock-v1', 'drawer-open-v1']
-    row, col = 2,2
+    full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1', 'lever-pull-v1', 'stick-push-v1', 'handle-pull-side-v1', 'stick-pull-v1', 'dissassemble-v1', 'coffee-push-v1', 'hammer-v1', 'plate-slide-side-v1', 'handle-press-v1', 'soccer-v1', 'plate-slide-back-v1', 'button-press-topdown-v1', 'button-press-topdown-wall-v1', 'peg-insert-side-v1', 'push-wall-v1', 'button-press-v1', 'coffee-pull-v1', 'window-close-v1', 'door-open-v1', 'drawer-open-v1', 'box-close-v1', 'door-unlock-v1']
+    row, col = 6,4
     fig, axs = plt.subplots(row, col)
     plt.subplots_adjust(left=0.04, bottom=0.04, right=0.98, top=0.96,
                         wspace=0.25, hspace=0.30)
 
     # metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'curl_labeled_b16', 'updated_curl', 'pearl'], row=6, col=4)
 
-    # metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'updated_curl', 'curl_labeled_b16'], row=row, col=col)
-    metaworld_ml1_graph(axs, sampled_task_lists, ['curl_labeled_b16', 'classifier_encoder'], row=2, col=2)
+    # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein', 'maml_trpo'], row=row, col=col)
+    metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'updated_curl', 'curl_wasserstein'], row=row, col=col)
     plt.show()
 
 if __name__ == '__main__':
-    # plot_full_suits()
-    get_metaworld_task_list()
+    plot_full_suits()
 

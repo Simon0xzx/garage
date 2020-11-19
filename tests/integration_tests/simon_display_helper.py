@@ -28,6 +28,8 @@ def plot_curve_avg(matplot, exps, format='-',
         min_step_length = min(min_step_length, limit)
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
+    if 'maml_trpo' in exps[0]:
+        x = np.array(x) /2
     y_ave = np.average([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
     y_min = np.min(
         [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
