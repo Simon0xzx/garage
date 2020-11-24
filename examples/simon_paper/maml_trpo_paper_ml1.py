@@ -22,9 +22,10 @@ from garage.torch.value_functions import GaussianMLPValueFunction
 @click.option('--meta_batch_size', default=20)
 @click.option('--net_size', default=400)
 @click.option('--max_path_length', default=200)
+@click.option('--num_test_tasks', default=10)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='maml_trpo_suit')
+@click.option('--prefix', default='maml_trpo_suit_2')
 @wrap_experiment
 def maml_trpo_paper_ml1(ctxt=None,
                              seed=1,
@@ -33,6 +34,7 @@ def maml_trpo_paper_ml1(ctxt=None,
                              rollouts_per_task=10,
                              net_size=400,
                              max_path_length=200,
+                             num_test_tasks = 10,
                              gpu_id = 0,
                              name='push-v1',
                              prefix='maml_trpo_ml1',
@@ -94,7 +96,9 @@ def maml_trpo_paper_ml1(ctxt=None,
         normalize(mwb.ML1.get_test_tasks('push-v1'))))
 
     meta_evaluator = MetaEvaluator(test_task_sampler=test_sampler,
-                                   max_path_length=max_path_length)
+                                   max_path_length=max_path_length,
+                                   n_test_tasks=num_test_tasks)
+
 
     runner = LocalRunner(ctxt)
     algo = MAMLTRPO(env=env,
@@ -105,7 +109,7 @@ def maml_trpo_paper_ml1(ctxt=None,
                     discount=0.99,
                     gae_lambda=1.,
                     inner_lr=0.1,
-                    num_grad_updates=1,
+                    num_grad_updates=5,
                     meta_evaluator=meta_evaluator)
 
     # set_gpu_mode(use_gpu, gpu_id=gpu_id)

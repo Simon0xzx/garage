@@ -16,7 +16,7 @@ from garage.tf.policies import GaussianGRUPolicy
 
 @click.command()
 @click.option('--seed', default=1)
-@click.option('--max_path_length', default=150)
+@click.option('--max_path_length', default=200)
 @click.option('--meta_batch_size', default=10)
 @click.option('--n_epochs', default=10)
 @click.option('--episode_per_task', default=10)

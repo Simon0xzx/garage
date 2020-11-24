@@ -17,8 +17,9 @@ def get_data_repos():
     'curl_labeled_b16': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_labeled_b16', ['curl_labeled_b16']),
     'updated_curl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_normal', ['updated_curl']),
     'classifier_encoder':('/home/simon0xzx/research/berkely_research/garage/data/local/classifier_suit', ['classifier_encoder']),
-    'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit', ['maml_trpo']),
-    'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', ['curl_wasserstein'])
+    'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit_2', ['maml_trpo']),
+    'curl_wasserstein_old': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', ['curl_wasserstein_old']),
+    'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final', ['curl_wasserstein'])
     }
     return data_repo
 
@@ -63,15 +64,24 @@ def plot_full_suits():
     full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1', 'lever-pull-v1', 'stick-push-v1', 'handle-pull-side-v1', 'stick-pull-v1', 'dissassemble-v1', 'coffee-push-v1', 'hammer-v1', 'plate-slide-side-v1', 'handle-press-v1', 'soccer-v1', 'plate-slide-back-v1', 'button-press-topdown-v1', 'button-press-topdown-wall-v1', 'peg-insert-side-v1', 'push-wall-v1', 'button-press-v1', 'coffee-pull-v1', 'window-close-v1', 'door-open-v1', 'drawer-open-v1', 'box-close-v1', 'door-unlock-v1']
     row, col = 6,4
     fig, axs = plt.subplots(row, col)
-    plt.subplots_adjust(left=0.04, bottom=0.04, right=0.98, top=0.96,
-                        wspace=0.25, hspace=0.30)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
+                        wspace=0.26, hspace=0.70)
+    # row, col = 4, 6
+    # plt.subplots_adjust(left=0.04, bottom=0.04, right=0.98, top=0.96,
+    #                     wspace=0.25, hspace=0.30)
 
-    # metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'curl_labeled_b16', 'updated_curl', 'pearl'], row=6, col=4)
-
-    # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein', 'maml_trpo'], row=row, col=col)
+    # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein_final'], row=row, col=col)
     metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'updated_curl', 'curl_wasserstein'], row=row, col=col)
     plt.show()
 
+def varify():
+    sampled_task_lists = ['push-v1', 'pick-place-v1', 'reach-v1']
+    row, col = 1, 3
+    fig, axs = plt.subplots(row, col)
+    metaworld_ml1_graph(axs, sampled_task_lists,
+                        ['maml_trpo'],
+                        row=row, col=col)
+
 if __name__ == '__main__':
     plot_full_suits()
-
+    # varify()

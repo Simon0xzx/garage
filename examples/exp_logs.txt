@@ -178,34 +178,50 @@ python examples/simon_paper/curl_paper_ml1.py --name hammer-v1 --seed 0 --gpu_id
 
 ====================================================================================
 curl_wasserstein_final
-
+conda activate pearl
 {namazu}
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name faucet-open-v1 --seed 1 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name stick-push-v1 --seed 1 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name faucet-close-v1 --seed 1 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name lever-pull-v1 --seed 1 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name stick-pull-v1 --seed 1 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name coffee-push-v1 --seed 1 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name dissassemble-v1 --seed 1 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-v1 --seed 1 --gpu_id 7
 ---running---
-python examples/simon_paper/curl_paper_ml1.py --name faucet-open-v1 --seed 1 --gpu_id 4
-python examples/simon_paper/curl_paper_ml1.py --name stick-push-v1 --seed 1 --gpu_id 4
-python examples/simon_paper/curl_paper_ml1.py --name faucet-close-v1 --seed 1 --gpu_id 5
-python examples/simon_paper/curl_paper_ml1.py --name lever-pull-v1 --seed 1 --gpu_id 5
-python examples/simon_paper/curl_paper_ml1.py --name stick-pull-v1 --seed 1 --gpu_id 6
-python examples/simon_paper/curl_paper_ml1.py --name coffee-push-v1 --seed 1 --gpu_id 6
-python examples/simon_paper/curl_paper_ml1.py --name dissassemble-v1 --seed 1 --gpu_id 7
-python examples/simon_paper/curl_paper_ml1.py --name button-press-v1 --seed 1 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name stick-push-v1 --seed 3 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name stick-pull-v1 --seed 3 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name hammer-v1 --seed 3 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name box-close-v1 --seed 3 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name plate-slide-back-v1 --seed 3 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name peg-insert-side-v1 --seed 3 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name drawer-open-v1 --seed 3 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-v1 --seed 3 --gpu_id 7
+
+{leviathan}
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name coffee-pull-v1 --seed 0 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name window-close-v1 --seed 0 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name handle-press-v1 --seed 0 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name plate-slide-side-v1 --seed 0 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name soccer-v1 --seed 0 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name plate-slide-back-v1 --seed 0 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name peg-insert-side-v1 --seed 0 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name push-wall-v1 --seed 0 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 0 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-v1 --seed 0 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name door-open-v1 --seed 0 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name drawer-open-v1 --seed 0 --gpu_id 7
+---running---
+
+{local}
+python examples/simon_paper/curl_paper_ml1.py --name box-close-v1 --seed 1 --gpu_id 0
+python examples/simon_paper/curl_paper_ml1.py --name door-unlock-v1 --seed 1 --gpu_id 0
+python examples/simon_paper/curl_paper_ml1.py --name handle-pull-side-v1 --seed 1 --gpu_id 1
+python examples/simon_paper/curl_paper_ml1.py --name hammer-v1 --seed 1 --gpu_id 1
+
+---running---
+
 
 ---to be assigned---
-python examples/simon_paper/curl_paper_ml1.py --name coffee-pull-v1 --seed 0 --gpu_id 7
-python examples/simon_paper/curl_paper_ml1.py --name window-close-v1 --seed 0 --gpu_id 7
-python examples/simon_paper/curl_paper_ml1.py --name handle-press-v1 --seed 0 --gpu_id 2
-python examples/simon_paper/curl_paper_ml1.py --name plate-slide-side-v1 --seed 0 --gpu_id 2
-python examples/simon_paper/curl_paper_ml1.py --name soccer-v1 --seed 0 --gpu_id 3
-python examples/simon_paper/curl_paper_ml1.py --name plate-slide-back-v1 --seed 0 --gpu_id 3
-python examples/simon_paper/curl_paper_ml1.py --name peg-insert-side-v1 --seed 0 --gpu_id 4
-python examples/simon_paper/curl_paper_ml1.py --name push-wall-v1 --seed 0 --gpu_id 4
-python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 0 --gpu_id 5
-python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-v1 --seed 0 --gpu_id 5
-python examples/simon_paper/curl_paper_ml1.py --name door-open-v1 --seed 0 --gpu_id 6
-python examples/simon_paper/curl_paper_ml1.py --name drawer-open-v1 --seed 0 --gpu_id 6
-python examples/simon_paper/curl_paper_ml1.py --name box-close-v1 --seed 0 --gpu_id 7
-python examples/simon_paper/curl_paper_ml1.py --name door-unlock-v1 --seed 0 --gpu_id 7
-python examples/simon_paper/curl_paper_ml1.py --name stick-push-v1 --seed 0 --gpu_id 1
-python examples/simon_paper/curl_paper_ml1.py --name handle-pull-side-v1 --seed 0 --gpu_id 1
 python examples/simon_paper/curl_paper_ml1.py --name basketball-v1 --seed 0 --gpu_id 0
-python examples/simon_paper/curl_paper_ml1.py --name hammer-v1 --seed 0 --gpu_id 1
+
