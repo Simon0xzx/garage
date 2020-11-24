@@ -17,9 +17,13 @@ def get_data_repos():
     'curl_labeled_b16': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_labeled_b16', ['curl_labeled_b16']),
     'updated_curl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_normal', ['updated_curl']),
     'classifier_encoder':('/home/simon0xzx/research/berkely_research/garage/data/local/classifier_suit', ['classifier_encoder']),
-    'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit_2', ['maml_trpo']),
     'curl_wasserstein_old': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', ['curl_wasserstein_old']),
-    'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final', ['curl_wasserstein'])
+    'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final', ['curl_wasserstein']),
+    # other methods
+    'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit_2',['maml_trpo']),
+    'maml_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_ppo_suit', ['maml_ppo']),
+    'rl2_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit', ['rl2_ppo'])
+
     }
     return data_repo
 
@@ -78,10 +82,8 @@ def varify():
     sampled_task_lists = ['push-v1', 'pick-place-v1', 'reach-v1']
     row, col = 1, 3
     fig, axs = plt.subplots(row, col)
-    metaworld_ml1_graph(axs, sampled_task_lists,
-                        ['maml_trpo'],
-                        row=row, col=col)
+    metaworld_ml1_graph(axs, sampled_task_lists, ['maml_trpo', 'maml_ppo', 'rl2_ppo'], row=row, col=col)
 
 if __name__ == '__main__':
-    plot_full_suits()
-    # varify()
+    # plot_full_suits()
+    varify()
