@@ -29,7 +29,9 @@ def plot_curve_avg(matplot, exps, format='-',
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
     if 'maml_trpo' in exps[0]:
-        x = np.array(x) /2
+        x = np.array(x) / 2
+    if 'meta-q-learning' in exps[0]:
+        x = np.array(x) * 5
     y_ave = np.average([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
     y_min = np.min(
         [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
@@ -46,7 +48,12 @@ def print_hyper_tests(axs, dir_path, exp_name, labels,
     for i, label in enumerate(labels):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
         try:
-            plot_curve_avg(axs, ['{}/{}'.format(dir_path, task_name)], '-',
+            direct_dir_path = '{}/{}'.format(dir_path, task_name)
+            if 'meta-q-learning' in dir_path:
+                direct_dir_path = '{}/metaworld-ml1-{}_mql_dummy'.format(dir_path, task_name)
+                title = 'episode_reward'
+                x_title = 'total_timesteps'
+            plot_curve_avg(axs, [direct_dir_path], '-',
                            legend=label, title=title, x_title=x_title, limit=limit)
         except:
             print("Failed to Locate {}".format(task_name))

@@ -50,12 +50,12 @@ def maml_ppo_paper_ml1(ctxt, seed, epochs, rollouts_per_task,
     env = GarageEnv( normalize(mwb.ML1.get_train_tasks(name)))
     policy = GaussianMLPPolicy(
         env_spec=env.spec,
-        hidden_sizes=(400, 400, 400),
+        hidden_sizes=(64, 64),
         hidden_nonlinearity=torch.tanh,
         output_nonlinearity=None,
     )
     value_function = GaussianMLPValueFunction(env_spec=env.spec,
-                                              hidden_sizes=(400, 400, 400),
+                                              hidden_sizes=(32, 32),
                                               hidden_nonlinearity=torch.tanh,
                                               output_nonlinearity=None)
     max_path_length = 200

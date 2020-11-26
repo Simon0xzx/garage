@@ -48,7 +48,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
 
         env_spec = RL2Env(env=mwb.ML1.get_train_tasks(name)).spec
         policy = GaussianGRUPolicy(name=name,
-                                   hidden_dim=400,
+                                   hidden_dim=64,
                                    env_spec=env_spec,
                                    state_include_action=False)
 

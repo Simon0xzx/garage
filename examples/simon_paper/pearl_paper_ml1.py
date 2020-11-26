@@ -19,7 +19,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=500)
+@click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)

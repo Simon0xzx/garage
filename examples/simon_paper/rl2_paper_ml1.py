@@ -3,7 +3,7 @@
 # pylint: disable=no-value-for-parameter
 import click
 import metaworld.benchmarks as mwb
-from torch.optim import Adam
+import tensorflow as tf
 
 from garage import wrap_experiment
 from garage.envs import GarageEnv, normalize
@@ -69,8 +69,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                    env_spec=env_spec,
                    policy=policy,
                    baseline=baseline,
-                   max_path_length=max_path_length * episode_per_task,
-                   optimizer=Adam
+                   max_path_length=max_path_length * episode_per_task
                    )
         runner.setup(algo,
                      tasks.sample(meta_batch_size),

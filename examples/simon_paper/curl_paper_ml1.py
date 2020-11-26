@@ -19,7 +19,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=100)
+@click.option('--num_epochs', default=200)
 @click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)   # TODO here 50
 @click.option('--num_test_tasks', default=10)    # TODO here 10
@@ -38,7 +38,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--reward_scale', default=10)
 @click.option('--max_path_length', default=200)
 @click.option('--replay_buffer_size', default=1000000)
-@click.option('--use_next_obs', default=True, type=bool)
+@click.option('--use_next_obs', default=False, type=bool)
 @click.option('--in_sequence_path_aug', default=True, type=bool)
 @click.option('--emphasized_network', default=False, type=bool)
 @click.option('--use_kl_loss', default=True, type=bool)
@@ -54,7 +54,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_wasserstein_final_2_steps')
+@click.option('--prefix', default='curl_wasserstein_long')
 @wrap_experiment
 def curl_paper_ml1(ctxt=None,
                    seed=1,

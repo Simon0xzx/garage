@@ -1,0 +1,35 @@
+curl_wasserstein_final
+conda activate pearl
+
+[ENVS]
+soccer-v1
+push-wall-v1
+coffee-pull-v1
+button-press-topdown-wall-v1
+faucet-close-v1
+pick-out-of-hole-v1
+dial-turn-v1
+plate-slide-back-side-v1
+window-open-v1
+door-close-v1
+
+
+{namazu}
+---DONE---
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name faucet-close-v1 --seed 1 --gpu_id 5
+---RUNNING---
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name faucet-close-v1 --seed 2 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name faucet-close-v1 --seed 3 --gpu_id 5
+
+
+
+
+{leviathan}
+---DONE---
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name soccer-v1 --seed 0 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name push-wall-v1 --seed 0 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name coffee-pull-v1 --seed 0 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 0 --gpu_id 6
+---RUNNING---
+
+
