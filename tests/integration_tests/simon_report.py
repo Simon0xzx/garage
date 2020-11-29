@@ -85,10 +85,10 @@ def varify():
     sampled_task_lists = ['push-v1', 'pick-place-v1', 'reach-v1']
     row, col = 1, 3
     fig, axs = plt.subplots(row, col)
-    # metaworld_ml1_graph(axs, sampled_task_lists, ['rl2_ppo', 'maml_ppo', 'mql', 'maml_trpo''], row=row, col=col, limit=-1)
+    metaworld_ml1_graph(axs, sampled_task_lists, ['rl2_ppo', 'maml_ppo', 'mql', 'maml_trpo'], row=row, col=col, limit=-1)
 
     # metaworld_ml1_graph(axs, sampled_task_lists, ['rl2_ppo_larger_net', 'rl2_ppo', 'rl2'], row=row, col=col)
 
 if __name__ == '__main__':
-    plot_full_suits()
-    # varify()
+    # plot_full_suits()
+    varify()

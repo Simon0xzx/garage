@@ -34,7 +34,8 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_mini_batch_size', default=64)
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
-@click.option('--name', default='curl-push-v1')
+@click.option('--name', default='push-v1')
+@click.option('--prefix', default='pearl_suit')
 @wrap_experiment
 def pearl_paper_ml1(ctxt=None,
                              seed=1,
@@ -97,14 +98,13 @@ def pearl_paper_ml1(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
-    exp_name = name.split('pearl-')[-1]
-    print("Running experiences on {}".format(exp_name))
+    print("Running experiences on {}".format(name))
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks(exp_name))))
+        normalize(mwb.ML1.get_train_tasks(name))))
     env = env_sampler.sample(num_train_tasks)
     test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks(exp_name))))
+        normalize(mwb.ML1.get_test_tasks(name))))
     runner = LocalRunner(ctxt)
 
     # instantiate networks
