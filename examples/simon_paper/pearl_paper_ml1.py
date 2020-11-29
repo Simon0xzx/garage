@@ -58,6 +58,7 @@ def pearl_paper_ml1(ctxt=None,
                              reward_scale=10.,
                              gpu_id = 0,
                              name='',
+                             prefix='pearl_suit',
                              use_gpu=True):
     """Train PEARL with ML1 environments.
 
@@ -98,7 +99,7 @@ def pearl_paper_ml1(ctxt=None,
     set_seed(seed)
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
-    print("Running experiences on {}".format(name))
+    print("Running experiences on {}/{}".format(prefix, name))
     # create multi-task environment and sample tasks
     env_sampler = SetTaskSampler(lambda: GarageEnv(
         normalize(mwb.ML1.get_train_tasks(name))))
