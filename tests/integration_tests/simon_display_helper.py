@@ -40,17 +40,21 @@ def plot_curve_avg(matplot, exps, format='-',
     matplot.fill_between(x, y_min, y_max, alpha=opacity)
     matplot.legend()
 
-def print_hyper_tests(axs, dir_path, exp_name, labels,
+def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
                       title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps', limit = -1):
-    for i, label in enumerate(labels):
+    results_dirs = []
+    for i in range(num_seeds):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
-        try:
+        if 'meta-q-learning' in dir_path:
+            direct_dir_path = '{}/metaworld-ml1-{}_mql_dummy'.format(dir_path, task_name)
+            title = 'episode_reward'
+            x_title = 'total_timesteps'
+        else:
             direct_dir_path = '{}/{}'.format(dir_path, task_name)
-            if 'meta-q-learning' in dir_path:
-                direct_dir_path = '{}/metaworld-ml1-{}_mql_dummy'.format(dir_path, task_name)
-                title = 'episode_reward'
-                x_title = 'total_timesteps'
-            plot_curve_avg(axs, [direct_dir_path], '-',
-                           legend=label, title=title, x_title=x_title, limit=limit)
-        except:
-            print("Failed to Locate {}".format(task_name))
+        if os.path.exists(direct_dir_path):
+            results_dirs.append(direct_dir_path)
+    try:
+        plot_curve_avg(axs, results_dirs, '-',
+                       legend=label, title=title, x_title=x_title, limit=limit)
+    except:
+        print("Failed to Locate {}".format(exp_name))

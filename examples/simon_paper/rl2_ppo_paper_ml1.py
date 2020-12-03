@@ -3,9 +3,9 @@
 # pylint: disable=no-value-for-parameter
 import click
 import metaworld.benchmarks as mwb
+import tensorflow as tf
 
 from garage import wrap_experiment
-from garage.envs import GarageEnv, normalize
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.experiment import LocalTFRunner, task_sampler, MetaEvaluator
 from garage.experiment.deterministic import set_seed
@@ -22,12 +22,15 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--meta_batch_size', default=40)
 @click.option('--n_epochs', default=100)
 @click.option('--episode_per_task', default=10)
+@click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
 @click.option('--prefix', default='rl2_ppo_suit')
 @wrap_experiment
 def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
-                               n_epochs, episode_per_task, name='push-v1',
-                               prefix='maml_trpo_ml1'):
+                      n_epochs, episode_per_task,
+                      gpu_id=0,
+                      name='push-v1',
+                      prefix='rl2_ppo_suit'):
     """Train PPO with ML1 environment.
 
     Args:
@@ -43,6 +46,11 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
     """
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
+        print("==============================================")
+        physical_devices = tf.config.list_physical_devices('GPU')
+        tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
+        print("Running Experiments on GPU: {}".format(gpu_id))
+        print("==============================================")
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=mwb.ML1.get_train_tasks(name)))
 
@@ -91,5 +99,5 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                      batch_size=episode_per_task * max_path_length *
                      meta_batch_size)
 
-
-rl2_ppo_paper_ml1()
+if __name__ == '__main__':
+    rl2_ppo_paper_ml1()
