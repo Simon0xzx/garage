@@ -132,5 +132,5 @@ def varify():
 
 if __name__ == '__main__':
     # plot_full_suits()
-    plot_selected_suits()
-    # varify()
+    # plot_selected_suits()
+    varify()

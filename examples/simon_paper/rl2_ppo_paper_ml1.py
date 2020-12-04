@@ -20,17 +20,17 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=200)
 @click.option('--meta_batch_size', default=40)
-@click.option('--n_epochs', default=100)
+@click.option('--n_epochs', default=1000)
 @click.option('--episode_per_task', default=10)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='rl2_ppo_suit')
+@click.option('--prefix', default='rl2_ppo_suit_2')
 @wrap_experiment
 def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                       n_epochs, episode_per_task,
                       gpu_id=0,
                       name='push-v1',
-                      prefix='rl2_ppo_suit'):
+                      prefix='rl2_ppo_suit_2'):
     """Train PPO with ML1 environment.
 
     Args:
@@ -45,18 +45,16 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
 
     """
     set_seed(seed)
+    print("Running Experiments on GPU: {}".format(gpu_id))
+    physical_devices = tf.config.list_physical_devices('GPU')
+    tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        print("==============================================")
-        physical_devices = tf.config.list_physical_devices('GPU')
-        tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
-        print("Running Experiments on GPU: {}".format(gpu_id))
-        print("==============================================")
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=mwb.ML1.get_train_tasks(name)))
 
         env_spec = RL2Env(env=mwb.ML1.get_train_tasks(name)).spec
         policy = GaussianGRUPolicy(name=name,
-                                   hidden_dim=64,
+                                   hidden_dim=400,
                                    env_spec=env_spec,
                                    state_include_action=False)
 
@@ -77,7 +75,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                       gae_lambda=0.95,
                       lr_clip_range=0.2,
                       optimizer_args=dict(
-                          batch_size=32,
+                          batch_size=64,
                           max_epochs=10,
                       ),
                       stop_entropy_gradient=True,
@@ -85,7 +83,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                       policy_ent_coeff=0.02,
                       center_adv=False,
                       meta_evaluator=meta_evaluator,
-                      n_epochs_per_eval = 1,
+                      n_epochs_per_eval = 10,
                       max_path_length=max_path_length * episode_per_task)
 
         runner.setup(algo,
