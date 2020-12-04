@@ -29,13 +29,17 @@ def plot_curve_avg(matplot, exps, format='-',
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
 
-    y_ave = np.average([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
+    y_ave = np.median([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
     y_min = np.min(
         [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
          data_dict in data_dicts], axis=0)
     y_max = np.max(
         [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
          data_dict in data_dicts], axis=0)
+    print(exps[0])
+    print("Y Last Min: {}".format(y_min[99]))
+    print("Y Last Avg: {}".format(y_ave[99]))
+    print("Y Last Max: {}".format(y_max[99]))
     matplot.plot(x, y_ave, format, lw=line_width,label=label)
     matplot.fill_between(x, y_min, y_max, alpha=opacity)
     matplot.legend()

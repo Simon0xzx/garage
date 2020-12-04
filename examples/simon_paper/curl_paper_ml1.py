@@ -19,7 +19,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=200)
+@click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)   # TODO here 50
 @click.option('--num_test_tasks', default=10)    # TODO here 10
@@ -54,7 +54,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='curl_wasserstein_long')
+@click.option('--prefix', default='curl_wasserstein_new_dist')
 @wrap_experiment
 def curl_paper_ml1(ctxt=None,
                    seed=1,

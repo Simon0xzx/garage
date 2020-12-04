@@ -115,7 +115,9 @@ def plot_selected_suits():
     #                     wspace=0.25, hspace=0.30)
 
     # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein', 'curl_wasserstein_2_step'], row=row, col=col)
-    metaworld_ml1_graph(axs, sampled_task_lists, ['curl_wasserstein_long_10', 'pearl_long_10', 'pearl'], limit=200, num_seeds=3, row=row, col=col)
+    metaworld_ml1_graph(axs, sampled_task_lists, ['curl_wasserstein_long_10'], limit=100, num_seeds=3, row=row, col=col)
+
+    # , 'pearl_long_10', 'pearl'
     plt.show()
 
 

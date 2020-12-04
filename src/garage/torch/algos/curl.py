@@ -510,6 +510,27 @@ class CURL(MetaRLAlgorithm):
 
         return augmented_path
 
+    def compute_kl_div(self, mean, var):
+        r"""Compute :math:`KL(q(z|c) \| p(z))`.
+
+        Returns:
+            float: :math:`KL(q(z|c) \| p(z))`.
+
+        """
+        prior = torch.distributions.Normal(
+            torch.zeros(self._latent_dim).to(global_device()),
+            torch.ones(self._latent_dim).to(global_device()))
+        posteriors = [
+            torch.distributions.Normal(mu, torch.sqrt(var)) for mu, var in zip(
+                torch.unbind(mean), torch.unbind(var))
+        ]
+        kl_divs = [
+            torch.distributions.kl.kl_divergence(post, prior)
+            for post in posteriors
+        ]
+        kl_div_sum = torch.sum(torch.stack(kl_divs))
+        return kl_div_sum
+
     def _compute_contrastive_loss_new(self, indices):
         # Optimize CURL encoder
         context_augs = self._sample_contrastive_pairs(indices, num_aug=2)
@@ -537,9 +558,11 @@ class CURL(MetaRLAlgorithm):
             var_dist = query_var_norm + key_var_norm - 2.0 * torch.mm(query_var, key_var.T)
 
             wasserstein_distance = mean_dist + var_dist
+            wasserstein_distance = wasserstein_distance - torch.max(wasserstein_distance, axis=1)[0]
             labels = torch.arange(wasserstein_distance.shape[0]).to(global_device())
             # Using negative wasserstein distance for lower distance means more similar
             loss = loss_fun(-wasserstein_distance, labels)
+            loss += self.compute_kl_div(query_mean, query_var)
         else:
 
             if self._contrastive_mean_only:
