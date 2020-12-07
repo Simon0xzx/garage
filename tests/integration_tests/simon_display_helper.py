@@ -9,12 +9,20 @@ import csv
 """
 
 def read_csv_file(file_path, type=float):
+    verify_key = 'MetaTest/Average/AverageReturn'
     data_dict = defaultdict(lambda: [])
     with open(file_path, newline='\n') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             for k, v in row.items():
-                data_dict[k].append(type(v))
+                try:
+                    if v == '':
+                        data_dict[k].append(0.0)
+                    else:
+                        data_dict[k].append(type(v))
+                except:
+                    print("problem: {}".format(v))
+    delete_index = []
     return data_dict
 
 def plot_curve_avg(matplot, exps, format='-',
@@ -30,16 +38,14 @@ def plot_curve_avg(matplot, exps, format='-',
     x = data_dicts[0][x_title][:min_step_length]
 
     y_ave = np.median([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
-    y_min = np.min(
-        [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
+    y_min = np.min([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
          data_dict in data_dicts], axis=0)
-    y_max = np.max(
-        [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
+    y_max = np.max([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
          data_dict in data_dicts], axis=0)
     print(exps[0])
-    print("Y Last Min: {}".format(y_min[99]))
-    print("Y Last Avg: {}".format(y_ave[99]))
-    print("Y Last Max: {}".format(y_max[99]))
+    print("Y Last Min: {}".format(y_min[min_step_length-1]))
+    print("Y Last Avg: {}".format(y_ave[min_step_length-1]))
+    print("Y Last Max: {}".format(y_max[min_step_length-1]))
     matplot.plot(x, y_ave, format, lw=line_width,label=label)
     matplot.fill_between(x, y_min, y_max, alpha=opacity)
     matplot.legend()

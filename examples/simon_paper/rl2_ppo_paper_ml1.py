@@ -20,7 +20,7 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=200)
 @click.option('--meta_batch_size', default=40)
-@click.option('--n_epochs', default=1000)
+@click.option('--n_epochs', default=50)
 @click.option('--episode_per_task', default=10)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
@@ -48,6 +48,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
     print("Running Experiments on GPU: {}".format(gpu_id))
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
+    tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=mwb.ML1.get_train_tasks(name)))
@@ -83,7 +84,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                       policy_ent_coeff=0.02,
                       center_adv=False,
                       meta_evaluator=meta_evaluator,
-                      n_epochs_per_eval = 10,
+                      n_epochs_per_eval = 1,
                       max_path_length=max_path_length * episode_per_task)
 
         runner.setup(algo,

@@ -20,7 +20,7 @@ def get_data_repos():
     'curl_wasserstein_old': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', 'curl_wasserstein_old'),
     'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final', 'curl_wasserstein'),
     'curl_wasserstein_2_step': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final_2_steps', 'curl_wasserstein_2_step'),
-
+    'curl_wasserstein_2': ('/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_wasserstein_final2', 'curl_wasserstein'),
     # 10 envs
     'curl_wasserstein_long_10': (path.join(data_dir, 'result_suits/curl_wasserstein_long_10_suit'),'curl_wasserstein'),
     'pearl_long_10': (path.join(data_dir, 'result_suits/pearl_10_suit'), 'pearl'),
@@ -29,6 +29,7 @@ def get_data_repos():
     'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit_2','maml_trpo'),
     'maml_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_ppo_suit', 'maml_ppo'),
     'rl2_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit', 'rl2_ppo'),
+    'rl2_ppo_2': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit_2', 'rl2_ppo'),
     'rl2_ppo_larger_net': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_larger_net_suit', 'rl2_ppo_larger_net'),
     'rl2': ('/home/simon0xzx/research/berkely_research/garage/data/namazu/rl2_suit', 'rl2'),
     'mql': ('/home/simon0xzx/research/berkely_research/meta-q-learning/log_dir', 'mql')
@@ -55,10 +56,12 @@ def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, num_seed
     for i, task in enumerate(task_lists):
         row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
-        if col == 1:
+        if col == 1 and row > 1:
             subplot_axs = axs[row_cnt]
-        elif row == 1:
+        elif row == 1 and col > 1:
             subplot_axs = axs[col_cnt]
+        elif row == 1 and col ==1:
+            subplot_axs = axs
         else:
             subplot_axs = axs[row_cnt][col_cnt]
         subplot_axs.set_title('ML1 {}'.format(task))
@@ -115,7 +118,7 @@ def plot_selected_suits():
     #                     wspace=0.25, hspace=0.30)
 
     # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein', 'curl_wasserstein_2_step'], row=row, col=col)
-    metaworld_ml1_graph(axs, sampled_task_lists, ['curl_wasserstein_long_10'], limit=100, num_seeds=3, row=row, col=col)
+    metaworld_ml1_graph(axs, sampled_task_lists, ['curl_wasserstein', 'rl2_ppo2'], limit=100, num_seeds=1, row=row, col=col)
 
     # , 'pearl_long_10', 'pearl'
     plt.show()
@@ -123,12 +126,24 @@ def plot_selected_suits():
 
 
 def varify():
-    sampled_task_lists = ['push-v1', 'pick-place-v1', 'reach-v1']
-    row, col = 1, 3
-    fig, axs = plt.subplots(row, col)
-    metaworld_ml1_graph(axs, sampled_task_lists, ['rl2_ppo', 'maml_ppo', 'mql', 'maml_trpo'], num_seeds=1, row=row, col=col, limit=-1)
+    sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
+    full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1',
+                            'lever-pull-v1', 'stick-push-v1',
+                            'handle-pull-side-v1', 'stick-pull-v1',
+                            'dissassemble-v1', 'coffee-push-v1', 'hammer-v1',
+                            'plate-slide-side-v1', 'handle-press-v1',
+                            'soccer-v1', 'plate-slide-back-v1',
+                            'button-press-topdown-v1',
+                            'button-press-topdown-wall-v1',
+                            'peg-insert-side-v1', 'push-wall-v1',
+                            'button-press-v1', 'coffee-pull-v1',
+                            'window-close-v1', 'door-open-v1',
+                            'drawer-open-v1', 'box-close-v1', 'door-unlock-v1']
 
-    # metaworld_ml1_graph(axs, sampled_task_lists, ['rl2_ppo_larger_net', 'rl2_ppo', 'rl2'], row=row, col=col)
+    row, col = 5, 5
+    fig, axs = plt.subplots(row, col)
+    metaworld_ml1_graph(axs, full_suit_task_lists, ['curl_wasserstein', 'rl2_ppo_2'], num_seeds=1, row=row, col=col, limit=200)
+
 
 if __name__ == '__main__':
     # plot_full_suits()
