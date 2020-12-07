@@ -20,7 +20,7 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=200)
 @click.option('--meta_batch_size', default=40)
-@click.option('--n_epochs', default=50)
+@click.option('--n_epochs', default=100)
 @click.option('--episode_per_task', default=10)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
