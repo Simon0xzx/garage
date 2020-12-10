@@ -82,8 +82,7 @@ class LocalSampler(Sampler):
         agent_updates = self._factory.prepare_worker_messages(agent_update)
         env_updates = self._factory.prepare_worker_messages(
             env_update, preprocess=copy.deepcopy)
-        for worker, agent_up, env_up in zip(self._workers, agent_updates,
-                                            env_updates):
+        for worker, agent_up, env_up in zip(self._workers, agent_updates, env_updates):
             worker.update_agent(agent_up)
             worker.update_env(env_up)
 

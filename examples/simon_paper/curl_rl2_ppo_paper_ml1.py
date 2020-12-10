@@ -11,25 +11,29 @@ from garage.experiment import LocalTFRunner, task_sampler, MetaEvaluator
 from garage.experiment.deterministic import set_seed
 from garage.np.baselines import LinearFeatureBaseline
 from garage.sampler import LocalSampler
-from garage.tf.algos import RL2PPO
-from garage.tf.algos.rl2 import RL2Env, RL2Worker
-from garage.tf.policies import GaussianGRUPolicy
-
+from garage.tf.algos import CURLRL2PPO
+from garage.tf.algos.curl_rl2ppo import CURLRL2Env, CURLRL2Worker
+from garage.tf.policies import ContextEncodedGaussianGRUPolicy
+from garage.tf.embeddings import GaussianMLPEncoder
 
 @click.command()
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=200)
-@click.option('--meta_batch_size', default=50)
+@click.option('--meta_batch_size', default=5) # TODO it was 50
 @click.option('--n_epochs', default=100)
-@click.option('--episode_per_task', default=10)
+@click.option('--episode_per_task', default=2) # TODO it was 10
+@click.option('--latent_dim', default=7)
+@click.option('--encoder_net_size', default=300)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
 @click.option('--prefix', default='rl2_ppo_suit_2')
 @wrap_experiment
-def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
+def curl_rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                       n_epochs, episode_per_task,
                       gpu_id=0,
                       name='push-v1',
+                      latent_dim=7,
+                      encoder_net_size=300,
                       prefix='rl2_ppo_suit_2'):
     """Train PPO with ML1 environment.
 
@@ -50,28 +54,37 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
     tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
     tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+        tasks = task_sampler.SetTaskSampler(lambda: CURLRL2Env(
             env=mwb.ML1.get_train_tasks(name)))
 
-        env_spec = RL2Env(env=mwb.ML1.get_train_tasks(name)).spec
-        policy = GaussianGRUPolicy(name=name,
+        env_spec = CURLRL2Env(env=mwb.ML1.get_train_tasks(name)).spec
+        encoder_spec = CURLRL2PPO.get_encoder_spec(env_spec, latent_dim)
+        query_encoder = GaussianMLPEncoder(encoder_spec, name='ContrastiveQueryEncoder',
+                                         hidden_sizes=[encoder_net_size, encoder_net_size, encoder_net_size])
+        key_encoder = GaussianMLPEncoder(encoder_spec, name='ContrastiveKeyEncoder',
+                                         hidden_sizes=[encoder_net_size, encoder_net_size, encoder_net_size])
+        policy = ContextEncodedGaussianGRUPolicy(name=name,
                                    hidden_dim=400,
                                    env_spec=env_spec,
+                                   latent_dim=latent_dim,
+                                   query_encoder=query_encoder,
+                                   key_encoder=key_encoder,
                                    state_include_action=False)
 
         baseline = LinearFeatureBaseline(env_spec=env_spec)
-        test_env_sampler = SetTaskSampler(lambda: RL2Env(env=mwb.ML1.get_train_tasks(name)))
+        test_env_sampler = SetTaskSampler(lambda: CURLRL2Env(env=mwb.ML1.get_train_tasks(name)))
         meta_evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
                                        max_path_length=max_path_length,
                                        n_test_tasks=10,
                                        n_test_rollouts=10)
 
-        algo = RL2PPO(rl2_max_path_length=max_path_length,
+        algo = CURLRL2PPO(rl2_max_path_length=max_path_length,
                       meta_batch_size=meta_batch_size,
                       task_sampler=tasks,
                       env_spec=env_spec,
                       policy=policy,
                       baseline=baseline,
+                      latent_dim=latent_dim,
                       discount=0.99,
                       gae_lambda=0.95,
                       lr_clip_range=0.2,
@@ -91,7 +104,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                      tasks.sample(meta_batch_size),
                      sampler_cls=LocalSampler,
                      n_workers=meta_batch_size,
-                     worker_class=RL2Worker,
+                     worker_class=CURLRL2Worker,
                      worker_args=dict(n_paths_per_trial=episode_per_task))
 
         runner.train(n_epochs=n_epochs,
@@ -99,4 +112,4 @@ def rl2_ppo_paper_ml1(ctxt, seed, max_path_length, meta_batch_size,
                      meta_batch_size)
 
 if __name__ == '__main__':
-    rl2_ppo_paper_ml1()
+    curl_rl2_ppo_paper_ml1()

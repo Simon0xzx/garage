@@ -46,8 +46,6 @@ conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name hamme
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name box-close-v1 --seed 33 --gpu_id 6
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name plate-slide-back-v1 --seed 33 --gpu_id 7
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name peg-insert-side-v1 --seed 33 --gpu_id 7
-
----running---
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name handle-press-v1 --seed 33 --gpu_id 7
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name plate-slide-side-v1 --seed 33 --gpu_id 7
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name soccer-v1 --seed 33 --gpu_id 6
@@ -55,6 +53,61 @@ conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name push-
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 33 --gpu_id 5
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name door-open-v1 --seed 33 --gpu_id 5
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name door-unlock-v1 --seed 33 --gpu_id 4
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name faucet-open-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name basketball-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name faucet-close-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name lever-pull-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name stick-push-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name handle-pull-side-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name stick-pull-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name coffee-push-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name dissassemble-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-v1 --seed 32 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name hammer-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name box-close-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-back-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name peg-insert-side-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name drawer-open-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name coffee-pull-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-close-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name handle-press-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-side-v1 --seed 32 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name soccer-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name push-wall-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-wall-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-open-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-unlock-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-v1 --seed 33 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name coffee-pull-v1 --seed 33 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name handle-press-v1 --seed 33 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name soccer-v1 --seed 33 --gpu_id 2
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-side-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-close-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name push-wall-v1 --seed 33 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-wall-v1 --seed 33 --gpu_id 6
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-open-v1 --seed 33 --gpu_id 6
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-unlock-v1 --seed 33 --gpu_id 6
+
+---running---
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name pick-out-of-hole-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name dial-turn-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-back-side-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-open-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-close-v1 --seed 32 --gpu_id 5
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name pick-out-of-hole-v1 --seed 33 --gpu_id 5
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name dial-turn-v1 --seed 33 --gpu_id 4
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-back-side-v1 --seed 33 --gpu_id 4
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-open-v1 --seed 33 --gpu_id 3
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-close-v1 --seed 33 --gpu_id 3
+
+---to be assign---
+
+
 
 
 {leviathan}
@@ -70,7 +123,6 @@ conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name push-
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name door-open-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name door-unlock-v1 --seed 31 --gpu_id 0
----running---
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name drawer-open-v1 --seed 32 --gpu_id 7
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-v1 --seed 32 --gpu_id 7
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name coffee-pull-v1 --seed 32 --gpu_id 6
@@ -87,7 +139,7 @@ conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name drawe
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name button-press-topdown-v1 --seed 33 --gpu_id 1
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name coffee-pull-v1 --seed 33 --gpu_id 1
 conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --name window-close-v1 --seed 33 --gpu_id 0
-
+---running---
 ---to be assigned ---
 
 
@@ -114,16 +166,39 @@ conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name pl
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name peg-insert-side-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name drawer-open-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-v1 --seed 31 --gpu_id 1
-
----running---
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name coffee-pull-v1 --seed 31 --gpu_id 0
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-close-v1 --seed 31 --gpu_id 0
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name handle-press-v1 --seed 31 --gpu_id 0
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-side-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name soccer-v1 --seed 31 --gpu_id 1
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name push-wall-v1 --seed 31 --gpu_id 1
-
----to be assigned ---
-conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-wall-v1 --seed 31 --gpu_id 1
-conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-open-v1 --seed 31 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-topdown-wall-v1 --seed 31 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-open-v1 --seed 31 --gpu_id 0
 conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-unlock-v1 --seed 31 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name faucet-open-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name basketball-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name faucet-close-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name lever-pull-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name stick-push-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name handle-pull-side-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name stick-pull-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name coffee-push-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name dissassemble-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name button-press-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name hammer-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name box-close-v1 --seed 33 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-back-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name peg-insert-side-v1 --seed 33 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name drawer-open-v1 --seed 33 --gpu_id 1
+
+---running---
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name pick-out-of-hole-v1 --seed 31 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name dial-turn-v1 --seed 31 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name plate-slide-back-side-v1 --seed 31 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name window-open-v1 --seed 31 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --name door-close-v1 --seed 31 --gpu_id 1
+---to be assigned ---
+
+
+
+

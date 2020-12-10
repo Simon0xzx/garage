@@ -19,7 +19,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
-@click.option('--num_epochs', default=200)
+@click.option('--num_epochs', default=100)
 @click.option('--seed', default=1)
 @click.option('--num_train_tasks', default=50)
 @click.option('--num_test_tasks', default=10)
@@ -35,7 +35,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--max_path_length', default=200)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='pearl_suit')
+@click.option('--prefix', default='pearl_suit2')
 @wrap_experiment
 def pearl_paper_ml1(ctxt=None,
                              seed=1,

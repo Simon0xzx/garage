@@ -1143,9 +1143,6 @@ class CURLWorker(DefaultWorker):
             a, agent_info = self.agent.get_action(self._prev_obs)
             if self._deterministic:
                 a = agent_info['mean']
-            if not np.all(np.isfinite(a)) or np.max(a) > 100:
-                print("Some problem met with action a during rollout, Action: {}".format(a))
-
             next_o, r, d, env_info = self.env.step(a)
             self._observations.append(self._prev_obs)
             self._rewards.append(r)

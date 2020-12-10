@@ -26,7 +26,8 @@ def read_csv_file(file_path, type=float):
     return data_dict
 
 def plot_curve_avg(matplot, exps, format='-',
-                   title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps', legend = None, limit = -1, line_width=2, opacity=0.2):
+                   title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps',
+                   legend = None, limit = -1, line_width=2, opacity=0.2, backward_smooth_window=1):
     if exps == None or len(exps) == 0:
         return
     result_paths = [os.path.join(name, 'progress.csv') for name in exps]
@@ -36,22 +37,37 @@ def plot_curve_avg(matplot, exps, format='-',
         min_step_length = min(min_step_length, limit)
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
+    y = [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts]
+    y_ave = np.average(y, axis=0)
+    y_min = np.min(y, axis=0)
+    y_max = np.max(y, axis=0)
 
-    y_ave = np.median([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts], axis=0)
-    y_min = np.min([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
-         data_dict in data_dicts], axis=0)
-    y_max = np.max([list(map(lambda x: float(x), data_dict[title][:min_step_length])) for
-         data_dict in data_dicts], axis=0)
+    x_new, y_avg_new, y_min_new, y_max_new = [],[],[],[]
+    last_visited_index = 0
+    for i in range(len(x)):
+        if x[i] > 2500000:
+            break
+        last_visited_index = i
+        x_new.append(x[i])
+        y_avg_new.append(y_ave[i])
+        y_min_new.append(y_min[i])
+        y_max_new.append(y_max[i])
+
+    final_y_avg = np.average(y_ave[last_visited_index-5: last_visited_index])
+    final_y_std = np.std(y_ave[last_visited_index-5: last_visited_index])
     print(exps[0])
-    print("Y Last Min: {}".format(y_min[min_step_length-1]))
-    print("Y Last Avg: {}".format(y_ave[min_step_length-1]))
-    print("Y Last Max: {}".format(y_max[min_step_length-1]))
-    matplot.plot(x, y_ave, format, lw=line_width,label=label)
-    matplot.fill_between(x, y_min, y_max, alpha=opacity)
+    print("Last 10 Step average: {}".format(final_y_avg))
+    print("Last 10 Step std: {}".format(final_y_std))
+    print("Y Last Min: {}".format(y_min_new[-1]))
+    print("Y Last Avg: {}".format(y_avg_new[-1]))
+    print("Y Last Max: {}".format(y_max_new[-1]))
+    matplot.plot(x_new, y_avg_new, format, lw=line_width,label=label)
+    matplot.fill_between(x_new, y_min_new, y_max_new, alpha=opacity)
     matplot.legend()
 
 def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
-                      title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps', limit = -1):
+                      title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps',
+                      limit = -1, backward_smooth_window=1):
     results_dirs = []
     for i in range(num_seeds):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
@@ -65,6 +81,6 @@ def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
             results_dirs.append(direct_dir_path)
     try:
         plot_curve_avg(axs, results_dirs, '-',
-                       legend=label, title=title, x_title=x_title, limit=limit)
+                       legend=label, title=title, x_title=x_title, limit=limit, backward_smooth_window=backward_smooth_window)
     except:
         print("Failed to Locate {}".format(exp_name))
