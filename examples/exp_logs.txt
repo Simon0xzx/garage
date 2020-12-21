@@ -1,0 +1,145 @@
+pearl_suit2
+conda activate pearl
+{namazu}
+---DONE---
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name faucet-open-v1 --seed 31 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name basketball-v1 --seed 31 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name faucet-close-v1 --seed 31 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name lever-pull-v1 --seed 31 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name stick-push-v1 --seed 31 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name handle-pull-side-v1 --seed 31 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name stick-pull-v1 --seed 31 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name dissassemble-v1 --seed 31 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name coffee-push-v1 --seed 31 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name hammer-v1 --seed 31 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name plate-slide-side-v1 --seed 31 --gpu_id 2
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name handle-press-v1 --seed 31 --gpu_id 2
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name soccer-v1 --seed 31 --gpu_id 1
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name plate-slide-back-v1 --seed 31 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name faucet-open-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name basketball-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name faucet-close-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name lever-pull-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name stick-push-v1 --seed 32 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name handle-pull-side-v1 --seed 32 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name stick-pull-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name dissassemble-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name coffee-push-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name hammer-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name plate-slide-side-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name handle-press-v1 --seed 32 --gpu_id 2
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name soccer-v1 --seed 32 --gpu_id 1
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name plate-slide-back-v1 --seed 32 --gpu_id 1
+---running---
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name basketball-v1 --seed 33 --gpu_id 1
+---to be assign---
+
+
+
+
+{leviathan}
+---DONE---
+---running---
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-topdown-v1 --seed 31 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 31 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name peg-insert-side-v1 --seed 31 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name push-wall-v1 --seed 31 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-v1 --seed 31 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name coffee-pull-v1 --seed 31 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name window-close-v1 --seed 31 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name door-open-v1 --seed 31 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name drawer-open-v1 --seed 31 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name box-close-v1 --seed 31 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name door-unlock-v1 --seed 31 --gpu_id 2
+---to be assigned ---
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-topdown-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-topdown-wall-v1 --seed 32 --gpu_id 7
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name peg-insert-side-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name push-wall-v1 --seed 32 --gpu_id 6
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name button-press-v1 --seed 32 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name coffee-pull-v1 --seed 32 --gpu_id 5
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name window-close-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name door-open-v1 --seed 32 --gpu_id 4
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name drawer-open-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name box-close-v1 --seed 32 --gpu_id 3
+conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --name door-unlock-v1 --seed 32 --gpu_id 2
+
+
+
+
+{local}
+---DONE---
+python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 40 --num_steps_prior 10 --num_extra_rl_steps_posterior 10 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 99 --gpu_id 0
+
+python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 99 --gpu_id 0
+python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 1000 --num_steps_prior 200 --num_extra_rl_steps_posterior 200 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 99 --gpu_id 1
+python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 99 --gpu_id 1
+
+
+---running---
+
+
+---to be assigned ---
+
+{namazu}
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name faucet-open-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name basketball-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name faucet-close-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name lever-pull-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name stick-push-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name handle-pull-side-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name stick-pull-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name dissassemble-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name coffee-push-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name hammer-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name plate-slide-side-v1 --seed 41 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 41 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name soccer-v1 --seed 41 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name plate-slide-back-v1 --seed 41 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name faucet-open-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name basketball-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name faucet-close-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name lever-pull-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name stick-push-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name handle-pull-side-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name stick-pull-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name dissassemble-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name coffee-push-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name hammer-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name plate-slide-side-v1 --seed 41 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name handle-press-v1 --seed 41 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name soccer-v1 --seed 41 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name plate-slide-back-v1 --seed 41 --gpu_id 1
+
+---running---
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name button-press-topdown-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name button-press-topdown-wall-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name peg-insert-side-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name push-wall-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_ext]ra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name button-press-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name coffee-pull-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name window-close-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name door-open-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name drawer-open-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name box-close-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_steps --name door-unlock-v1 --seed 41 --gpu_id 2
+
+
+{leviathan}
+---running---
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name button-press-topdown-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name button-press-topdown-wall-v1 --seed 41 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name peg-insert-side-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name push-wall-v1 --seed 41 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name button-press-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name coffee-pull-v1 --seed 41 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name window-close-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name door-open-v1 --seed 41 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name drawer-open-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name box-close-v1 --seed 41 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_initial_steps 400 --num_steps_prior 75 --num_extra_rl_steps_posterior 75 --prefix curl_wasserstein_env_steps --name door-unlock-v1 --seed 41 --gpu_id 2
+
+
+---to be assigned ---
+
