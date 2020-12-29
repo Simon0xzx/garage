@@ -110,7 +110,6 @@ def pearl_paper_ml1(ctxt=None,
     test_env_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
                                       env=test_env,
                                       wrapper=lambda env, _: normalize(env))
-
     trainer = Trainer(ctxt)
 
     # instantiate networks
@@ -153,13 +152,13 @@ def pearl_paper_ml1(ctxt=None,
     if use_gpu:
         pearl.to()
 
-    runner.setup(algo=pearl,
+    trainer.setup(algo=pearl,
                  env=env[0](),
                  sampler_cls=LocalSampler,
                  sampler_args=dict(max_path_length=max_path_length),
                  n_workers=1,
                  worker_class=PEARLWorker)
 
-    runner.train(n_epochs=num_epochs, batch_size=batch_size)
+    trainer.train(n_epochs=num_epochs, batch_size=batch_size)
 
 pearl_paper_ml1()

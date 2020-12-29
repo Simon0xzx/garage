@@ -5,7 +5,7 @@ import metaworld
 
 from garage import wrap_experiment
 from garage.envs import MetaWorldSetTaskEnv, normalize
-from garage.experiment import LocalRunner
+from garage.trainer import Trainer
 from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
@@ -14,7 +14,7 @@ from garage.torch.algos import CURL
 from garage.torch.algos.curl import CURLWorker
 from garage.torch.embeddings import ContrastiveEncoder
 from garage.torch.policies import CurlPolicy
-from garage.torch.policies import TanhGaussianContextEmphasizedPolicy, TanhGaussianMLPPolicy
+from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 
 
@@ -131,12 +131,22 @@ def curl_paper_ml1(ctxt=None,
                             encoder_hidden_size)
     print("Running experiences on {}/{}".format(prefix, name))
     # create multi-task environment and sample tasks
-    env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_train_tasks(name))))
+    ml1 = metaworld.ML1(name)
+    train_env = MetaWorldSetTaskEnv(ml1, 'train')
+    env_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
+                                 env=train_env,
+                                 wrapper=lambda env, _: normalize(env))
     env = env_sampler.sample(num_train_tasks)
-    test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(mwb.ML1.get_test_tasks(name))))
-    runner = LocalRunner(ctxt)
+    test_env = MetaWorldSetTaskEnv(ml1, 'test')
+    test_env_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
+                                      env=test_env,
+                                      wrapper=lambda env, _: normalize(env))
+    sampler = LocalSampler(agents=None,
+                           envs=env[0](),
+                           max_episode_length=max_path_length,
+                           n_workers=1,
+                           worker_class=CURLWorker)
+    trainer = Trainer(ctxt)
 
     # instantiate networks
     augmented_env = CURL.augment_env_spec(env[0](), latent_size)
@@ -145,14 +155,10 @@ def curl_paper_ml1(ctxt=None,
 
     qf_2 = ContinuousMLPQFunction(env_spec=augmented_env,
                                   hidden_sizes=[net_size, net_size, net_size])
-    if emphasized_network:
-        inner_policy = TanhGaussianContextEmphasizedPolicy(
-            env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size],
-            latent_sizes=latent_size)
-    else:
-        inner_policy = TanhGaussianMLPPolicy(
-            env_spec=augmented_env,
-            hidden_sizes=[net_size, net_size, net_size])
+
+    inner_policy = TanhGaussianMLPPolicy(
+        env_spec=augmented_env,
+        hidden_sizes=[net_size, net_size, net_size])
 
     curl = CURL(
         env=env,
@@ -161,6 +167,7 @@ def curl_paper_ml1(ctxt=None,
         inner_policy=inner_policy,
         qf1=qf_1,
         qf2=qf_2,
+        sampler=sampler,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
@@ -194,14 +201,10 @@ def curl_paper_ml1(ctxt=None,
     if use_gpu:
         curl.to()
 
-    runner.setup(algo=curl,
-                 env=env[0](),
-                 sampler_cls=LocalSampler,
-                 sampler_args=dict(max_path_length=max_path_length),
-                 n_workers=1,
-                 worker_class=CURLWorker)
+    trainer.setup(algo=curl,
+                 env=env[0]())
 
-    runner.train(n_epochs=num_epochs, batch_size=batch_size)
+    trainer.train(n_epochs=num_epochs, batch_size=batch_size)
 
 if __name__ == '__main__':
     curl_paper_ml1()

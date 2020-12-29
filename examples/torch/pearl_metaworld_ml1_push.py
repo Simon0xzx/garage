@@ -150,5 +150,5 @@ def pearl_metaworld_ml1_push(ctxt=None,
 
     trainer.train(n_epochs=num_epochs, batch_size=batch_size)
 
-
-pearl_metaworld_ml1_push()
+if __name__ == "__main__":
+    pearl_metaworld_ml1_push()

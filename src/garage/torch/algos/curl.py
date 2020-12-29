@@ -11,8 +11,7 @@ import torch
 import torch.nn.functional as F
 from dowel import tabular
 
-from garage import InOutSpec, TimeStep
-from garage.envs import EnvSpec
+from garage import EnvSpec, InOutSpec, TimeStep
 from garage.experiment import MetaEvaluator
 from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
@@ -95,6 +94,7 @@ class CURL(MetaRLAlgorithm):
                  inner_policy,
                  qf1,
                  qf2,
+                 sampler,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
@@ -145,6 +145,8 @@ class CURL(MetaRLAlgorithm):
                  update_post_train=1):
 
         self._env = env
+        self._sampler = sampler
+
         self._qf1 = qf1
         self._qf2 = qf2
         # use 2 target q networks
@@ -199,7 +201,6 @@ class CURL(MetaRLAlgorithm):
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                        max_path_length=max_path_length,
                                         worker_class=CURLWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks)
@@ -1068,14 +1069,14 @@ class CURLWorker(DefaultWorker):
     def __init__(self,
                  *,
                  seed,
-                 max_path_length,
+                 max_episode_length,
                  worker_number,
                  deterministic=False,
                  accum_context=False):
         self._deterministic = deterministic
         self._accum_context = accum_context
         super().__init__(seed=seed,
-                         max_path_length=max_path_length,
+                         max_episode_length=max_episode_length,
                          worker_number=worker_number)
 
     def start_rollout(self):
@@ -1089,7 +1090,7 @@ class CURLWorker(DefaultWorker):
             bool: True iff the path is done, either due to the environment
             indicating termination of due to reaching `max_path_length`.
         """
-        if self._path_length < self._max_path_length:
+        if self._path_length < self._max_episode_length:
             a, agent_info = self.agent.get_action(self._prev_obs)
             if self._deterministic:
                 a = agent_info['mean']
