@@ -16,6 +16,7 @@ from garage.torch.modules import MLPModule
 class ContrastiveEncoder(nn.Module, Encoder):
     """
         This is a contrastive encoder
+
     """
 
     def __init__(self,
@@ -114,14 +115,18 @@ class ContrastiveEncoder(nn.Module, Encoder):
 
     def reset(self, do_resets=None):
         """Reset the encoder.
+
         This is effective only to recurrent encoder. do_resets is effective
         only to vectoried encoder.
+
         For a vectorized encoder, do_resets is an array of boolean indicating
         which internal states to be reset. The length of do_resets should be
         equal to the length of inputs.
+
         Args:
             do_resets (numpy.ndarray): Bool array indicating which states
                 to be reset.
+
         """
         pass
 
@@ -170,10 +175,13 @@ class QueryKeyModule(nn.Module):
     # pylint: disable=arguments-differ
     def forward(self, input):
         """Forward method.
+
         Args:
             input_value (torch.Tensor): Input values
+
         Returns:
             torch.Tensor: Output value
+
         """
         hidden_output = input
         for layer in self._hidden_layers:
@@ -206,9 +214,11 @@ class ContrastiveLoss(nn.Module):
 
 class _NonLinearity(nn.Module):
     """Wrapper class for non linear function or module.
+
     Args:
         non_linear (callable or type): Non-linear function or type to be
             wrapped.
+
     """
 
     def __init__(self, non_linear):
@@ -225,10 +235,13 @@ class _NonLinearity(nn.Module):
     # pylint: disable=arguments-differ
     def forward(self, input_value):
         """Forward method.
+
         Args:
             input_value (torch.Tensor): Input values
+
         Returns:
             torch.Tensor: Output value
+
         """
         return self.module(input_value)
 

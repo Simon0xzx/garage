@@ -9,8 +9,10 @@ from garage.torch.policies.stochastic_policy import StochasticPolicy
 
 class TanhGaussianContextEmphasizedPolicy(StochasticPolicy):
     """Multiheaded MLP whose outputs are fed into a TanhNormal distribution.
+
     A policy that contains a MLP to make prediction based on a gaussian
     distribution with a tanh transformation.
+
     Args:
         env_spec (garage.envs.env_spec.EnvSpec): Environment specification.
         hidden_sizes (list[int]): Output dimension of dense layer(s) for
@@ -46,6 +48,7 @@ class TanhGaussianContextEmphasizedPolicy(StochasticPolicy):
                exponential transformation
             - softplus: the std will be computed as log(1+exp(x))
         layer_normalization (bool): Bool for using layer normalization or not.
+
     """
 
     def __init__(self,
@@ -88,12 +91,15 @@ class TanhGaussianContextEmphasizedPolicy(StochasticPolicy):
 
     def forward(self, observations):
         """Compute the action distributions from the observations.
+
         Args:
             observations (torch.Tensor): Batch of observations on default
                 torch device.
+
         Returns:
             torch.distributions.Distribution: Batch distribution of actions.
             dict[str, torch.Tensor]: Additional agent_info, as torch Tensors
+
         """
         dist = self._module(observations)
         ret_mean = dist.mean.cpu()
