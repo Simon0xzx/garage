@@ -199,8 +199,6 @@ class CurlPolicy(nn.Module):
         obs = torch.as_tensor(obs[None], device=global_device()).float()
         obs_in = torch.cat([obs, z], dim=1)
         action, info = self._policy.get_action(obs_in)
-        action = np.squeeze(action, axis=0)
-        info['mean'] = np.squeeze(info['mean'], axis=0)
         return action, info
 
     def compute_kl_div(self):

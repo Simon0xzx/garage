@@ -5,13 +5,12 @@ import metaworld
 
 from garage import wrap_experiment
 from garage.envs import MetaWorldSetTaskEnv, normalize
-# from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import PEARL
-from garage.torch.algos.pearl import PEARLWorker
+from garage.torch.algos import PEARLSAC2
+from garage.torch.algos.pearl_sac2 import PEARLSAC2Worker
 from garage.torch.embeddings import MLPEncoder
 from garage.torch.policies import (ContextConditionedPolicy,
                                    TanhGaussianMLPPolicy)
@@ -100,20 +99,25 @@ def pearl_paper_ml1(ctxt=None,
                             encoder_hidden_size)
     print("Running experiences on {}/{}".format(prefix, name))
     # create multi-task environment and sample tasks
-    ml1_env = metaworld.ML1(name)
-    train_env = MetaWorldSetTaskEnv(ml1_env, 'train')
+    ml1 = metaworld.ML1(name)
+    train_env = MetaWorldSetTaskEnv(ml1, 'train')
     env_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
                                  env=train_env,
                                  wrapper=lambda env, _: normalize(env))
     env = env_sampler.sample(num_train_tasks)
-    test_env = MetaWorldSetTaskEnv(ml1_env, 'test')
+    test_env = MetaWorldSetTaskEnv(ml1, 'test')
     test_env_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
                                       env=test_env,
                                       wrapper=lambda env, _: normalize(env))
+    sampler = LocalSampler(agents=None,
+                           envs=env[0](),
+                           max_episode_length=max_path_length,
+                           n_workers=1,
+                           worker_class=PEARLSAC2Worker)
     trainer = Trainer(ctxt)
 
     # instantiate networks
-    augmented_env = PEARL.augment_env_spec(env[0](), latent_size)
+    augmented_env = PEARLSAC2.augment_env_spec(env[0](), latent_size)
     qf_1 = ContinuousMLPQFunction(env_spec=augmented_env,
                                 hidden_sizes=[net_size, net_size, net_size])
 
@@ -123,13 +127,14 @@ def pearl_paper_ml1(ctxt=None,
     inner_policy = TanhGaussianMLPPolicy(
         env_spec=augmented_env, hidden_sizes=[net_size, net_size, net_size])
 
-    pearl = PEARL(
+    pearl = PEARLSAC2(
         env=env,
         policy_class=ContextConditionedPolicy,
         encoder_class=MLPEncoder,
         inner_policy=inner_policy,
         qf1=qf_1,
         qf2=qf_2,
+        sampler=sampler,
         num_train_tasks=num_train_tasks,
         num_test_tasks=num_test_tasks,
         latent_dim=latent_size,
@@ -153,12 +158,9 @@ def pearl_paper_ml1(ctxt=None,
         pearl.to()
 
     trainer.setup(algo=pearl,
-                 env=env[0](),
-                 sampler_cls=LocalSampler,
-                 sampler_args=dict(max_path_length=max_path_length),
-                 n_workers=1,
-                 worker_class=PEARLWorker)
+                  env=env[0]())
 
     trainer.train(n_epochs=num_epochs, batch_size=batch_size)
 
-pearl_paper_ml1()
+if __name__ =='__main__':
+    pearl_paper_ml1()

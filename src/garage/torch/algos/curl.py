@@ -12,8 +12,7 @@ import torch
 import torch.nn.functional as F
 from dowel import tabular
 
-from garage import InOutSpec, TimeStep
-from garage.envs import EnvSpec
+from garage import EnvSpec, InOutSpec, StepType, TimeStep
 from garage.experiment import MetaEvaluator
 from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
@@ -99,6 +98,7 @@ class CURL(MetaRLAlgorithm):
                  inner_policy,
                  qf1,
                  qf2,
+                 sampler,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
@@ -137,8 +137,6 @@ class CURL(MetaRLAlgorithm):
                  replay_buffer_size=1000000,
                  reward_scale=1,
                  embedding_batch_in_sequence=False,
-                 num_pos_contrastive = 2,
-                 num_neg_contrastive = 0,
                  contrastive_mean_only = False,
                  new_contrastive_formula = False,
                  new_weight_update = False,
@@ -157,13 +155,14 @@ class CURL(MetaRLAlgorithm):
 
         # Contrastive Encoder setting
         self._embedding_batch_in_sequence = embedding_batch_in_sequence
-        self._num_pos_contrastive = num_pos_contrastive # TODO
-        self._num_neg_contrastive = num_neg_contrastive # TODO
 
         self._num_train_tasks = num_train_tasks
         self._num_test_tasks = num_test_tasks
         self._latent_dim = latent_dim
 
+        self._policy_lr = policy_lr
+        self._qf_lr = qf_lr
+        self._context_lr = context_lr
         self._policy_mean_reg_coeff = policy_mean_reg_coeff
         self._policy_std_reg_coeff = policy_std_reg_coeff
         self._policy_pre_activation_coeff = policy_pre_activation_coeff
@@ -191,7 +190,8 @@ class CURL(MetaRLAlgorithm):
         self._update_post_train = update_post_train
         self._task_idx = None
         self._is_resuming = False
-
+        self._sampler = sampler
+        self._optimizer_class = optimizer_class
         # Architecture choice
         self._contrastive_mean_only = contrastive_mean_only
         self._new_contrastive_formula = new_contrastive_formula
@@ -203,7 +203,6 @@ class CURL(MetaRLAlgorithm):
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                        max_path_length=max_path_length,
                                         worker_class=CURLWorker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks)
@@ -238,7 +237,7 @@ class CURL(MetaRLAlgorithm):
                 self._log_alpha = torch.Tensor([self._initial_log_entropy]).requires_grad_()
             else:
                 self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
-            self._alpha_optimizer = optimizer_class([self._log_alpha], lr=policy_lr)
+            self._alpha_optimizer = self._optimizer_class([self._log_alpha], lr=self._policy_lr)
         else:
             if self._single_alpha:
                 self._log_alpha = torch.Tensor([self._fixed_alpha]).log()
@@ -264,31 +263,31 @@ class CURL(MetaRLAlgorithm):
             for i in range(num_train_tasks)
         }
 
-        self._policy_optimizer = optimizer_class(
+        self._policy_optimizer = self._optimizer_class(
             self._policy.networks[1].parameters(),
-            lr=policy_lr,
+            lr=self._policy_lr,
         )
-        self.qf1_optimizer = optimizer_class(
+        self.qf1_optimizer = self._optimizer_class(
             self._qf1.parameters(),
-            lr=qf_lr,
+            lr=self._qf_lr,
         )
-        self.qf2_optimizer = optimizer_class(
+        self.qf2_optimizer = self._optimizer_class(
             self._qf2.parameters(),
-            lr=qf_lr,
+            lr=self._qf_lr,
         )
         if self._encoder_common_net:
-            self.context_optimizer = optimizer_class(
+            self.context_optimizer = self._optimizer_class(
                 self._context_encoder.networks[0].parameters(),
-                lr=context_lr,
+                lr=self._context_lr,
             )
         if self._new_weight_update and not self._use_wasserstein_distance:
-            self.contrastive_weight_optimizer = optimizer_class(
+            self.contrastive_weight_optimizer = self._optimizer_class(
                 [self._contrastive_weight],
-                lr=context_lr,
+                lr=self._context_lr,
             )
-        self.query_optimizer = optimizer_class(
+        self.query_optimizer = self._optimizer_class(
             self._context_encoder.networks[1].parameters(),
-            lr=context_lr,
+            lr=self._context_lr,
         )
 
 
@@ -480,6 +479,7 @@ class CURL(MetaRLAlgorithm):
             qf_loss_list.append(qf_loss)
             contrastive_loss_list.append(contrastive_loss)
             alpha_loss_list.append(alpha_loss)
+            alpha_list.append(alpha)
 
         with tabular.prefix('MetaTrain/Average/'):
             tabular.record('PolicyLoss', np.average(np.array(policy_loss_list)))
@@ -725,7 +725,7 @@ class CURL(MetaRLAlgorithm):
 
 
     def _obtain_samples(self,
-                        runner,
+                        trainer,
                         itr,
                         num_samples,
                         update_posterior_rate,
@@ -733,7 +733,7 @@ class CURL(MetaRLAlgorithm):
         """Obtain samples.
 
         Args:
-            runner (LocalRunner): LocalRunner.
+            trainer (LocalRunner): LocalRunner.
             itr (int): Index of iteration (epoch).
             num_samples (int): Number of samples to obtain.
             update_posterior_rate (int): How often (in trajectories) to infer
@@ -751,18 +751,19 @@ class CURL(MetaRLAlgorithm):
             num_samples_per_batch = num_samples
 
         while total_samples < num_samples:
-            paths = runner.obtain_samples(itr, num_samples_per_batch,
-                                          self._policy,
-                                          self._env[self._task_idx])
+            paths = trainer.obtain_samples(itr, num_samples_per_batch,
+                                           self._policy,
+                                           self._env[self._task_idx])
             total_samples += sum([len(path['rewards']) for path in paths])
 
             for path in paths:
+                terminations=np.array([step_type == StepType.TERMINAL for step_type in path['step_types']]).reshape(-1, 1)
                 p = {
                     'observations': path['observations'],
                     'actions': path['actions'],
                     'rewards': path['rewards'].reshape(-1, 1),
                     'next_observations': path['next_observations'],
-                    'dones': path['dones'].reshape(-1, 1)
+                    'dones': terminations
                 }
                 self._replay_buffers[self._task_idx].add_path(p)
 
@@ -992,10 +993,18 @@ class CURL(MetaRLAlgorithm):
         device = device or global_device()
         for net in self.networks:
             net.to(device)
+
         if self._use_automatic_entropy_tuning:
-            self._log_alpha = self._log_alpha.to(device).requires_grad_()
+            if self._single_alpha:
+                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy]).requires_grad_()
+            else:
+                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = self._optimizer_class([self._log_alpha], lr=self._policy_lr)
         else:
-            self._log_alpha = self._log_alpha.to(device)
+            if self._single_alpha:
+                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha]).log()
+            else:
+                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha] * self._num_train_tasks).log()
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):
@@ -1116,71 +1125,64 @@ class CURLWorker(DefaultWorker):
     def __init__(self,
                  *,
                  seed,
-                 max_path_length,
+                 max_episode_length,
                  worker_number,
                  deterministic=False,
                  accum_context=False):
         self._deterministic = deterministic
         self._accum_context = accum_context
+        self._episode_info = None
         super().__init__(seed=seed,
-                         max_path_length=max_path_length,
+                         max_episode_length=max_episode_length,
                          worker_number=worker_number)
 
-    def start_rollout(self):
-        """Begin a new rollout."""
-        self._path_length = 0
-        self._prev_obs = self.env.reset()
+    def start_episode(self):
+        """Begin a new episode."""
+        self._eps_length = 0
+        self._prev_obs, self._episode_info = self.env.reset()
 
-    def step_rollout(self):
-        """Take a single time-step in the current rollout.
+    def step_episode(self):
+        """Take a single time-step in the current episode.
 
         Returns:
-            bool: True iff the path is done, either due to the environment
-            indicating termination of due to reaching `max_path_length`.
+            bool: True iff the episode is done, either due to the environment
+            indicating termination of due to reaching `max_episode_length`.
 
         """
-        if self._path_length < self._max_path_length:
+        if self._eps_length < self._max_episode_length:
             a, agent_info = self.agent.get_action(self._prev_obs)
             if self._deterministic:
                 a = agent_info['mean']
-            next_o, r, d, env_info = self.env.step(a)
+            a, agent_info = self.agent.get_action(self._prev_obs)
+            es = self.env.step(a)
             self._observations.append(self._prev_obs)
-            self._rewards.append(r)
-            self._actions.append(a)
+            self._env_steps.append(es)
             for k, v in agent_info.items():
                 self._agent_infos[k].append(v)
-            for k, v in env_info.items():
-                self._env_infos[k].append(v)
-            self._path_length += 1
-            self._terminals.append(d)
+            self._eps_length += 1
+
             if self._accum_context:
-                s = TimeStep(env_spec=self.env,
-                             observation=self._prev_obs,
-                             next_observation=next_o,
-                             action=a,
-                             reward=float(r),
-                             terminal=d,
-                             env_info=env_info,
-                             agent_info=agent_info)
+                s = TimeStep.from_env_step(env_step=es,
+                                           last_observation=self._prev_obs,
+                                           agent_info=agent_info,
+                                           episode_info=self._episode_info)
                 self.agent.update_context(s)
-            if not d:
-                self._prev_obs = next_o
+            if not es.last:
+                self._prev_obs = es.observation
                 return False
-        self._lengths.append(self._path_length)
+        self._lengths.append(self._eps_length)
         self._last_observations.append(self._prev_obs)
         return True
 
     def rollout(self):
-        """Sample a single rollout of the agent in the environment.
+        """Sample a single episode of the agent in the environment.
 
         Returns:
-            garage.TrajectoryBatch: The collected trajectory.
+            EpisodeBatch: The collected episode.
 
         """
         self.agent.sample_from_belief()
-        self.start_rollout()
-        while not self.step_rollout():
+        self.start_episode()
+        while not self.step_episode():
             pass
-        self._agent_infos['context'] = [self.agent.z.detach().cpu().numpy()
-                                        ] * self._path_length
-        return self.collect_rollout()
+        return self.collect_episode()

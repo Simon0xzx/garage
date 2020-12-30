@@ -11,8 +11,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from garage import InOutSpec, TimeStep
-from garage.envs import EnvSpec
+from garage import InOutSpec, TimeStep, EnvSpec, StepType
 from garage.experiment import MetaEvaluator
 from garage.np.algos import MetaRLAlgorithm
 from garage.replay_buffer import PathBuffer
@@ -22,7 +21,7 @@ from garage.torch.embeddings import MLPEncoder
 from garage.torch.policies import ContextConditionedPolicy
 
 
-class PEARL(MetaRLAlgorithm):
+class PEARLSAC2(MetaRLAlgorithm):
     r"""A PEARL model based on https://arxiv.org/abs/1903.08254.
 
     PEARL, which stands for Probablistic Embeddings for Actor-Critic
@@ -98,6 +97,7 @@ class PEARL(MetaRLAlgorithm):
                  inner_policy,
                  qf1,
                  qf2,
+                 sampler,
                  num_train_tasks,
                  num_test_tasks,
                  latent_dim,
@@ -132,6 +132,7 @@ class PEARL(MetaRLAlgorithm):
                  max_path_length=500,
                  discount=0.99,
                  replay_buffer_size=1000000,
+                 single_alpha = False,
                  reward_scale=1,
                  update_post_train=1):
 
@@ -146,6 +147,9 @@ class PEARL(MetaRLAlgorithm):
         self._num_test_tasks = num_test_tasks
         self._latent_dim = latent_dim
 
+        self._policy_lr = policy_lr
+        self._qf_lr = qf_lr
+        self._context_lr = context_lr
         self._policy_mean_reg_coeff = policy_mean_reg_coeff
         self._policy_std_reg_coeff = policy_std_reg_coeff
         self._policy_pre_activation_coeff = policy_pre_activation_coeff
@@ -170,11 +174,13 @@ class PEARL(MetaRLAlgorithm):
         self._update_post_train = update_post_train
         self._task_idx = None
         self._is_resuming = False
+        self._sampler = sampler
+        self._optimizer_class = optimizer_class
+        self._single_alpha = single_alpha
 
         worker_args = dict(deterministic=True, accum_context=True)
         self._evaluator = MetaEvaluator(test_task_sampler=test_env_sampler,
-                                        max_path_length=max_path_length,
-                                        worker_class=PEARLWorker,
+                                        worker_class=PEARLSAC2Worker,
                                         worker_args=worker_args,
                                         n_test_tasks=num_test_tasks)
         env_spec = env[0]()
@@ -193,11 +199,22 @@ class PEARL(MetaRLAlgorithm):
             if target_entropy:
                 self._target_entropy = target_entropy
             else:
-                self._target_entropy = -np.prod(env_spec.action_space.shape).item()
-            self._log_alpha = torch.Tensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
-            self._alpha_optimizer = optimizer_class([self._log_alpha], lr=policy_lr)
+                self._target_entropy = -np.prod(
+                    env_spec.action_space.shape).item()
+            if self._single_alpha:
+                self._log_alpha = torch.Tensor(
+                    [self._initial_log_entropy]).requires_grad_()
+            else:
+                self._log_alpha = torch.Tensor([
+                                                   self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = self._optimizer_class([self._log_alpha],
+                                                          lr=self._policy_lr)
         else:
-            self._log_alpha = torch.Tensor([self._fixed_alpha] * self._num_train_tasks).log()
+            if self._single_alpha:
+                self._log_alpha = torch.Tensor([self._fixed_alpha]).log()
+            else:
+                self._log_alpha = torch.Tensor(
+                    [self._fixed_alpha] * self._num_train_tasks).log()
 
         self._policy = policy_class(
             latent_dim=latent_dim,
@@ -218,19 +235,19 @@ class PEARL(MetaRLAlgorithm):
 
         self._policy_optimizer = optimizer_class(
             self._policy.networks[1].parameters(),
-            lr=policy_lr,
+            lr=self._policy_lr,
         )
         self.qf1_optimizer = optimizer_class(
             self._qf1.parameters(),
-            lr=qf_lr,
+            lr=self._qf_lr,
         )
         self.qf2_optimizer = optimizer_class(
             self._qf2.parameters(),
-            lr=qf_lr,
+            lr=self._qf_lr,
         )
         self.context_optimizer = optimizer_class(
             self._policy.networks[0].parameters(),
-            lr=context_lr,
+            lr=self._context_lr,
         )
 
     def __getstate__(self):
@@ -401,10 +418,30 @@ class PEARL(MetaRLAlgorithm):
 
     def _train_once(self):
         """Perform one iteration of training."""
+        policy_loss_list = []
+        qf_loss_list = []
+        contrastive_loss_list = []
+        alpha_loss_list = []
+        alpha_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            self._optimize_policy(indices)
+            policy_loss, qf_loss, contrastive_loss, alpha_loss, alpha = self._optimize_policy(indices)
+            policy_loss_list.append(policy_loss)
+            qf_loss_list.append(qf_loss)
+            contrastive_loss_list.append(contrastive_loss)
+            alpha_loss_list.append(alpha_loss)
+            alpha_list.append(alpha)
+
+        with tabular.prefix('MetaTrain/Average/'):
+            tabular.record('PolicyLoss',
+                           np.average(np.array(policy_loss_list)))
+            tabular.record('QfLoss', np.average(np.array(qf_loss_list)))
+            tabular.record('ContrastiveLoss',
+                           np.average(np.array(contrastive_loss_list)))
+            tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
+            tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
+            tabular.record('Alpha', np.average(np.array(alpha_list)))
 
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
@@ -485,10 +522,13 @@ class PEARL(MetaRLAlgorithm):
 
         # ===== Temperature Objective =====
         if self._use_automatic_entropy_tuning:
-            alpha_loss = (-(self._get_log_alpha(indices)).exp() * (log_pi.detach() + self._target_entropy)).mean()
+            alpha = (self._get_log_alpha(indices)).exp()
+            alpha_loss = (-alpha * (log_pi.detach() + self._target_entropy)).mean()
             self._alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self._alpha_optimizer.step()
+            alpha_avg_cpu = np.average(alpha.detach().cpu().numpy())
+            alpha_loss_cpu = alpha_loss.detach().cpu().numpy()
 
         # ===== Update Target Network =====
         target_qfs = [self._target_qf1, self._target_qf2]
@@ -497,6 +537,10 @@ class PEARL(MetaRLAlgorithm):
             for t_param, param in zip(target_qf.parameters(), qf.parameters()):
                 t_param.data.copy_(t_param.data * (1.0 - self._soft_target_tau) + param.data * self._soft_target_tau)
 
+        qf_loss_cpu = qf_loss.detach().cpu().numpy()
+        policy_loss_cpu = policy_loss.detach().cpu().numpy()
+        contrastive_loss_cpu = contrastive_loss.detach().cpu().numpy()
+        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu, alpha_avg_cpu
 
     def _obtain_samples(self,
                         runner,
@@ -532,12 +576,13 @@ class PEARL(MetaRLAlgorithm):
             total_samples += sum([len(path['rewards']) for path in paths])
 
             for path in paths:
+                terminations=np.array([step_type == StepType.TERMINAL for step_type in path['step_types']]).reshape(-1, 1)
                 p = {
                     'observations': path['observations'],
                     'actions': path['actions'],
                     'rewards': path['rewards'].reshape(-1, 1),
                     'next_observations': path['next_observations'],
-                    'dones': path['dones'].reshape(-1, 1)
+                    'dones': terminations
                 }
                 self._replay_buffers[self._task_idx].add_path(p)
 
@@ -704,10 +749,23 @@ class PEARL(MetaRLAlgorithm):
         device = device or global_device()
         for net in self.networks:
             net.to(device)
+
         if self._use_automatic_entropy_tuning:
-            self._log_alpha = self._log_alpha.to(device).requires_grad_()
+            if self._single_alpha:
+                self._log_alpha = torch.cuda.FloatTensor(
+                    [self._initial_log_entropy]).requires_grad_()
+            else:
+                self._log_alpha = torch.cuda.FloatTensor([
+                                                             self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+            self._alpha_optimizer = self._optimizer_class([self._log_alpha],
+                                                          lr=self._policy_lr)
         else:
-            self._log_alpha = self._log_alpha.to(device)
+            if self._single_alpha:
+                self._log_alpha = torch.cuda.FloatTensor(
+                    [self._fixed_alpha]).log()
+            else:
+                self._log_alpha = torch.cuda.FloatTensor(
+                    [self._fixed_alpha] * self._num_train_tasks).log()
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):
@@ -797,100 +855,90 @@ class PEARL(MetaRLAlgorithm):
         ret = torch.mm(one_hots, log_alpha.unsqueeze(0).t()).squeeze()
         return ret
 
-
-class PEARLWorker(DefaultWorker):
+class PEARLSAC2Worker(DefaultWorker):
     """A worker class used in sampling for PEARL.
 
     It stores context and resample belief in the policy every step.
 
     Args:
-        seed(int): The seed to use to intialize random number generators.
-        max_path_length(int or float): The maximum length paths which will
-            be sampled. Can be (floating point) infinity.
-        worker_number(int): The number of the worker where this update is
+        seed (int): The seed to use to intialize random number generators.
+        max_episode_length(int or float): The maximum length of episodes which
+            will be sampled. Can be (floating point) infinity.
+        worker_number (int): The number of the worker where this update is
             occurring. This argument is used to set a different seed for each
             worker.
-        deterministic(bool): If true, use the mean action returned by the
+        deterministic (bool): If True, use the mean action returned by the
             stochastic policy instead of sampling from the returned action
             distribution.
-        accum_context(bool): If true, update context of the agent.
+        accum_context (bool): If True, update context of the agent.
 
     Attributes:
-        agent(Policy or None): The worker's agent.
-        env(gym.Env or None): The worker's environment.
+        agent (Policy or None): The worker's agent.
+        env (Environment or None): The worker's environment.
 
     """
 
     def __init__(self,
                  *,
                  seed,
-                 max_path_length,
+                 max_episode_length,
                  worker_number,
                  deterministic=False,
                  accum_context=False):
         self._deterministic = deterministic
         self._accum_context = accum_context
+        self._episode_info = None
         super().__init__(seed=seed,
-                         max_path_length=max_path_length,
+                         max_episode_length=max_episode_length,
                          worker_number=worker_number)
 
-    def start_rollout(self):
-        """Begin a new rollout."""
-        self._path_length = 0
-        self._prev_obs = self.env.reset()
+    def start_episode(self):
+        """Begin a new episode."""
+        self._eps_length = 0
+        self._prev_obs, self._episode_info = self.env.reset()
 
-    def step_rollout(self):
-        """Take a single time-step in the current rollout.
+    def step_episode(self):
+        """Take a single time-step in the current episode.
 
         Returns:
-            bool: True iff the path is done, either due to the environment
-            indicating termination of due to reaching `max_path_length`.
+            bool: True iff the episode is done, either due to the environment
+            indicating termination of due to reaching `max_episode_length`.
 
         """
-        if self._path_length < self._max_path_length:
+        if self._eps_length < self._max_episode_length:
             a, agent_info = self.agent.get_action(self._prev_obs)
             if self._deterministic:
                 a = agent_info['mean']
-            next_o, r, d, env_info = self.env.step(a)
+            a, agent_info = self.agent.get_action(self._prev_obs)
+            es = self.env.step(a)
             self._observations.append(self._prev_obs)
-            self._rewards.append(r)
-            self._actions.append(a)
+            self._env_steps.append(es)
             for k, v in agent_info.items():
                 self._agent_infos[k].append(v)
-            for k, v in env_info.items():
-                self._env_infos[k].append(v)
-            self._path_length += 1
-            self._terminals.append(d)
-            # done_signal = bool(env_info['success'])
-            done_signal = d
+            self._eps_length += 1
+
             if self._accum_context:
-                s = TimeStep(env_spec=self.env,
-                             observation=self._prev_obs,
-                             next_observation=next_o,
-                             action=a,
-                             reward=float(r),
-                             terminal=d,
-                             env_info=env_info,
-                             agent_info=agent_info)
+                s = TimeStep.from_env_step(env_step=es,
+                                           last_observation=self._prev_obs,
+                                           agent_info=agent_info,
+                                           episode_info=self._episode_info)
                 self.agent.update_context(s)
-            if not done_signal:
-                self._prev_obs = next_o
+            if not es.last:
+                self._prev_obs = es.observation
                 return False
-        self._lengths.append(self._path_length)
+        self._lengths.append(self._eps_length)
         self._last_observations.append(self._prev_obs)
         return True
 
     def rollout(self):
-        """Sample a single rollout of the agent in the environment.
+        """Sample a single episode of the agent in the environment.
 
         Returns:
-            garage.TrajectoryBatch: The collected trajectory.
+            EpisodeBatch: The collected episode.
 
         """
         self.agent.sample_from_belief()
-        self.start_rollout()
-        while not self.step_rollout():
+        self.start_episode()
+        while not self.step_episode():
             pass
-        self._agent_infos['context'] = [self.agent.z.detach().cpu().numpy()
-                                        ] * self._path_length
-        return self.collect_rollout()
+        return self.collect_episode()
