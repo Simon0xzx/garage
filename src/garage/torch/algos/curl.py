@@ -996,15 +996,15 @@ class CURL(MetaRLAlgorithm):
 
         if self._use_automatic_entropy_tuning:
             if self._single_alpha:
-                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy]).requires_grad_()
+                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy], device=global_device()).requires_grad_()
             else:
-                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+                self._log_alpha = torch.cuda.FloatTensor([self._initial_log_entropy] * self._num_train_tasks, device=global_device()).requires_grad_()
             self._alpha_optimizer = self._optimizer_class([self._log_alpha], lr=self._policy_lr)
         else:
             if self._single_alpha:
-                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha]).log()
+                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha], device=global_device()).log()
             else:
-                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha] * self._num_train_tasks).log()
+                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha] * self._num_train_tasks, device=global_device()).log()
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):

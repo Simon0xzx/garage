@@ -420,25 +420,20 @@ class PEARLSAC2(MetaRLAlgorithm):
         """Perform one iteration of training."""
         policy_loss_list = []
         qf_loss_list = []
-        contrastive_loss_list = []
         alpha_loss_list = []
         alpha_list = []
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            policy_loss, qf_loss, contrastive_loss, alpha_loss, alpha = self._optimize_policy(indices)
+            policy_loss, qf_loss, alpha_loss, alpha = self._optimize_policy(indices)
             policy_loss_list.append(policy_loss)
             qf_loss_list.append(qf_loss)
-            contrastive_loss_list.append(contrastive_loss)
             alpha_loss_list.append(alpha_loss)
             alpha_list.append(alpha)
 
         with tabular.prefix('MetaTrain/Average/'):
-            tabular.record('PolicyLoss',
-                           np.average(np.array(policy_loss_list)))
+            tabular.record('PolicyLoss',  np.average(np.array(policy_loss_list)))
             tabular.record('QfLoss', np.average(np.array(qf_loss_list)))
-            tabular.record('ContrastiveLoss',
-                           np.average(np.array(contrastive_loss_list)))
             tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
             tabular.record('AlphaLoss', np.average(np.array(alpha_loss_list)))
             tabular.record('Alpha', np.average(np.array(alpha_list)))
@@ -539,8 +534,7 @@ class PEARLSAC2(MetaRLAlgorithm):
 
         qf_loss_cpu = qf_loss.detach().cpu().numpy()
         policy_loss_cpu = policy_loss.detach().cpu().numpy()
-        contrastive_loss_cpu = contrastive_loss.detach().cpu().numpy()
-        return policy_loss_cpu, qf_loss_cpu, contrastive_loss_cpu, alpha_loss_cpu, alpha_avg_cpu
+        return policy_loss_cpu, qf_loss_cpu, alpha_loss_cpu, alpha_avg_cpu
 
     def _obtain_samples(self,
                         runner,
@@ -753,19 +747,22 @@ class PEARLSAC2(MetaRLAlgorithm):
         if self._use_automatic_entropy_tuning:
             if self._single_alpha:
                 self._log_alpha = torch.cuda.FloatTensor(
-                    [self._initial_log_entropy]).requires_grad_()
+                    [self._initial_log_entropy],
+                    device=global_device()).requires_grad_()
             else:
-                self._log_alpha = torch.cuda.FloatTensor([
-                                                             self._initial_log_entropy] * self._num_train_tasks).requires_grad_()
+                self._log_alpha = torch.cuda.FloatTensor(
+                    [self._initial_log_entropy] * self._num_train_tasks,
+                    device=global_device()).requires_grad_()
             self._alpha_optimizer = self._optimizer_class([self._log_alpha],
                                                           lr=self._policy_lr)
         else:
             if self._single_alpha:
-                self._log_alpha = torch.cuda.FloatTensor(
-                    [self._fixed_alpha]).log()
+                self._log_alpha = torch.cuda.FloatTensor([self._fixed_alpha],
+                                                         device=global_device()).log()
             else:
                 self._log_alpha = torch.cuda.FloatTensor(
-                    [self._fixed_alpha] * self._num_train_tasks).log()
+                    [self._fixed_alpha] * self._num_train_tasks,
+                    device=global_device()).log()
 
     @classmethod
     def augment_env_spec(cls, env_spec, latent_dim):
