@@ -37,11 +37,13 @@ def plot_curve_avg(matplot, exps, format='-',
         min_step_length = min(min_step_length, limit)
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
+    if 'rl2_ppo_manual_reduce' in legend:
+        x = np.array(x) /4 * 2.5
     y = [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts]
     y_ave = np.average(y, axis=0)
     y_min = np.min(y, axis=0)
     y_max = np.max(y, axis=0)
-
+    # Cutting the tail by env step limit
     x_new, y_avg_new, y_min_new, y_max_new = [],[],[],[]
     last_visited_index = 0
     for i in range(len(x)):
@@ -52,23 +54,21 @@ def plot_curve_avg(matplot, exps, format='-',
         y_avg_new.append(y_ave[i])
         y_min_new.append(y_min[i])
         y_max_new.append(y_max[i])
-
-    final_y_avg = np.average(y_ave[last_visited_index-5: last_visited_index])
-    final_y_std = np.std(y_ave[last_visited_index-5: last_visited_index])
-    print(exps[0])
-    print("Last 10 Step average: {}".format(final_y_avg))
-    print("Last 10 Step std: {}".format(final_y_std))
-    print("Y Last Min: {}".format(y_min_new[-1]))
-    print("Y Last Avg: {}".format(y_avg_new[-1]))
-    print("Y Last Max: {}".format(y_max_new[-1]))
+    y_stats_window = y_ave[last_visited_index-backward_smooth_window: last_visited_index]
     matplot.plot(x_new, y_avg_new, format, lw=line_width,label=label)
     matplot.fill_between(x_new, y_min_new, y_max_new, alpha=opacity)
     matplot.legend()
+
+    # Prepare infos for report table
+    return y_stats_window
+
 
 def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
                       title = 'MetaTest/Average/AverageReturn', x_title = 'TotalEnvSteps',
                       limit = -1, env_step_limit=2500000, backward_smooth_window=1):
     results_dirs = []
+    valid_seed_cnt = 0
+    valid_stats = []
     for i in range(num_seeds):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
         if 'meta-q-learning' in dir_path:
@@ -80,7 +80,19 @@ def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
         if os.path.exists(direct_dir_path):
             results_dirs.append(direct_dir_path)
     try:
-        plot_curve_avg(axs, results_dirs, '-',
+        stats_window = plot_curve_avg(axs, results_dirs, '-',
                        legend=label, title=title, x_title=x_title, limit=limit, env_step_limit=env_step_limit, backward_smooth_window=backward_smooth_window)
+        valid_seed_cnt += 1
+        valid_stats.extend(stats_window)
     except:
         print("Failed to Locate {}".format(exp_name))
+
+    if valid_seed_cnt == 0:
+        return {'env_name': exp_name,
+                'seed_cnt': 0}
+    else:
+        return {'env_name': exp_name,
+                'average': np.average(valid_stats),
+                'std': np.std(valid_stats),
+                'seed_cnt': valid_seed_cnt}
+

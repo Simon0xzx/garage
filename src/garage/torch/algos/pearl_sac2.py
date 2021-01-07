@@ -10,6 +10,8 @@ from dowel import logger
 import numpy as np
 import torch
 import torch.nn.functional as F
+from dowel import tabular
+
 
 from garage import InOutSpec, TimeStep, EnvSpec, StepType
 from garage.experiment import MetaEvaluator

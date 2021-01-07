@@ -22,9 +22,8 @@ def get_data_repos():
     'curl_wasserstein_2_step': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final_2_steps', 'curl_wasserstein_2_step'),
     'curl_wasserstein_2': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final2', 'curl_wasserstein'),
     'rl2_ppo_suit': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_suit', 'rl2_ppo'),
+
     # 10 envs
-    'curl_wasserstein_env_step_400': ("/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_steps_400", "curl_wasserstein_env_steps_400"),
-    'curl_wasserstein_env_step_2000':("/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_steps_2000", "curl_wasserstein_env_steps_2000"),
     'curl_wasserstein_long_10': (path.join(data_dir, 'result_suits/curl_wasserstein_long_10_suit'),'curl_wasserstein'),
     'pearl_long_10': (path.join(data_dir, 'result_suits/pearl_10_suit'), 'pearl'),
 
@@ -33,12 +32,17 @@ def get_data_repos():
     'maml_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_ppo_suit', 'maml_ppo'),
     'rl2_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit', 'rl2_ppo'),
     'rl2_ppo_2': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit_2', 'rl2_ppo'),
+    'rl2_ppo_manual_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit_2','rl2_ppo_manual_reduce'),
     'rl2_ppo_larger_net': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_larger_net_suit', 'rl2_ppo_larger_net'),
     'rl2': ('/home/simon0xzx/research/berkely_research/garage/data/namazu/rl2_suit', 'rl2'),
     'mql': ('/home/simon0xzx/research/berkely_research/meta-q-learning/log_dir', 'mql'),
 
     # local stuff
-    'curl_w_env_step': ('/home/simon0xzx/research/berkely_research/garage/data/local/curl_wasserstein_env_steps', 'env_steps')
+    'curl_w_env_step': ('/home/simon0xzx/research/berkely_research/garage/data/local/curl_wasserstein_env_steps', 'env_steps'),
+    'curl_step_4x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_4x_reduce', '4x_reduce'),
+    'curl_step_2x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_2x_reduce', '2x_reduce'),
+    'curl_wasserstein_10x_reduce': ("/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_steps_400","10x_reduce_old"),
+    'curl_wasserstein_2x_reduce': ("/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_steps_2000", "2x_reduce_old")
 
     }
     return data_repo
@@ -59,8 +63,9 @@ def get_metaworld_task_list(task_portion='Odd'):
 
 def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, num_seeds=1,
                         limit=-1, title='MetaTest/Average/AverageReturn', x_title='TotalEnvSteps',
-                        env_step_limit=2500000, backward_smooth_window=1):
+                        env_step_limit=-1, backward_smooth_window=1):
     data_repo = get_data_repos()
+    env_reports = {}
     for i, task in enumerate(task_lists):
         row_cnt = int(i / col)
         col_cnt = i % col if i % col >= 0 else (i % col) + col
@@ -76,31 +81,49 @@ def metaworld_ml1_graph(axs, task_lists, draw_repo_names, row=4, col=6, num_seed
         subplot_axs.set_xlabel(x_title)
         subplot_axs.set_ylabel(title.split('/')[-1])
         subplot_axs.ticklabel_format(useMathText=True)
-        subplot_axs.axvline(x=env_step_limit, linewidth=2, color='r')
-        # subplot_axs.set_xlim(0, env_step_limit)
+        if env_step_limit != -1:
+            subplot_axs.axvline(x=env_step_limit, linewidth=2, color='k')
+            subplot_axs.set_xlim(0, env_step_limit)
+        env_reports[task] = {}
         for repo in draw_repo_names:
             exp_repo = data_repo[repo]
-            print_hyper_tests(subplot_axs, exp_repo[0], task, exp_repo[1],
+            env_stats = print_hyper_tests(subplot_axs, exp_repo[0], task, exp_repo[1],
                               num_seeds = num_seeds, title=title, x_title=x_title, limit=limit, env_step_limit=env_step_limit, backward_smooth_window=backward_smooth_window)
-    plt.show()
+            env_reports[task][repo] = env_stats
+    return env_reports
 
+def make_report(env_reports, valid_repos):
+    env_report_list = []
+    title = 'env_name, {}\n'.format(','.join(valid_repos))
+    win_cnt = [0 for _ in range(len(valid_repos))]
+    for task, report in env_reports.items():
+        env_results = []
+        winner_score, winner_idx = 0,0
+        for i, repo in enumerate(valid_repos):
+            seed_cnt = report[repo]['seed_cnt']
+            if seed_cnt > 1:
+                report_str = "{}~{}".format(report[repo]['average'], report[repo]['std'], seed_cnt)
+                score = float(report[repo]['average'])
+            elif seed_cnt == 0:
+                report_str = '---'
+                score = -999999
+            else:
+                report_str = str(round(float(report[repo]['average']), 4))
+                score = float(report[repo]['average'])
+            if score > winner_score:
+                winner_score = score
+                winner_idx = i
+            env_results.append(report_str)
+        win_cnt[winner_idx] += 1
+        env_report_list.append('{},{}\n'.format(task, ','.join(env_results)))
 
-def plot_full_suits():
-    sampled_task_lists = ['faucet-close-v1', 'soccer-v1', 'plate-slide-side-v1', 'stick-push-v1']
-    full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1', 'lever-pull-v1', 'stick-push-v1', 'handle-pull-side-v1', 'stick-pull-v1', 'dissassemble-v1', 'coffee-push-v1', 'hammer-v1', 'plate-slide-side-v1', 'handle-press-v1', 'soccer-v1', 'plate-slide-back-v1', 'button-press-topdown-v1', 'button-press-topdown-wall-v1', 'peg-insert-side-v1', 'push-wall-v1', 'button-press-v1', 'coffee-pull-v1', 'window-close-v1', 'door-open-v1', 'drawer-open-v1', 'box-close-v1', 'door-unlock-v1', 'basketball-v1']
-    row, col = 5,5
-    fig, axs = plt.subplots(row, col)
-    # plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
-    #                     wspace=0.26, hspace=0.70)
-    # row, col = 4, 6
-    plt.subplots_adjust(left=0.04, bottom=0.04, right=0.98, top=0.96,
-                        wspace=0.25, hspace=0.30)
+    env_report_list.append('wins,{}\n'.format(','.join(map(lambda x: str(x), win_cnt))))
+    text_file = open("/home/simon0xzx/research/berkely_research/garage/data/reports/report.csv", "w")
+    text_file.write(title)
+    for env_report in env_report_list:
+        text_file.write(env_report)
+    text_file.close()
 
-    # metaworld_ml1_graph(axs, full_suit_task_lists, ['pearl', 'curl_wasserstein', 'curl_wasserstein_2_step'], row=row, col=col)
-    # metaworld_ml1_graph(axs, full_suit_task_lists, ['old_curl', 'updated_curl', 'curl_wasserstein', 'curl_wasserstein_2_step'], row=row, col=col)
-    metaworld_ml1_graph(axs, full_suit_task_lists, ['curl_wasserstein_2', 'rl2_ppo_suit', 'pearl'], num_seeds=3,  row=row, col=col, limit=100)
-
-    plt.show()
 
 '''
 soccer-v1
@@ -137,6 +160,7 @@ def plot_selected_suits():
 
 
 
+
 def varify():
     sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
     full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1',
@@ -152,12 +176,15 @@ def varify():
                             'window-close-v1', 'door-open-v1',
                             'drawer-open-v1', 'box-close-v1', 'door-unlock-v1', 'basketball-v1']
 
+    valid_repo_list = ['rl2_ppo_2', 'rl2_ppo_manual_reduce', 'pearl', 'curl_wasserstein_2', 'curl_step_2x_reduce', 'curl_step_4x_reduce', 'curl_wasserstein_10x_reduce']
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
                         wspace=0.20, hspace=0.40)
-    metaworld_ml1_graph(axs, full_suit_task_lists, [ 'curl_wasserstein_2', 'curl_wasserstein_env_step_2000',  'curl_wasserstein_env_step_400'], num_seeds=3, row=row, col=col, limit=100, env_step_limit=2500000)
+    repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list, num_seeds=5, row=row, col=col, limit=100, backward_smooth_window=10, env_step_limit=1000000)
 
+    make_report(repo_stats, valid_repo_list)
+    plt.show()
 
 def process():
     stuff = ""
@@ -166,14 +193,6 @@ def process():
         env = line.split(':')[0]
         statement = "sudo tmux kill-session -t {}".format(env)
         print(statement)
-
-def simple_draw():
-    sampled_task_lists = ['handle-press-v1', 'handle-press-v1_1', 'handle-press-v1_2', 'handle-press-v1_3']
-    row, col = 2, 2
-    fig, axs = plt.subplots(row, col)
-    metaworld_ml1_graph(axs, sampled_task_lists,
-                        ['curl_w_env_step'], num_seeds=1,
-                        row=row, col=col, limit=100)
 
 if __name__ == '__main__':
 #     # plot_full_suits()
