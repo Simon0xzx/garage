@@ -405,3 +405,23 @@ conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --num_steps
 
 [TODO]
 --to be assigned--
+
+
+Transfer
+========================================================================================================================================
+{leviathan}
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_2x_reduce .
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_4x_reduce .
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_8x_reduce .
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_wasserstein_env_2x_reduce .
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_env_4x_reduce .
+scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_env_8x_reduce .
+
+{namazu}
+scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_2x_reduce .
+scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_4x_reduce .
+scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_8x_reduce .
+scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_wasserstein_env_2x_reduce .
+scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_env_4x_reduce .
+
+scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_env_8x_reduce .
