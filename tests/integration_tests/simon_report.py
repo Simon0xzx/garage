@@ -14,14 +14,13 @@ def get_data_repos():
     'namazu_new_label': ('/home/simon0xzx/research/berkely_research/garage/data/namazu/curl_new_label', 'curl_new_label_batch_32'),
     # full suit results
     'old_curl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/old_curl_ml1_result_suit', 'old_curl'),
-    'pearl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl', 'pearl'),
+    'pearl-no-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl', 'pearl-no-reduce'),
     'curl_labeled_b16': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_labeled_b16', 'curl_labeled_b16'),
     'updated_curl': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_normal', 'updated_curl'),
     'classifier_encoder':('/home/simon0xzx/research/berkely_research/garage/data/local/classifier_suit', 'classifier_encoder'),
     'curl_wasserstein_old': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein', 'curl_wasserstein_old'),
     'curl_wasserstein': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final', 'curl_wasserstein'),
     'curl_wasserstein_2_step': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final_2_steps', 'curl_wasserstein_2_step'),
-    'curl_wasserstein_2': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final2', 'curl_wasserstein'),
     'rl2_ppo_suit': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_suit', 'rl2_ppo'),
 
     # 10 envs
@@ -32,7 +31,10 @@ def get_data_repos():
     'maml_trpo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_trpo_suit_2','maml_trpo'),
     'maml_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/maml_ppo_suit', 'maml_ppo'),
     'rl2_ppo': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit', 'rl2_ppo'),
-    'rl2_ppo_2': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit_2', 'rl2_ppo'),
+
+    'rl2_ppo_meta_batch_50': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_suit', 'rl2_ppo_meta_batch_50'),
+    'rl2_ppo_meta_batch_10': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_10'),
+
     'rl2_ppo_manual_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_suit_2','rl2_ppo_manual_reduce'),
     'rl2_ppo_larger_net': ('/home/simon0xzx/research/berkely_research/garage/data/local/rl2_ppo_larger_net_suit', 'rl2_ppo_larger_net'),
     'rl2': ('/home/simon0xzx/research/berkely_research/garage/data/namazu/rl2_suit', 'rl2'),
@@ -46,12 +48,13 @@ def get_data_repos():
     'curl_wasserstein_2x_reduce': ("/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_env_steps_2000", "2x_reduce_old"),
 
     # Systematic Env Step Reduction
-    'curlw_env_8x_reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_8x_reduce', 'curlw_env_8x_reduce'),
-    'curlw_env_4x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_4x_reduce', 'curlw_env_4x_reduce'),
-    'curlw_env_2x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_2x_reduce', 'curlw_env_2x_reduce'),
-    'pearl_env_8x_reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_8x_reduce', 'pearl_env_8x_reduce'),
-    'pearl_env_4x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_4x_reduce', 'pearl_env_4x_reduce'),
-    'pearl_env_2x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl_env_2x_reduce')
+    'tcl-pearl-w-no-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final2', 'tcl-pearl-w-no-reduce'),
+    'tcl-pearl-w-8x-reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_8x_reduce', 'tcl-pearl-w-8x-reduce'),
+    'tcl-pearl-w-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_4x_reduce', 'tcl-pearl-w-4x-reduce'),
+    'tcl-pearl-w-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_2x_reduce', 'tcl-pearl-w-2x-reduce'),
+    'pearl-8x-reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_8x_reduce', 'pearl-8x-reduce'),
+    'pearl-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_4x_reduce', 'pearl-4x-reduce'),
+    'pearl-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl-2x-reduce')
     }
     return data_repo
 
@@ -171,7 +174,14 @@ def plot_selected_suits():
 
 
 
-
+"""
+'tcp-pearl-w-no-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curl_wasserstein_final2', 'tcp-pearl-w-no-reduce'),
+    'tcp-pearl-w-8x-reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_8x_reduce', 'tcp-pearl-w-8x-reduce'),
+    'tcp-pearl-w-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_4x_reduce', 'tcp-pearl-w-4x-reduce'),
+    'tcp-pearl-w-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_2x_reduce', 'tcp-pearl-w-2x-reduce'),
+    'pearl-8x-reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_8x_reduce', 'pearl-8x-reduce'),
+    'pearl-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_4x_reduce', 'pearl-4x-reduce'),
+    'pearl-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl-2x-reduce')"""
 def varify():
     sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
     full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1',
@@ -190,17 +200,20 @@ def varify():
     # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce']
     # valid_repo_list = ['pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
     # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce', 'pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
-    valid_repo_list = ['curl_wasserstein_2', 'pearl']
+    # valid_repo_list = ['curl_wasserstein_2', 'pearl']
+
+
+    valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
     row, col = 1, 1
     fig, axs = plt.subplots(row, col)
     # plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
     #                     wspace=0.20, hspace=0.40)
-    env_step_limit_list = [400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000]
+    env_step_limit_list = [100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000]
     win_list = []
     reports = []
     for step_limit in env_step_limit_list:
         repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list,
-                                         num_seeds=5, row=row, col=col, limit=-1, backward_smooth_window=5, env_step_limit=step_limit, plot=False)
+                                         num_seeds=5, row=row, col=col, limit=-1, backward_smooth_window=2, env_step_limit=step_limit, plot=False)
         score = [0 for _ in range(len(valid_repo_list))]
         avg_returns = ['' for _ in range(len(valid_repo_list))]
         sub_report = []
@@ -238,7 +251,7 @@ def varify():
             text_file.write(line)
         text_file.close()
 
-    plt.title("TCL-Pearl vs Pearl Comparison")
+    plt.title("TCL-Pearl vs Pearl vs RL^2 Comparison")
     plt.legend()
     plt.xlabel("Total Environment Steps")
     plt.ylabel("# of Wins")
@@ -260,18 +273,20 @@ def varify2():
                             'window-close-v1', 'door-open-v1',
                             'drawer-open-v1', 'box-close-v1', 'door-unlock-v1', 'basketball-v1']
 
-    # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce']
+    valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
+    # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
+
     # valid_repo_list = ['pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
     # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce', 'pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
-    valid_repo_list = ['curlw_env_2x_reduce', 'pearl_env_2x_reduce']
+    # valid_repo_list = ['curlw_env_2x_reduce', 'pearl_env_2x_reduce']
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
                         wspace=0.20, hspace=0.40)
     repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list,
                                      num_seeds=5, row=row, col=col, limit=-1,
-                                     backward_smooth_window=5, env_step_limit=1000000,
-                                     plot=True, title='MetaTrain/Average/Alpha')
+                                     backward_smooth_window=2, env_step_limit=1000000,
+                                     plot=True)
     make_report(repo_stats, valid_repo_list)
     plt.show()
 
@@ -284,23 +299,62 @@ def process():
         statement = "sudo tmux kill-session -t {}".format(env)
         print(statement)
 
+
+def plot_manually():
+    data = [[0, 0, 9, 1, 0, 0, 7, 8, 0, 0],
+            [0, 4, 5, 6, 0, 2, 8, 0, 0, 0],
+            [1, 4, 8, 3, 1, 1, 6, 1, 0, 0],
+            [1, 6, 7, 2, 0, 3, 4, 2, 0, 0],
+            [3, 3, 7, 3, 1, 5, 1, 2, 0, 0],
+            [4, 4, 3, 4, 2, 3, 3, 2, 0, 0],
+            [2, 8, 3, 5, 0, 2, 2, 1, 2, 0],
+            [6, 7, 3, 2, 2, 1, 1, 1, 1, 1],
+            [4, 8, 2, 2, 1, 1, 1, 1, 5, 0],
+            [4, 5, 3, 2, 2, 2, 0, 2, 5, 0],
+            [3, 8, 2, 3, 0, 2, 1, 0, 6, 0],
+            [5, 7, 4, 2, 1, 0, 0, 0, 6, 0]]
+    env_step_limit_list = [100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000]
+    summarized_data = []
+    for line in data:
+        sub_data = []
+        sub_data.append(sum(line[0:4]))
+        sub_data.append(sum(line[4:8]))
+        sub_data.append(sum(line[8:10]))
+        summarized_data.append(sub_data)
+
+    results = np.array(summarized_data)
+    row, col = 1, 1
+    fig, axs = plt.subplots(row, col)
+    plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.20, hspace=0.40)
+    plt.plot(env_step_limit_list, results[:, 0], '-', lw=2,label='tcl-pearl')
+    plt.plot(env_step_limit_list, results[:, 1], '-', lw=2, label='pearl')
+    plt.plot(env_step_limit_list, results[:, 2], '-', lw=2, label='rl^2')
+
+    plt.title("TCL-Pearl vs Pearl vs RL^2 Comparison Summary")
+    plt.legend()
+    plt.xlabel("Total Environment Steps")
+    plt.ylabel("# of Wins")
+    plt.show()
 """
-At 100000 steps, score list: [0, 0, 0, 12, 0, 0, 0, 13]
-At 200000 steps, score list: [0, 0, 11, 3, 0, 0, 8, 3]
-At 300000 steps, score list: [0, 5, 6, 3, 0, 1, 8, 2]
-At 400000 steps, score list: [0, 6, 5, 4, 0, 3, 4, 3]
-At 500000 steps, score list: [2, 7, 6, 2, 0, 4, 3, 1]
-At 600000 steps, score list: [0, 4, 5, 6, 1, 4, 5, 0]
-At 700000 steps, score list: [2, 10, 3, 2, 0, 3, 2, 3]
-At 800000 steps, score list: [3, 6, 4, 3, 1, 1, 3, 4]
-At 900000 steps, score list: [2, 6, 3, 3, 1, 4, 3, 3]
-At 1000000 steps, score list: [3, 6, 5, 2, 1, 3, 2, 3]
-At 1100000 steps, score list: [4, 7, 5, 1, 0, 2, 2, 4]
-At 1200000 steps, score list: [5, 6, 5, 4, 0, 4, 1, 0]
+At 100000 steps, score list: [0, 0, 9, 1, 0, 0, 7, 8, 0, 0]
+At 200000 steps, score list: [0, 4, 5, 6, 0, 2, 8, 0, 0, 0]
+At 300000 steps, score list: [1, 4, 8, 3, 1, 1, 6, 1, 0, 0]
+At 400000 steps, score list: [1, 6, 7, 2, 0, 3, 4, 2, 0, 0]
+At 500000 steps, score list: [3, 3, 7, 3, 1, 5, 1, 2, 0, 0]
+At 600000 steps, score list: [4, 4, 3, 4, 2, 3, 3, 2, 0, 0]
+At 700000 steps, score list: [2, 8, 3, 5, 0, 2, 2, 1, 2, 0]
+At 800000 steps, score list: [6, 7, 3, 2, 2, 1, 1, 1, 1, 1]
+At 900000 steps, score list: [4, 8, 2, 2, 1, 1, 1, 1, 5, 0]
+At 1000000 steps, score list: [4, 5, 3, 2, 2, 2, 0, 2, 5, 0]
+At 1100000 steps, score list: [3, 8, 2, 3, 0, 2, 1, 0, 6, 0]
+At 1200000 steps, score list: [5, 7, 4, 2, 1, 0, 0, 0, 6, 0]
+
 """
 
 if __name__ == '__main__':
     # varify()
+    # plot_manually()
+
     varify2()
     # process()
     # simple_draw()

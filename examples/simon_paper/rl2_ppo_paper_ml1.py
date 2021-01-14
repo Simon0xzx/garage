@@ -28,7 +28,7 @@ from garage.trainer import TFTrainer
 @click.option('--episode_per_task', default=10)
 @click.option('--gpu_id', default=0)
 @click.option('--name', default='push-v1')
-@click.option('--prefix', default='rl2_ppo_suit_2')
+@click.option('--prefix', default='rl2_ppo_env')
 @wrap_experiment
 def rl2_ppo_paper_ml1(ctxt, seed, meta_batch_size,
                       n_epochs, episode_per_task,

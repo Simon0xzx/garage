@@ -38,6 +38,10 @@ def plot_curve_avg(matplot, exps, format='-',
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
     y = [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts]
+    if any(['rl2_ppo_meta_batch_10' in names for names in exps]):
+        x = [x[i] for i in range(len(x)) if i % 10 == 0]
+        y = [[y[j][i] for i in range(len(y[j])) if i % 10 == 0] for j in range(len(y))]
+
     y_ave = np.average(y, axis=0)
     y_min = np.min(y, axis=0)
     y_max = np.max(y, axis=0)
@@ -47,12 +51,19 @@ def plot_curve_avg(matplot, exps, format='-',
     if env_step_limit != -1:
         for i in range(len(x)):
             if x[i] > env_step_limit:
+                if x[i-1] < env_step_limit:
+                    step_diff = env_step_limit - x[i-1]
+                    x_new.append(env_step_limit)
+                    y_avg_new.append(y_ave[i-1] + (y_ave[i]-y_ave[i-1])/(x[i] - x[i-1]) * step_diff)
+                    y_min_new.append(y_min[i-1] + (y_min[i]-y_min[i-1])/(x[i] - x[i-1]) * step_diff)
+                    y_max_new.append(y_max[i-1] + (y_max[i]-y_max[i-1])/(x[i] - x[i-1]) * step_diff)
                 break
             last_visited_index = i
             x_new.append(x[i])
             y_avg_new.append(y_ave[i])
             y_min_new.append(y_min[i])
             y_max_new.append(y_max[i])
+
     else:
         x_new = x
         y_avg_new = y_ave

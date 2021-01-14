@@ -403,25 +403,172 @@ conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --num_steps
 conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --num_steps_per_epoch 500 --num_initial_steps 500 --num_steps_prior 100 --num_extra_rl_steps_posterior 100 --prefix pearl_env_8x_reduce --num_epochs 400 --name basketball-v1 --seed 1 --gpu_id 1
 conda activate pearl; python examples/simon_paper/pearl_paper_ml1.py --num_steps_per_epoch 500 --num_initial_steps 500 --num_steps_prior 100 --num_extra_rl_steps_posterior 100 --prefix pearl_env_8x_reduce --num_epochs 400 --name faucet-close-v1 --seed 1 --gpu_id 1
 
-[TODO]
---to be assigned--
 
 
-Transfer
+rl2 meta batch size 10
 ========================================================================================================================================
+{local}
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name handle-press-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name stick-push-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name handle-pull-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name stick-pull-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name disassemble-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name coffee-push-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name hammer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name soccer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name plate-slide-back-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name door-unlock-v1 --seed 1 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-topdown-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-topdown-wall-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name peg-insert-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name door-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name drawer-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name lever-pull-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name push-wall-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name coffee-pull-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name window-close-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name box-close-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name faucet-open-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name basketball-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name faucet-close-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name plate-slide-side-v1 --seed 1 --gpu_id 1
+
+----------------seed 2---------------
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name handle-press-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name stick-push-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name handle-pull-side-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name stick-pull-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name disassemble-v1 --seed 2 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name coffee-push-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name hammer-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name soccer-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name plate-slide-back-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name door-unlock-v1 --seed 2 --gpu_id 1
+
+[TODO]
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-topdown-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-topdown-wall-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name peg-insert-side-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name door-open-v1 --seed 2 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name drawer-open-v1 --seed 2 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name lever-pull-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name push-wall-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name button-press-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name coffee-pull-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name window-close-v1 --seed 2 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name box-close-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name faucet-open-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name basketball-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name faucet-close-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 10 --n_epochs 200 --prefix rl2_ppo_meta_batch_10 --name plate-slide-side-v1 --seed 2 --gpu_id 1
+
+
+1/2 size exp curl seed 2
+========================================================================================================================================
+
 {leviathan}
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_2x_reduce .
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_4x_reduce .
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/pearl_env_8x_reduce .
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_wasserstein_env_2x_reduce .
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_env_4x_reduce .
-scp -r leviathan:/home/simon0xzx/research/garage/data/local/curl_env_8x_reduce .
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name faucet-open-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name basketball-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name faucet-close-v1 --seed 2 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name lever-pull-v1 --seed 2 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name stick-push-v1 --seed 2 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name handle-pull-side-v1 --seed 2 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name stick-pull-v1 --seed 2 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name disassemble-v1 --seed 2 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name coffee-push-v1 --seed 2 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name hammer-v1 --seed 2 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name plate-slide-side-v1 --seed 2 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name handle-press-v1 --seed 2 --gpu_id 6
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name soccer-v1 --seed 2 --gpu_id 7
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name plate-slide-back-v1 --seed 2 --gpu_id 7
+
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name button-press-topdown-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name button-press-topdown-wall-v1 --seed 2 --gpu_id 1
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name peg-insert-side-v1 --seed 2 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name push-wall-v1 --seed 2 --gpu_id 2
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name button-press-v1 --seed 2 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name coffee-pull-v1 --seed 2 --gpu_id 3
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name window-close-v1 --seed 2 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name door-open-v1 --seed 2 --gpu_id 4
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name drawer-open-v1 --seed 2 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name box-close-v1 --seed 2 --gpu_id 5
+conda activate pearl; python examples/simon_paper/curl_paper_ml1.py --num_steps_per_epoch 2000 --num_initial_steps 2000 --num_steps_prior 400 --num_extra_rl_steps_posterior 400 --prefix curl_wasserstein_env_2x_reduce --name door-unlock-v1 --seed 2 --gpu_id 6
+
 
 {namazu}
-scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_2x_reduce .
-scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_4x_reduce .
-scp -r namazu:/home/simon0xzx/research/garage/data/local/pearl_env_8x_reduce .
-scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_wasserstein_env_2x_reduce .
-scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_env_4x_reduce .
 
-scp -r namazu:/home/simon0xzx/research/garage/data/local/curl_env_8x_reduce .
+rl2 meta batch size 20
+========================================================================================================================================
+{local}
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name handle-press-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name stick-push-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name handle-pull-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name stick-pull-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name disassemble-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name coffee-push-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name hammer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name soccer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name plate-slide-back-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name door-unlock-v1 --seed 1 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name button-press-topdown-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name button-press-topdown-wall-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name peg-insert-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name door-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name drawer-open-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name lever-pull-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name push-wall-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name button-press-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name coffee-pull-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name window-close-v1 --seed 1 --gpu_id 1
+[TODO]
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name box-close-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name faucet-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name basketball-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name faucet-close-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 20 --n_epochs 100 --prefix rl2_ppo_meta_batch_20 --name plate-slide-side-v1 --seed 1 --gpu_id 0
+
+rl2 meta batch size 40
+========================================================================================================================================
+{local}
+[TODO]
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name handle-press-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name stick-push-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name handle-pull-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name stick-pull-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name disassemble-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name coffee-push-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name hammer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name soccer-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name plate-slide-back-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name door-unlock-v1 --seed 1 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name button-press-topdown-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name button-press-topdown-wall-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name peg-insert-side-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name door-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name drawer-open-v1 --seed 1 --gpu_id 0
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name lever-pull-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name push-wall-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name button-press-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name coffee-pull-v1 --seed 1 --gpu_id 1
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name window-close-v1 --seed 1 --gpu_id 1
+
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name box-close-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name faucet-open-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name basketball-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name faucet-close-v1 --seed 1 --gpu_id 0
+conda activate pearl; python examples/simon_paper/rl2_ppo_paper_ml1.py --meta_batch_size 40 --n_epochs 100 --prefix rl2_ppo_meta_batch_40 --name plate-slide-side-v1 --seed 1 --gpu_id 0
+
