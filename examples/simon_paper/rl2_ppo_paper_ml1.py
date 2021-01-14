@@ -54,7 +54,6 @@ def rl2_ppo_paper_ml1(ctxt, seed, meta_batch_size,
     tf.config.experimental.set_memory_growth(physical_devices[gpu_id], True)
 
     ml1 = metaworld.ML1(name)
-
     task_sampler = MetaWorldTaskSampler(ml1, 'train', lambda env, _: RL2Env(env))
     env = task_sampler.sample(1)[0]()
     test_task_sampler = SetTaskSampler(MetaWorldSetTaskEnv,
@@ -64,7 +63,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, meta_batch_size,
 
     with TFTrainer(snapshot_config=ctxt) as trainer:
         policy = GaussianGRUPolicy(name='policy',
-                                   hidden_dim=400,
+                                   hidden_dim=64,
                                    env_spec=env_spec,
                                    state_include_action=False)
 
@@ -92,8 +91,7 @@ def rl2_ppo_paper_ml1(ctxt, seed, meta_batch_size,
                       discount=0.99,
                       gae_lambda=0.95,
                       lr_clip_range=0.2,
-                      optimizer_args=dict(batch_size=64,
-                                          max_optimization_epochs=10),
+                      optimizer_args=dict(batch_size=32, max_optimization_epochs=10),
                       stop_entropy_gradient=True,
                       entropy_method='max',
                       policy_ent_coeff=0.02,
