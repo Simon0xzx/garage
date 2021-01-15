@@ -18,9 +18,10 @@ from garage.torch.algos.sac import SAC
 from garage.torch.algos.mtsac import MTSAC
 from garage.torch.algos.pearl import PEARL
 from garage.torch.algos.pearl_sac2 import PEARLSAC2
+from garage.torch.algos.pearl_v2 import PEARLV2
 from garage.torch.algos.curl import CURL
 
 __all__ = [
     'BC', 'DDPG', 'DQN', 'VPG', 'PPO', 'TD3', 'TRPO', 'MAMLPPO', 'MAMLTRPO',
-    'MAMLVPG', 'MTSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2'
+    'MAMLVPG', 'MTSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2', 'PEARLV2', 
 ]
