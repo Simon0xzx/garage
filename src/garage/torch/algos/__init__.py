@@ -16,12 +16,15 @@ from garage.torch.algos.maml_trpo import MAMLTRPO
 # SAC needs to be imported before MTSAC
 from garage.torch.algos.sac import SAC
 from garage.torch.algos.mtsac import MTSAC
+from garage.torch.algos.mlsac import MLSAC
 from garage.torch.algos.pearl import PEARL
 from garage.torch.algos.pearl_sac2 import PEARLSAC2
 from garage.torch.algos.pearl_v2 import PEARLV2
 from garage.torch.algos.curl import CURL
+from garage.torch.algos.tcl_pearl_v2 import TCLPEARLV2
+
 
 __all__ = [
     'BC', 'DDPG', 'DQN', 'VPG', 'PPO', 'TD3', 'TRPO', 'MAMLPPO', 'MAMLTRPO',
-    'MAMLVPG', 'MTSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2', 'PEARLV2', 
+    'MAMLVPG', 'MTSAC', 'MLSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2', 'PEARLV2', 'TCLPEARLV2'
 ]

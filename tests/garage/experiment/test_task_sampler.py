@@ -21,6 +21,7 @@ except Exception:  # pylint: disable=broad-except
         'valid mujoco key installed?',
         allow_module_level=True)
 
+from garage.envs import GoalAugmentedWrapper
 from garage.envs.mujoco.half_cheetah_vel_env import HalfCheetahVelEnv  # isort:skip # noqa: E501
 
 
@@ -107,6 +108,30 @@ def test_metaworld_sample_and_step():
     ml1 = metaworld.ML1('push-v1')
     tasks = task_sampler.MetaWorldTaskSampler(ml1, 'train')
     updates = tasks.sample(100)
+    assert len(updates) == 100
+    env = updates[0]()
+    action = env.action_space.sample()
+    env.reset()
+    env.step(action)
+    env.step(action)
+    env.close()
+    updates = tasks.sample(100, with_replacement=True)
+    assert len(updates) == 100
+
+@pytest.mark.mujoco
+def test_metaworld_sample_and_step():
+    # Import, construct environments here to avoid using up too much
+    # resources if this test isn't run.
+    # pylint: disable=import-outside-toplevel
+    import metaworld
+    import pickle
+    
+    ml1 = metaworld.ML1('push-v1')
+    tasks = task_sampler.MetaWorldTaskSampler(ml1, 'train', wrapper=GoalAugmentedWrapper)
+    print(pickle.loads(tasks._tasks[0].data)['env_cls']()._random_reset_space)
+    print('tasks: ', len(tasks._tasks), [pickle.loads(t.data) for t in tasks._tasks[:3]])
+    updates = tasks.sample(100)
+    print('sampled: ', len(updates), [pickle.loads(up._task.data) for up in updates[:3]])
     assert len(updates) == 100
     env = updates[0]()
     action = env.action_space.sample()
