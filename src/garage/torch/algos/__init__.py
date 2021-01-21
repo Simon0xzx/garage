@@ -26,5 +26,5 @@ from garage.torch.algos.tcl_pearl_v2 import TCLPEARLV2
 
 __all__ = [
     'BC', 'DDPG', 'DQN', 'VPG', 'PPO', 'TD3', 'TRPO', 'MAMLPPO', 'MAMLTRPO',
-    'MAMLVPG', 'MTSAC', 'MLSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2', 'PEARLV2', 'TCLPEARLV2'
-]
+    'MAMLVPG', 'MTSAC', 'MLSAC', 'PEARL', 'SAC', 'CURL', 'PEARLSAC2', 'PEARLV2', 'TCLPEARLV2', 'ORACLESAC2'
+
