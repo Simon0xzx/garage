@@ -38,7 +38,7 @@ def plot_curve_avg(matplot, exps, format='-',
     label = legend if legend != None else'{}_{}'.format(result_paths[0], title)
     x = data_dicts[0][x_title][:min_step_length]
     y = [list(map(lambda x: float(x), data_dict[title][:min_step_length])) for data_dict in data_dicts]
-    if any(['rl2_ppo_meta_batch_10' in names for names in exps]):
+    if any(['rl2_ppo_new_mb_10' in names for names in exps]):
         x = [x[i] for i in range(len(x)) if i % 10 == 0]
         y = [[y[j][i] for i in range(len(y[j])) if i % 10 == 0] for j in range(len(y))]
 
@@ -85,6 +85,7 @@ def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
     results_dirs = []
     valid_seed_cnt = 0
     valid_stats = []
+    effective_init_step = []
     for i in range(num_seeds):
         task_name = '{}{}'.format(exp_name, '_{}'.format(i) if i > 0 else '')
         if 'meta-q-learning' in dir_path:
@@ -104,12 +105,8 @@ def print_hyper_tests(axs, dir_path, exp_name, label, num_seeds=1,
     except:
         print("Failed to Locate {}".format(exp_name))
 
-    if valid_seed_cnt == 0:
-        return {'env_name': exp_name,
-                'seed_cnt': 0}
-    else:
-        return {'env_name': exp_name,
-                'average': np.average(valid_stats),
-                'std': np.std(valid_stats),
-                'seed_cnt': valid_seed_cnt}
+    return {'env_name': exp_name,
+            'average': np.average(valid_stats),
+            'std': np.std(valid_stats),
+            'seed_cnt': valid_seed_cnt}
 

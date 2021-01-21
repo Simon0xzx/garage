@@ -34,7 +34,7 @@ exp_id,task_name
 33, peg-insert-side-v1
 34, push-v1
 35, push-wall-v1
-36, pick-place-wall-v12
+36, pick-place-wall-v1
 37, button-press-v1
 38, pick-place-v1
 39, coffee-pull-v1

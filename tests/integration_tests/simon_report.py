@@ -2,6 +2,7 @@ from tests.integration_tests.simon_display_helper import print_hyper_tests, read
 import matplotlib.pyplot as plt
 from os import path
 import numpy as np
+from collections import defaultdict
 
 # Name -> (exp_root_path, labels)
 def get_data_repos():
@@ -54,17 +55,24 @@ def get_data_repos():
     'tcl-pearl-w-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/curlw_env_2x_reduce', 'tcl-pearl-w-2x-reduce'),
     'pearl-8x-reduce':('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_8x_reduce', 'pearl-8x-reduce'),
     'pearl-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_4x_reduce', 'pearl-4x-reduce'),
-    'pearl-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl-2x-reduce')
+    'pearl-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl-2x-reduce'),
+
+    # new envs
+    'tcl_pearl_new_env_4x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_4x_reduce', 'tcl_pearl_4x_reduce'),
+    'tcl_pearl_new_env_2x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_2x_reduce', 'tcl_pearl_2x_reduce'),
+    'tcl_pearl_new_env_no_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_no_reduce','tcl_pearl_no_reduce'),
+    'rl2_ppo_new_mb_10': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_new_mb_10', 'rl2_ppo_new_mb_10')
+
     }
     return data_repo
 
-def get_metaworld_task_list(task_portion='Odd'):
+def get_metaworld_task_list(task_portion='ODD'):
     task_name_csv = '/home/simon0xzx/research/berkely_research/garage/examples/metaworld_exp_name.txt'
     csv_dict = read_csv_file(task_name_csv, type=str)
-    if task_portion == 'Odd':
-        task_names = [task_name for i, task_name in enumerate(csv_dict['task_name']) if i%2 ==0]
-    elif task_portion == 'Even':
-        task_names = [task_name for i, task_name in enumerate(csv_dict['task_name']) if i % 2 == 1]
+    if task_portion == 'ODD':
+        task_names = [task_name.strip() for i, task_name in enumerate(csv_dict['task_name']) if i%2 ==0]
+    elif task_portion == 'EVEN':
+        task_names = [task_name.strip() for i, task_name in enumerate(csv_dict['task_name']) if i % 2 == 1]
     else:
         task_names = csv_dict['task_name']
 
@@ -183,19 +191,9 @@ def plot_selected_suits():
     'pearl-4x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_4x_reduce', 'pearl-4x-reduce'),
     'pearl-2x-reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_env_2x_reduce', 'pearl-2x-reduce')"""
 def varify():
-    sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
-    full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1',
-                            'lever-pull-v1', 'stick-push-v1',
-                            'handle-pull-side-v1', 'stick-pull-v1',
-                            'disassemble-v1', 'coffee-push-v1', 'hammer-v1',
-                            'plate-slide-side-v1', 'handle-press-v1',
-                            'soccer-v1', 'plate-slide-back-v1',
-                            'button-press-topdown-v1',
-                            'button-press-topdown-wall-v1',
-                            'peg-insert-side-v1', 'push-wall-v1',
-                            'button-press-v1', 'coffee-pull-v1',
-                            'window-close-v1', 'door-open-v1',
-                            'drawer-open-v1', 'box-close-v1', 'door-unlock-v1', 'basketball-v1']
+    # sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
+    full_suit_task_lists = get_metaworld_task_list("EVEN")
+    full_suit_task_threashold_score = []
 
     # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce']
     # valid_repo_list = ['pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
@@ -203,7 +201,11 @@ def varify():
     # valid_repo_list = ['curl_wasserstein_2', 'pearl']
 
 
-    valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
+    # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
+    valid_repo_list = ['tcl_pearl_new_env_no_reduce','tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_4x_reduce', 'rl2_ppo_new_mb_10']
+    repo_family_name = [0, 0, 0, 1]
+    family_name = ['tcl_pearl', 'rl^2']
+
     row, col = 1, 1
     fig, axs = plt.subplots(row, col)
     # plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
@@ -214,20 +216,21 @@ def varify():
     for step_limit in env_step_limit_list:
         repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list,
                                          num_seeds=5, row=row, col=col, limit=-1, backward_smooth_window=2, env_step_limit=step_limit, plot=False)
-        score = [0 for _ in range(len(valid_repo_list))]
-        avg_returns = ['' for _ in range(len(valid_repo_list))]
+        score = [0 for _ in range(len(family_name))]
+        avg_returns = ['' for _ in range(len(family_name))]
         sub_report = []
         for env_name in full_suit_task_lists:
             highest_score = -9999
-            highest_repo_index = 0
-            for v in range(len(valid_repo_list)):
-                valid_repo = valid_repo_list[v]
+            highest_repo_index = -1
+            for v, valid_repo in enumerate(valid_repo_list):
                 avg_return = repo_stats[env_name][valid_repo]['average']
-                avg_returns[v] = str(round(avg_return, 2))
+                avg_returns[repo_family_name[v]] = str(round(avg_return, 2))
                 if avg_return > highest_score:
                     highest_score = avg_return
                     highest_repo_index = v
-            score[highest_repo_index] += 1
+            if highest_repo_index == -1:
+                continue
+            score[repo_family_name[highest_repo_index]] += 1
             sub_report.append("{},{}\n".format(env_name, ",".join(avg_returns)))
         print("At {} steps, score list: {}".format(step_limit, score))
         sub_report.append("Wins,{}\n".format(",".join(map(lambda x: str(x), score))))
@@ -237,9 +240,8 @@ def varify():
                                             wspace=0.20, hspace=0.40)
     leader_board = np.array(win_list)
     # make_report(repo_stats, valid_repo_list)
-    for i in range(len(valid_repo_list)):
-        repo_name = valid_repo_list[i]
-        plt.plot(env_step_limit_list, leader_board[:, i], '-', lw=2,label=repo_name)
+    for i, repo_family_name in enumerate(family_name):
+        plt.plot(env_step_limit_list, leader_board[:, i], '-', lw=2,label=repo_family_name)
 
     ## Print reports
     report_title = 'env_name, {}\n'.format(','.join(valid_repo_list))
@@ -251,7 +253,7 @@ def varify():
             text_file.write(line)
         text_file.close()
 
-    plt.title("TCL-Pearl vs Pearl vs RL^2 Comparison")
+    plt.title("TCL-Pearl vs RL^2 Comparison")
     plt.legend()
     plt.xlabel("Total Environment Steps")
     plt.ylabel("# of Wins")
@@ -259,32 +261,21 @@ def varify():
 
 
 def varify2():
-    sampled_task_lists = ['soccer-v1', 'drawer-open-v1', 'button-press-topdown-v1']
-    full_suit_task_lists = ['faucet-open-v1', 'faucet-close-v1',
-                            'lever-pull-v1', 'stick-push-v1',
-                            'handle-pull-side-v1', 'stick-pull-v1',
-                            'disassemble-v1', 'coffee-push-v1', 'hammer-v1',
-                            'plate-slide-side-v1', 'handle-press-v1',
-                            'soccer-v1', 'plate-slide-back-v1',
-                            'button-press-topdown-v1',
-                            'button-press-topdown-wall-v1',
-                            'peg-insert-side-v1', 'push-wall-v1',
-                            'button-press-v1', 'coffee-pull-v1',
-                            'window-close-v1', 'door-open-v1',
-                            'drawer-open-v1', 'box-close-v1', 'door-unlock-v1', 'basketball-v1']
+    full_suit_task_lists = get_metaworld_task_list("EVEN")
 
-    valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
+    # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
     # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
 
     # valid_repo_list = ['pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
     # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce', 'pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
-    # valid_repo_list = ['curlw_env_2x_reduce', 'pearl_env_2x_reduce']
+    valid_repo_list = ['tcl_pearl_new_env_no_reduce','tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_4x_reduce', 'rl2_ppo_new_mb_10']
+
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.99, top=0.96,
                         wspace=0.20, hspace=0.40)
     repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list,
-                                     num_seeds=5, row=row, col=col, limit=-1,
+                                     num_seeds=3, row=row, col=col, limit=-1,
                                      backward_smooth_window=2, env_step_limit=1000000,
                                      plot=True)
     make_report(repo_stats, valid_repo_list)
@@ -292,7 +283,29 @@ def varify2():
 
 
 def process():
-    stuff = ""
+    stuff = "box-close-v1: 1 windows (created Tue Jan  5 15:48:38 2021) [127x71]\n\
+button-press-topdown-v1: 1 windows (created Tue Jan  5 15:47:07 2021) [120x34]\n\
+button-press-topdown-wall-v1: 1 windows (created Tue Jan  5 15:47:35 2021) [120x34]\n\
+button-press-v1: 1 windows (created Tue Jan  5 15:48:01 2021) [127x71]\n\
+coffee-pull-v1: 1 windows (created Tue Jan  5 15:48:09 2021) [127x71]\n\
+coffee-push-v1: 1 windows (created Sat Jan  9 10:05:55 2021) [120x34]\n\
+disassemble-v1: 1 windows (created Sat Jan  9 10:05:41 2021) [120x34]\n\
+door-open-v1: 1 windows (created Tue Jan  5 15:48:23 2021) [120x34]\n\
+door-unlock-v1: 1 windows (created Tue Jan  5 15:48:46 2021) [120x34]\n\
+drawer-open-v1: 1 windows (created Tue Jan  5 15:48:31 2021) [125x71]\n\
+hammer-v1: 1 windows (created Sat Jan  9 10:06:13 2021) [120x34]\n\
+handle-press-v1: 1 windows (created Sat Jan  9 00:29:13 2021) [120x34]\n\
+handle-pull-side-v1: 1 windows (created Sat Jan  9 10:05:07 2021) [120x34]\n\
+lever-pull-v1: 1 windows (created Sun Jan 10 23:04:44 2021) [125x71]\n\
+peg-insert-side-v1: 1 windows (created Tue Jan  5 15:47:45 2021) [120x34]\n\
+plate-slide-back-v1: 1 windows (created Fri Jan  8 00:09:32 2021) [120x34]\n\
+plate-slide-side-v1: 1 windows (created Sat Jan  9 00:28:50 2021) [120x34]\n\
+push-wall-v1: 1 windows (created Tue Jan  5 15:47:53 2021) [120x34]\n\
+soccer-v1: 1 windows (created Fri Jan  8 12:22:26 2021) [120x34]\n\
+stick-pull-v1: 1 windows (created Sat Jan  9 10:05:22 2021) [120x34]\n\
+stick-push-v1: 1 windows (created Sat Jan  9 10:04:50 2021) [120x34]\n\
+window-close-v1: 1 windows (created Tue Jan  5 15:48:16 2021) [127x71]\n\
+"
 
     for line in stuff.split('\n'):
         env = line.split(':')[0]
@@ -351,10 +364,16 @@ At 1200000 steps, score list: [5, 7, 4, 2, 1, 0, 0, 0, 6, 0]
 
 """
 
+def even_envs():
+    for name in get_metaworld_task_list("EVEN"):
+        print(name)
+
 if __name__ == '__main__':
-    # varify()
+    varify()
     # plot_manually()
 
-    varify2()
+    # even_envs()
+
+    # varify2()
     # process()
     # simple_draw()
