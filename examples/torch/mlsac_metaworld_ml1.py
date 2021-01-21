@@ -110,7 +110,7 @@ def mlsac_metaworld_ml1(ctxt=None, *, seed, timesteps, _gpu, name, prefix):
         set_gpu_mode(True, _gpu)
     mlsac.to()
     trainer.setup(algo=mlsac, env=train_envs)
-    trainer.train(n_epochs=epochs, batch_size=batch_size)
+    trainer.train(n_epochs=126, batch_size=batch_size)
 
 
 # pylint: disable=missing-kwoa

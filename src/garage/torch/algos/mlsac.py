@@ -217,7 +217,6 @@ class MLSAC(SAC):
                     self._max_episode_length_eval,
                     num_eps=self._num_evaluation_episodes,
                     deterministic=self._use_deterministic_evaluation))
-        print('len ', len(eval_eps))
         eval_eps = EpisodeBatch.concatenate(*eval_eps)
         last_return = log_multitask_performance(epoch, eval_eps,
                                                 self._discount)
