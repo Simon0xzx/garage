@@ -1,0 +1,8 @@
+{
+  "name": "push-back-v1",
+  "prefix": "maml_trpo",
+  "seed": 0,
+  "epochs": 300,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}

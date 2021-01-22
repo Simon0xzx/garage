@@ -1,0 +1,7 @@
+{
+  "env_name": "door-close-v1",
+  "seed": 766,
+  "epochs": 300,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}

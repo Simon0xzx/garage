@@ -1,0 +1,8 @@
+{
+  "name": "sweep-v1",
+  "seed": 2,
+  "prefix": "maml_trpo",
+  "epochs": 50,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}

@@ -1,0 +1,7 @@
+{
+  "env_name": "plate-slide-back-side-v1",
+  "seed": 202,
+  "epochs": 300,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}

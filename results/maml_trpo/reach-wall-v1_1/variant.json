@@ -1,0 +1,7 @@
+{
+  "env_name": "reach-wall-v1",
+  "seed": 723,
+  "epochs": 300,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}

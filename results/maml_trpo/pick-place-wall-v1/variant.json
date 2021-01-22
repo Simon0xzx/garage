@@ -1,0 +1,6 @@
+{
+  "seed": 383,
+  "epochs": 300,
+  "rollouts_per_task": 10,
+  "meta_batch_size": 20
+}
