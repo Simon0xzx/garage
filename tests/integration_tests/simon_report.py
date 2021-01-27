@@ -263,11 +263,6 @@ def varify():
 def varify2():
     full_suit_task_lists = get_metaworld_task_list("EVEN")
 
-    # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'pearl-no-reduce', 'pearl-2x-reduce', 'pearl-4x-reduce', 'pearl-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
-    # valid_repo_list = ['tcl-pearl-w-no-reduce', 'tcl-pearl-w-2x-reduce', 'tcl-pearl-w-4x-reduce', 'tcl-pearl-w-8x-reduce', 'rl2_ppo_meta_batch_10', 'rl2_ppo_meta_batch_50']
-
-    # valid_repo_list = ['pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
-    # valid_repo_list = ['curl_wasserstein_2', 'curlw_env_2x_reduce', 'curlw_env_4x_reduce', 'curlw_env_8x_reduce', 'pearl', 'pearl_env_2x_reduce', 'pearl_env_4x_reduce', 'pearl_env_8x_reduce']
     valid_repo_list = ['tcl_pearl_new_env_no_reduce','tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_4x_reduce', 'rl2_ppo_new_mb_10']
 
     row, col = 5, 5
@@ -283,30 +278,7 @@ def varify2():
 
 
 def process():
-    stuff = "box-close-v1: 1 windows (created Tue Jan  5 15:48:38 2021) [127x71]\n\
-button-press-topdown-v1: 1 windows (created Tue Jan  5 15:47:07 2021) [120x34]\n\
-button-press-topdown-wall-v1: 1 windows (created Tue Jan  5 15:47:35 2021) [120x34]\n\
-button-press-v1: 1 windows (created Tue Jan  5 15:48:01 2021) [127x71]\n\
-coffee-pull-v1: 1 windows (created Tue Jan  5 15:48:09 2021) [127x71]\n\
-coffee-push-v1: 1 windows (created Sat Jan  9 10:05:55 2021) [120x34]\n\
-disassemble-v1: 1 windows (created Sat Jan  9 10:05:41 2021) [120x34]\n\
-door-open-v1: 1 windows (created Tue Jan  5 15:48:23 2021) [120x34]\n\
-door-unlock-v1: 1 windows (created Tue Jan  5 15:48:46 2021) [120x34]\n\
-drawer-open-v1: 1 windows (created Tue Jan  5 15:48:31 2021) [125x71]\n\
-hammer-v1: 1 windows (created Sat Jan  9 10:06:13 2021) [120x34]\n\
-handle-press-v1: 1 windows (created Sat Jan  9 00:29:13 2021) [120x34]\n\
-handle-pull-side-v1: 1 windows (created Sat Jan  9 10:05:07 2021) [120x34]\n\
-lever-pull-v1: 1 windows (created Sun Jan 10 23:04:44 2021) [125x71]\n\
-peg-insert-side-v1: 1 windows (created Tue Jan  5 15:47:45 2021) [120x34]\n\
-plate-slide-back-v1: 1 windows (created Fri Jan  8 00:09:32 2021) [120x34]\n\
-plate-slide-side-v1: 1 windows (created Sat Jan  9 00:28:50 2021) [120x34]\n\
-push-wall-v1: 1 windows (created Tue Jan  5 15:47:53 2021) [120x34]\n\
-soccer-v1: 1 windows (created Fri Jan  8 12:22:26 2021) [120x34]\n\
-stick-pull-v1: 1 windows (created Sat Jan  9 10:05:22 2021) [120x34]\n\
-stick-push-v1: 1 windows (created Sat Jan  9 10:04:50 2021) [120x34]\n\
-window-close-v1: 1 windows (created Tue Jan  5 15:48:16 2021) [127x71]\n\
-"
-
+    stuff = ''
     for line in stuff.split('\n'):
         env = line.split(':')[0]
         statement = "sudo tmux kill-session -t {}".format(env)
@@ -369,11 +341,11 @@ def even_envs():
         print(name)
 
 if __name__ == '__main__':
-    varify()
+    # varify()
     # plot_manually()
 
     # even_envs()
 
     # varify2()
-    # process()
+    process()
     # simple_draw()
