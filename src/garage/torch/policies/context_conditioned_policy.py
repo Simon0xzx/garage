@@ -57,6 +57,9 @@ class ContextConditionedPolicy(nn.Module):
 
         self.reset_belief()
 
+    def reset(self):
+        self.reset_belief()
+
     def reset_belief(self, num_tasks=1):
         r"""Reset :math:`q(z \| c)` to the prior and sample a new z from the prior.
 

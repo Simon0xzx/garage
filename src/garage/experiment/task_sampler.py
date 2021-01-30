@@ -141,6 +141,9 @@ class SetTaskSampler(TaskSampler):
         """int or None: The number of tasks if known and finite."""
         return getattr(self._env, 'num_tasks', None)
 
+    def sample_env(self, n_tasks, with_replacement=False):
+        return [task for task in self._env.sample_tasks(n_tasks)]
+
     def sample(self, n_tasks, with_replacement=False):
         """Sample a list of environment updates.
 

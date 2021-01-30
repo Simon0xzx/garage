@@ -366,6 +366,9 @@ class PEARLSAC2(MetaRLAlgorithm):
             self._policy.reset_belief()
             self._evaluator.evaluate(self)
 
+    def reset(self):
+        self._policy.reset_belief()
+
     def train(self, runner):
         """Obtain samples, train, and evaluate for each epoch.
 

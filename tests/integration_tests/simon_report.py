@@ -61,8 +61,8 @@ def get_data_repos():
     'tcl_pearl_new_env_4x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_4x_reduce', 'tcl_pearl_4x_reduce'),
     'tcl_pearl_new_env_2x_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_2x_reduce', 'tcl_pearl_2x_reduce'),
     'tcl_pearl_new_env_no_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_no_reduce','tcl_pearl_no_reduce'),
-    'rl2_ppo_new_mb_10': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_new_mb_10', 'rl2_ppo_new_mb_10')
-
+    'rl2_ppo_new_mb_10': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_new_mb_10', 'rl2_ppo_new_mb_10'),
+    'pearl_new_env_no_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_new_env_no_reduce', 'pearl_new_env_no_reduce')
     }
     return data_repo
 
@@ -263,7 +263,7 @@ def varify():
 def varify2():
     full_suit_task_lists = get_metaworld_task_list("EVEN")
 
-    valid_repo_list = ['tcl_pearl_new_env_no_reduce','tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_4x_reduce', 'rl2_ppo_new_mb_10']
+    valid_repo_list = ['tcl_pearl_new_env_no_reduce', 'pearl_new_env_no_reduce']
 
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
@@ -346,6 +346,6 @@ if __name__ == '__main__':
 
     # even_envs()
 
-    # varify2()
-    process()
+    varify2()
+    # process()
     # simple_draw()
