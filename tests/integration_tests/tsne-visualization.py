@@ -97,12 +97,14 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
             else:
                 z = task_rep[:, :7].cpu().detach().numpy()
             encoder_sample.extend(z)
-            label.extend([task_idx] * len(z))
+            label.extend([task_idx]* len(z))
 
     encoder_sample = np.array(encoder_sample)
     label = np.array(label)
-    np.savetxt('/home/simon0xzx/research/berkely_research/tsne-pytorch/data/{}_data.txt'.format(path_label), encoder_sample)
-    np.savetxt('/home/simon0xzx/research/berkely_research/tsne-pytorch/data/{}_label.txt'.format(path_label), label)
+    assert encoder_sample.shape[0] == label.shape[0]
+    suffix = "dist" if sample_from_dist else "data"
+    np.savetxt('/home/simon0xzx/research/garage/data/tsne_data/{}_{}.txt'.format(path_label, suffix), encoder_sample)
+    np.savetxt('/home/simon0xzx/research/garage/data/tsne_data/{}_label.txt'.format(path_label), label)
     print('DONE')
 
 """
@@ -120,14 +122,15 @@ def generate_toy_data():
     ]
     z = [d.rsample().cpu().detach().numpy() for d in posteriors]
 
-    np.savetxt( '/home/simon0xzx/research/berkely_research/tsne-pytorch/data/toy_x.txt', z)
-    np.savetxt( '/home/simon0xzx/research/berkely_research/tsne-pytorch/data/toy_label.txt', label)
+    np.savetxt('/home/simon0xzx/research/berkely_research/tsne-pytorch/data/toy_x.txt', z)
+    np.savetxt('/home/simon0xzx/research/berkely_research/tsne-pytorch/data/toy_label.txt', label)
     print('DONE')
 
 
 if __name__ == "__main__":
-    tcl_pearl_dir = '/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_no_reduce/window-open-v1_2'
-    pearl_dir = '/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_new_env_no_reduce/window-open-v1'
+    pearl_dir = '/home/simon0xzx/research/garage/data/tsne_data/pearl-window-open-v1'
+    tcl_pearl_dir = '/home/simon0xzx/research/garage/data/tsne_data/tcl-pearl-window-open-v1'
+    # tcl_pearl_dir = '/home/simon0xzx/research/garage/data/local/tcl_pearl_new_env_no_reduce/sweep-v1'
     tsne_data_collection(tcl_pearl_dir)
-    tsne_data_collection(pearl_dir)
+    # tsne_data_collection(pearl_dir)
 
