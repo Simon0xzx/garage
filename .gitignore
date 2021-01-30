@@ -154,3 +154,9 @@ garage/config_personal.py
 sandbox/
 MUJOCO_LOG.TXT
 *.pkl
+events.out.tfevents
+experiment.json
+metadata.json
+launch_archive.tar.xz
+.simon0xzx
+events.out.tfevents.*
