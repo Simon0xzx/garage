@@ -109,6 +109,7 @@ def rollout(env,
     env_steps = []
     agent_infos = []
     observations = []
+    next_observations = []
     last_obs, episode_infos = env.reset()
     agent.reset()
     episode_length = 0
@@ -123,6 +124,7 @@ def rollout(env,
         es = env.step(a)
         env_steps.append(es)
         observations.append(last_obs)
+        next_observations.append(es.observation)
         agent_infos.append(agent_info)
         episode_length += 1
         if es.last:
@@ -132,6 +134,7 @@ def rollout(env,
     return dict(
         episode_infos=episode_infos,
         observations=np.array(observations),
+        next_observations = np.array(next_observations),
         actions=np.array([es.action for es in env_steps]),
         rewards=np.array([es.reward for es in env_steps]),
         agent_infos=stack_tensor_dict_list(agent_infos),

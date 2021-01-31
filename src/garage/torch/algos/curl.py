@@ -539,7 +539,8 @@ class CURL(MetaRLAlgorithm):
 
             wasserstein_distance = mean_dist + var_dist
             wasserstein_distance = wasserstein_distance - torch.max(wasserstein_distance, axis=1)[0]
-            labels = torch.arange(wasserstein_distance.shape[0]).to(global_device())
+            labels = torch.as_tensor(np.repeat(indices[None], self._embedding_batch_size, axis=1).flatten(), device=global_device())
+            # labels = torch.arange(wasserstein_distance.shape[0]).to(global_device())
             # Using negative wasserstein distance for lower distance means more similar
             loss = loss_fun(-wasserstein_distance, labels)
         else:

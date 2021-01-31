@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
 import argparse
 import torch
 
@@ -30,6 +30,21 @@ def Hbeta_torch(D, beta=1.0):
 
     return H, P
 
+"""
+Wasserstein Distance
+"""
+def distance_function(X):
+    mean = X[:, :7]
+    var = X[:, 7:]
+
+    mean_sum = torch.sum(mean * mean, 1)
+    d_mean = torch.add(torch.add(-2 * torch.mm(mean, mean.t()), mean_sum).t(), mean_sum)
+
+    var_sum = torch.sum(var * var, 1)
+    d_var = torch.add(torch.add(-2 * torch.mm(var, var.t()), var_sum).t(), var_sum)
+
+    pair_wise_distance = d_mean + d_var
+    return pair_wise_distance
 
 def x2p_torch(X, tol=1e-5, perplexity=30.0):
     """
@@ -41,8 +56,9 @@ def x2p_torch(X, tol=1e-5, perplexity=30.0):
     print("Computing pairwise distances...")
     (n, d) = X.shape
 
-    sum_X = torch.sum(X*X, 1)
-    D = torch.add(torch.add(-2 * torch.mm(X, X.t()), sum_X).t(), sum_X)
+    # sum_X = torch.sum(X*X, 1)
+    # D = torch.add(torch.add(-2 * torch.mm(X, X.t()), sum_X).t(), sum_X)
+    D = distance_function(X)
 
     P = torch.zeros(n, n)
     beta = torch.ones(n, 1)
@@ -185,8 +201,8 @@ def tsne(X, no_dims=2, initial_dims=50, perplexity=30.0):
 
 if __name__ == "__main__":
     print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE on your dataset.")
-    xfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/tcl_pearl_new_env_no_reduce-sweep-v1_data.txt"
-    yfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/tcl_pearl_new_env_no_reduce-sweep-v1_label.txt"
+    xfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-sweep-v1_data.txt"
+    yfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-sweep-v1_label.txt"
     X = np.loadtxt(xfile)
     X = torch.Tensor(X)
     labels = np.loadtxt(yfile).tolist()
@@ -197,18 +213,14 @@ if __name__ == "__main__":
     assert(len(X)==len(labels))
 
     with torch.no_grad():
-        Y = tsne(X, 2, 50, 20.0)
+        Y = tsne(X, 2, 14, 20.)
 
     if opt.cuda:
         Y = Y.cpu().numpy()
 
-    # You may write result in two files
-    # print("Save Y values in file")
-    # Y1 = open("y1.txt", 'w')
-    # Y2 = open('y2.txt', 'w')
-    # for i in range(Y.shape[0]):
-    #     Y1.write(str(Y[i,0])+"\n")
-    #     Y2.write(str(Y[i,1])+"\n")
-
-    pyplot.scatter(Y[:, 0], Y[:, 1], 20, labels)
-    pyplot.show()
+    plot_x, plot_y = Y[:, 0], Y[:, 1]
+    save_file_name = xfile.split("/")[-1].split(".")[0]
+    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/{}_X20.txt".format(save_file_name), plot_x)
+    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/{}_Y20.txt".format(save_file_name), plot_y)
+    plt.scatter(Y[:, 0], Y[:, 1], 20,labels )
+    plt.show()
