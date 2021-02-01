@@ -68,7 +68,7 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
         print('building replay buffers for task: {}'.format(task_idx))
         for _ in range(1):
             origin_env.set_task(env)
-            path = rollout(origin_env, policy, max_episode_length=10000, animated=False)
+            path = rollout(origin_env, policy, max_episode_length=10000, animated=True)
             terminations = np.array(
                 [step_type == StepType.TERMINAL for step_type in
                  path['dones']]).reshape(-1, 1)
@@ -98,7 +98,7 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
             context = np.hstack((context, no))  # Optional
             context_tensor = torch.as_tensor(context, device=global_device()).float()
             policy.infer_posterior(context_tensor)
-            path = rollout(origin_env, policy, max_episode_length=10000, animated=False)
+            path = rollout(origin_env, policy, max_episode_length=10000, animated=True)
             terminations = np.array(
                 [step_type == StepType.TERMINAL for step_type in
                  path['dones']]).reshape(-1, 1)
@@ -137,26 +137,36 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
     print('DONE')
 
 def plot_graph():
-    tcl_pearl_x_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/tcl-pearl-window-open-v1_data_X2.txt"
-    tcl_pearl_y_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/tcl-pearl-window-open-v1_data_Y2.txt"
-    tcl_pearl_label_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl-pearl-window-open-v1_label.txt"
+    tcl_pearl_x_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/tcl-pearl-push-v1_data_task.txt_X20.txt"
+    tcl_pearl_y_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/tcl-pearl-push-v1_data_task.txt_Y20.txt"
+    tcl_pearl_label_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample2/tcl-pearl-push-v1_label_task_0.txt"
     tcl_pearl_x = np.loadtxt(tcl_pearl_x_file)
     tcl_pearl_y = np.loadtxt(tcl_pearl_y_file)
-    tcl_pearl_labels = np.loadtxt(tcl_pearl_label_file).tolist()
+    # tcl_pearl_labels = np.loadtxt(tcl_pearl_label_file).tolist()
 
-    pearl_x_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/pearl-window-open-v1_data_X.txt"
-    pearl_y_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/pearl-window-open-v1_data_Y.txt"
-    pearl_label_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/pearl-window-open-v1_label.txt"
+    pearl_x_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/pearl-push-v1_data_task.txt_X20.txt"
+    pearl_y_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/pearl-push-v1_data_task.txt_Y20.txt"
+    pearl_label_file = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample2/pearl-push-v1_label_task_0.txt"
     pearl_x = np.loadtxt(pearl_x_file)
     pearl_y = np.loadtxt(pearl_y_file)
-    pearl_labels = np.loadtxt(pearl_label_file).tolist()
+    # pearl_labels = np.loadtxt(pearl_label_file).tolist()
+
+    labels = []
+    for i in range(5):
+        labels.extend([i] * 100)
 
     fig, axs = plt.subplots(1, 2)
     axs[0].set_title("T-SNE Encoder Space of TCL-Pearl")
-    axs[0].scatter(tcl_pearl_x, tcl_pearl_y, 10, tcl_pearl_labels)
     axs[1].set_title("T-SNE Encoder Space of Pearl")
-    axs[1].scatter(pearl_x, pearl_y, 10, pearl_labels)
 
+    for i in range(5):
+        axs[0].scatter(tcl_pearl_x[i*100: (i+1)*100], tcl_pearl_y[i*100: (i+1)*100], label="Task {}".format(i+1))
+        axs[1].scatter(pearl_x[i * 100: (i + 1) * 100], pearl_y[i * 100: (i + 1) * 100], label="Task {}".format(i + 1))
+
+
+
+    axs[0].legend()
+    axs[1].legend()
     plt.show()
 
 """
@@ -182,6 +192,7 @@ def generate_toy_data():
 def generate_tsne_sample():
     model_dir = '/home/simon0xzx/research/berkely_research/garage/data/tsne_data/pearl/push-v1'
     # model_dir = '/home/simon0xzx/research/berkely_research/garage/data/tsne_data/tcl-pearl/push-v1'
+    model_dir = "/home/simon0xzx/research/berkely_research/garage/data/local/tcl_pearl_multi_obs_no_kl/push-v1"
     tsne_data_collection(model_dir)
 
 

@@ -56,9 +56,9 @@ def x2p_torch(X, tol=1e-5, perplexity=30.0):
     print("Computing pairwise distances...")
     (n, d) = X.shape
 
-    # sum_X = torch.sum(X*X, 1)
-    # D = torch.add(torch.add(-2 * torch.mm(X, X.t()), sum_X).t(), sum_X)
-    D = distance_function(X)
+    sum_X = torch.sum(X*X, 1)
+    D = torch.add(torch.add(-2 * torch.mm(X, X.t()), sum_X).t(), sum_X)
+    # D = distance_function(X)
 
     P = torch.zeros(n, n)
     beta = torch.ones(n, 1)
@@ -201,11 +201,19 @@ def tsne(X, no_dims=2, initial_dims=50, perplexity=30.0):
 
 if __name__ == "__main__":
     print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE on your dataset.")
-    xfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-reach-v1_data.txt"
-    yfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-reach-v1_label.txt"
-    X = np.loadtxt(xfile)
+    data_root = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample2"
+    xfile = "pearl-push-v1_data_task.txt"
+
+    X = []
+    label = []
+    for t in range(5):
+        x = np.loadtxt("{}/pearl-push-v1_data_task_{}.txt".format(data_root, t))
+        X.extend(x)
+        label.extend([t] * len(x))
+
+
     X = torch.Tensor(X)
-    labels = np.loadtxt(yfile).tolist()
+    labels = torch.Tensor(label)
 
     # confirm that x file get same number point than label file
     # otherwise may cause error in scatter
@@ -220,7 +228,7 @@ if __name__ == "__main__":
 
     plot_x, plot_y = Y[:, 0], Y[:, 1]
     save_file_name = xfile.split("/")[-1].split(".")[0]
-    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/{}_X20.txt".format(save_file_name), plot_x)
-    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot/{}_Y20.txt".format(save_file_name), plot_y)
-    plt.scatter(Y[:, 0], Y[:, 1], 20,labels )
+    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/{}_X20.txt".format(xfile), plot_x)
+    np.savetxt("/home/simon0xzx/research/berkely_research/garage/data/tsne_data/data_plot2/{}_Y20.txt".format(xfile), plot_y)
+    plt.scatter(Y[:, 0], Y[:, 1], 20, label)
     plt.show()

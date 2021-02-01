@@ -263,9 +263,9 @@ def varify():
 
 
 def varify2():
-    full_suit_task_lists = get_metaworld_task_list("EVEN")
+    full_suit_task_lists = get_metaworld_task_list("ODD")
 
-    valid_repo_list = ['tcl_pearl_new_env_no_reduce', 'pearl_new_env_no_reduce', 'tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_multi_step']
+    valid_repo_list = ['tcl-pearl-w-no-reduce', 'pearl-no-reduce']
 
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
@@ -339,7 +339,7 @@ At 1200000 steps, score list: [5, 7, 4, 2, 1, 0, 0, 0, 6, 0]
 """
 
 def even_envs():
-    for name in get_metaworld_task_list("EVEN"):
+    for name in get_metaworld_task_list("ODD"):
         print(name)
 
 if __name__ == '__main__':

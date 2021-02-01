@@ -13,7 +13,7 @@ exp_id,task_name
 12, assembly-v1
 13, stick-pull-v1
 14, pick-out-of-hole-v1
-15, dissassemble-v1
+15, disassemble-v1
 16, shelf-place-v1
 17, coffee-push-v1
 18, handle-press-side-v1
