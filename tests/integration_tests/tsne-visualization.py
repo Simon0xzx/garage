@@ -11,6 +11,8 @@ from garage.torch import set_gpu_mode
 from garage.replay_buffer import PathBuffer
 from garage.experiment.task_sampler import SetTaskSampler
 from garage.torch import global_device
+from garage import wrap_experiment
+from garage.trainer import Trainer
 
 def augment_path(path, batch_size, in_sequence=False):
     path_len = path['actions'].shape[0]
@@ -58,15 +60,13 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
                                  env=train_env,
                                  wrapper=lambda env, _: normalize(env))
     env_set = env_sampler.sample_env(sample_env_size)
-    replay_buffers = {
-        i: PathBuffer(replay_buffer_size)
-        for i in range(sample_env_size)
-    }
+    replay_buffers = PathBuffer(replay_buffer_size)
+    adapt_replay_buffers = PathBuffer(replay_buffer_size)
 
+    print("Task Exploration...")
     for task_idx, env in enumerate(env_set):
         print('building replay buffers for task: {}'.format(task_idx))
-        for _ in range(num_path_rollout):
-            print("Sampling path {}/{}".format(_+1, num_path_rollout))
+        for _ in range(1):
             origin_env.set_task(env)
             path = rollout(origin_env, policy, max_episode_length=10000, animated=False)
             terminations = np.array(
@@ -79,12 +79,42 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
                 'rewards': path['rewards'].reshape(-1, 1),
                 'dones': terminations
             }
-            replay_buffers[task_idx].add_path(p)
+            adapt_replay_buffers.add_path(p)
+
+    print("Actual Task Rollout...")
+    for task_idx, env in enumerate(env_set):
+        print('building replay buffers for task: {}'.format(task_idx))
+        for _ in range(10):
+            print("Sampling path {}/{}".format(_+1, num_path_rollout))
+            origin_env.set_task(env)
+
+            path = adapt_replay_buffers.sample_path()
+            batch = augment_path(path, 64, in_sequence=True)
+            o = batch['observations']
+            a = batch['actions']
+            r = batch['rewards']
+            no = batch['next_observations']
+            context = np.hstack((np.hstack((o, a)), r))
+            context = np.hstack((context, no))  # Optional
+            context_tensor = torch.as_tensor(context, device=global_device()).float()
+            policy.infer_posterior(context_tensor)
+            path = rollout(origin_env, policy, max_episode_length=10000, animated=False)
+            terminations = np.array(
+                [step_type == StepType.TERMINAL for step_type in
+                 path['dones']]).reshape(-1, 1)
+            p = {
+                'observations': path['observations'],
+                'next_observations': path['next_observations'],
+                'actions': path['actions'],
+                'rewards': path['rewards'].reshape(-1, 1),
+                'dones': terminations
+            }
+            replay_buffers.add_path(p)
 
     encoder_sample, label = [], []
 
     for task_idx, env in enumerate(env_set):
-        path = replay_buffers[task_idx].sample_path()
+        path = replay_buffers.sample_path()
         for _ in range(10):
             batch = augment_path(path, 64, in_sequence=True)
             o = batch['observations']
@@ -92,27 +122,18 @@ def tsne_data_collection(model_dir, sample_env_size = 10, num_path_rollout=1, re
             r = batch['rewards']
             no = batch['next_observations']
             context = np.hstack((np.hstack((o, a)), r))
-            context = np.hstack((context, no))
+            context = np.hstack((context, no)) # Optional
             context_tensor = torch.as_tensor(context, device=global_device()).float()
-            task_rep = contrastive_encoder(context_tensor)
-
-            posteriors = [
-                torch.distributions.Normal(m, torch.sqrt(s)) for m, s in zip(
-                    torch.unbind(task_rep[:, :7]), torch.unbind(task_rep[:, 7:].pow(2)))
-            ]
-            if sample_from_dist:
-                z = [d.rsample().cpu().detach().numpy() for d in posteriors]
-            else:
-                z = task_rep.cpu().detach().numpy()
-            encoder_sample.extend(z)
-            label.extend([task_idx] * len(z))
+            policy.infer_posterior(context_tensor)
+            encoder_sample.extend(policy.z)
+            label.extend([task_idx] * len(policy.z))
 
     encoder_sample = np.array(encoder_sample)
     label = np.array(label)
     assert encoder_sample.shape[0] == label.shape[0]
     suffix = "dist" if sample_from_dist else "data"
-    np.savetxt('/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/{}_{}.txt'.format(path_label, suffix), encoder_sample)
-    np.savetxt('/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/{}_label.txt'.format(path_label), label)
+    np.savetxt('/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample2/{}_{}_task_0.txt'.format(path_label, suffix), encoder_sample)
+    np.savetxt('/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample2/{}_label_task_0.txt'.format(path_label), label)
     print('DONE')
 
 def plot_graph():
@@ -159,11 +180,13 @@ def generate_toy_data():
 
 
 def generate_tsne_sample():
-    # pearl_dir = '/home/simon0xzx/research/garage/data/tsne_data/pearl/window-open-v1'
-    # tcl_pearl_dir = '/home/simon0xzx/research/berkely_research/garage/data/tsne_data/param/tcl-pearl/window-open-v1'
-    tcl_pearl_dir = '/home/simon0xzx/research/berkely_research/garage/data/local/tcl_pearl_multi_obs_no_kl/sweep-v1'
-    tsne_data_collection(tcl_pearl_dir)
-    # tsne_data_collection(pearl_dir)
+    model_dir = '/home/simon0xzx/research/berkely_research/garage/data/tsne_data/pearl/push-v1'
+    # model_dir = '/home/simon0xzx/research/berkely_research/garage/data/tsne_data/tcl-pearl/push-v1'
+    tsne_data_collection(model_dir)
+
+
+
+
 
 if __name__ == "__main__":
     generate_tsne_sample()

@@ -201,8 +201,8 @@ def tsne(X, no_dims=2, initial_dims=50, perplexity=30.0):
 
 if __name__ == "__main__":
     print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE on your dataset.")
-    xfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-sweep-v1_data.txt"
-    yfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-sweep-v1_label.txt"
+    xfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-reach-v1_data.txt"
+    yfile = "/home/simon0xzx/research/berkely_research/garage/data/tsne_data/sample/tcl_pearl_multi_obs_no_kl-reach-v1_label.txt"
     X = np.loadtxt(xfile)
     X = torch.Tensor(X)
     labels = np.loadtxt(yfile).tolist()

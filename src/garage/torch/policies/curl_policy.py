@@ -85,6 +85,7 @@ class CurlPolicy(nn.Module):
             ]
             z = [d.rsample() for d in posteriors]
             self.z = torch.stack(z)
+            self.z = torch.mean(self.z, axis=0)[None]
         else:
             self.z = self.z_means
 

@@ -63,6 +63,7 @@ def get_data_repos():
     'tcl_pearl_new_env_no_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_no_reduce','tcl_pearl_no_reduce'),
     'rl2_ppo_new_mb_10': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/rl2_ppo_new_mb_10', 'rl2_ppo_new_mb_10'),
     'pearl_new_env_no_reduce': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/pearl_new_env_no_reduce', 'pearl_new_env_no_reduce'),
+    'tcl_pearl_new_env_multi_step': ('/home/simon0xzx/research/berkely_research/garage/data/result_suits/tcl_pearl_new_env_2x_reduce_multi_step', 'tcl_pearl_new_env_multi_step'),
     'tcl_pearl_multi_obs_no_kl': ('/home/simon0xzx/research/berkely_research/garage/data/local/tcl_pearl_multi_obs_no_kl', 'tcl_pearl_multi_obs_no_kl')
     }
     return data_repo
@@ -264,7 +265,7 @@ def varify():
 def varify2():
     full_suit_task_lists = get_metaworld_task_list("EVEN")
 
-    valid_repo_list = ['tcl_pearl_new_env_no_reduce', 'pearl_new_env_no_reduce', 'tcl_pearl_multi_obs_no_kl']
+    valid_repo_list = ['tcl_pearl_new_env_no_reduce', 'pearl_new_env_no_reduce', 'tcl_pearl_new_env_2x_reduce', 'tcl_pearl_new_env_multi_step']
 
     row, col = 5, 5
     fig, axs = plt.subplots(row, col)
@@ -272,7 +273,7 @@ def varify2():
                         wspace=0.20, hspace=0.40)
     repo_stats = metaworld_ml1_graph(axs, full_suit_task_lists, valid_repo_list,
                                      num_seeds=3, row=row, col=col, limit=-1,
-                                     backward_smooth_window=2, env_step_limit=1000000,
+                                     backward_smooth_window=2, env_step_limit=1500000,
                                      plot=True)
     make_report(repo_stats, valid_repo_list)
     plt.show()
